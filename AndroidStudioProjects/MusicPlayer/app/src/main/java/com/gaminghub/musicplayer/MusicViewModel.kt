@@ -24,7 +24,7 @@ import com.gaminghub.musicplayer.data.toEntity
 import com.gaminghub.musicplayer.data.toModel
 import org.schabi.newpipe.extractor.ServiceList
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
-import org.schabi.newpipe.extractor.exceptions.ContentNotAvailableException
+import com.gaminghub.musify.util.StreamExtractionManager
 import java.util.concurrent.TimeUnit
 
 @UnstableApi
@@ -125,7 +125,10 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     private var exoPlayerRetryCount = 0
     private val MAX_RETRIES = 3
 
+    private val youtubeRepository = com.gaminghub.musify.data.repository.YouTubeRepository()
+
     init {
+        _trendingTracks.value = getFallbackTracks()
         initializeController()
         fetchTrendingMusic()
         startProgressUpdater()
@@ -276,50 +279,89 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 Log.d(tag, "Fetching music for: $term")
                 _isLoading.value = true
-                val service = ServiceList.YouTube
-                val searchExtractor = service.getSearchExtractor(term)
-                searchExtractor.fetchPage()
-
-                val items = searchExtractor.initialPage.items
-                Log.d(tag, "Fetched ${items.size} items for: $term")
-
-                val mappedTracks = items.filterIsInstance<StreamInfoItem>().map { item ->
+                val results = youtubeRepository.fetchMusic(term, com.gaminghub.musify.data.repository.SearchSource.YOUTUBE)
+                
+                val mappedTracks = results.map { item ->
                     TrackModel(
-                        title = item.name,
-                        artist = item.uploaderName,
-                        audioUrl = item.url,
-                        albumArtUrl = item.thumbnails.firstOrNull()?.url
+                        title = item.title,
+                        artist = item.artist,
+                        audioUrl = item.audioUrl,
+                        albumArtUrl = item.albumArtUrl,
+                        album = item.album,
+                        genre = item.genre
                     )
                 }
-
-                Log.d(tag, "Mapped ${mappedTracks.size} tracks for: $term")
-
+                
                 withContext(Dispatchers.Main) {
-                    stateFlow.value = mappedTracks
-                    // If result is empty and it was trending, try fallback keywords
-                    if (mappedTracks.isEmpty() && term == "trending music") {
-                        fetchMusic("popular songs", _trendingTracks)
+                    if (mappedTracks.isNotEmpty()) {
+                        stateFlow.value = mappedTracks
                     }
                 }
             } catch (e: Exception) {
                 Log.e(tag, "Error fetching music for $term: ${e.message}", e)
-                // Try fallback for trending if error occurs
-                if (term == "trending music") {
-                    delay(2000)
-                    fetchMusic("popular music", _trendingTracks)
-                }
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
+    private fun getFallbackTracks(): List<TrackModel> = listOf(
+        TrackModel(
+            title = "Blinding Lights",
+            artist = "The Weeknd",
+            audioUrl = "https://www.youtube.com/watch?v=4NRXx6U8ABQ",
+            albumArtUrl = "https://i.ytimg.com/vi/4NRXx6U8ABQ/maxresdefault.jpg"
+        ),
+        TrackModel(
+            title = "Shape of You",
+            artist = "Ed Sheeran",
+            audioUrl = "https://www.youtube.com/watch?v=JGwWNGJdvx8",
+            albumArtUrl = "https://i.ytimg.com/vi/JGwWNGJdvx8/maxresdefault.jpg"
+        ),
+        TrackModel(
+            title = "Starboy",
+            artist = "The Weeknd ft. Daft Punk",
+            audioUrl = "https://www.youtube.com/watch?v=34Na4j8AVgA",
+            albumArtUrl = "https://i.ytimg.com/vi/34Na4j8AVgA/maxresdefault.jpg"
+        ),
+        TrackModel(
+            title = "As It Was",
+            artist = "Harry Styles",
+            audioUrl = "https://www.youtube.com/watch?v=H5v3kku4y6Q",
+            albumArtUrl = "https://i.ytimg.com/vi/H5v3kku4y6Q/maxresdefault.jpg"
+        ),
+        TrackModel(
+            title = "Levitating",
+            artist = "Dua Lipa",
+            audioUrl = "https://www.youtube.com/watch?v=TUVcZfQe-Kw",
+            albumArtUrl = "https://i.ytimg.com/vi/TUVcZfQe-Kw/maxresdefault.jpg"
+        ),
+        TrackModel(
+            title = "Flowers",
+            artist = "Miley Cyrus",
+            audioUrl = "https://www.youtube.com/watch?v=G7KNmW9a75Y",
+            albumArtUrl = "https://i.ytimg.com/vi/G7KNmW9a75Y/maxresdefault.jpg"
+        ),
+        TrackModel(
+            title = "Stay",
+            artist = "The Kid LAROI & Justin Bieber",
+            audioUrl = "https://www.youtube.com/watch?v=kTJczUoc26U",
+            albumArtUrl = "https://i.ytimg.com/vi/kTJczUoc26U/maxresdefault.jpg"
+        ),
+        TrackModel(
+            title = "Someone You Loved",
+            artist = "Lewis Capaldi",
+            audioUrl = "https://www.youtube.com/watch?v=zABLecsR5UE",
+            albumArtUrl = "https://i.ytimg.com/vi/zABLecsR5UE/maxresdefault.jpg"
+        )
+    )
+
     fun playTrack(track: TrackModel, queue: List<TrackModel> = emptyList(), isRetry: Boolean = false) {
         if (!isRetry) {
             exoPlayerRetryCount = 0
         }
         _currentTrack.value = track
-        _currentQueue.value = queue
+        _currentQueue.value = if (queue.isNotEmpty()) queue else listOf(track)
         _isLoading.value = true
 
         viewModelScope.launch {
@@ -342,54 +384,12 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
 
             withContext(Dispatchers.IO) {
                 val url = track.audioUrl ?: return@withContext
-                Log.d(tag, "Attempting to play: $url")
+                Log.d(tag, "Attempting to play track '${track.title}' with URL: $url")
                 
-                var playUrl: String? = null
-                var success = false
-                var retries = 5
+                // Use centralized StreamExtractionManager for caching, verification and audio stream extraction
+                val playUrl = StreamExtractionManager.extractPlayableUrl(url, fastStart = true, forceRefresh = isRetry)
 
-                while (retries > 0 && !success) {
-                    try {
-                        if (url.contains("youtube.com") || url.contains("youtu.be")) {
-                            Log.d(tag, "Extracting YouTube stream... (Attempts left: $retries)")
-                            val extractor = ServiceList.YouTube.getStreamExtractor(url)
-                            extractor.fetchPage()
-                            
-                            val audioStreams = extractor.audioStreams
-                            if (audioStreams.isEmpty()) {
-                                Log.e(tag, "No audio streams found for $url")
-                                retries--
-                                delay(1000)
-                                continue
-                            }
-                            
-                            val stream = audioStreams.filter { it.format != null && (it.format.toString().contains("opus", ignoreCase = true) || it.format.toString().contains("m4a", ignoreCase = true)) }
-                                .maxByOrNull { it.bitrate } ?: audioStreams.maxByOrNull { it.bitrate }
-                            
-                            @Suppress("DEPRECATION")
-                            playUrl = stream?.url
-                        } else {
-                            playUrl = url
-                        }
-                        
-                        if (playUrl != null) {
-                            success = true
-                        } else {
-                            retries--
-                            if (retries > 0) delay(2000)
-                        }
-                    } catch (e: ContentNotAvailableException) {
-                        Log.w(tag, "ContentNotAvailableException: ${e.message}. Retrying...")
-                        retries--
-                        if (retries > 0) delay(3000)
-                    } catch (e: Exception) {
-                        Log.e(tag, "Extraction failed: ${e.message}")
-                        retries--
-                        if (retries > 0) delay(2000)
-                    }
-                }
-
-                if (success && playUrl != null) {
+                if (playUrl != null && !playUrl.contains("youtube.com/watch") && !playUrl.contains("youtu.be/")) {
                     withContext(Dispatchers.Main) {
                         val mediaItem = MediaItem.Builder()
                             .setUri(playUrl.toUri())
@@ -409,21 +409,12 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                         controller.play()
                         _isPlaying.value = true
                         _isLoading.value = false
-                        Log.d(tag, "Playback started successfully with URL: $playUrl")
+                        Log.d(tag, "Playback started successfully for '${track.title}'")
                     }
                 } else {
-                    Log.e(tag, "Failed to extract playable URL for $url")
+                    Log.e(tag, "Failed to extract playable audio stream URL for '${track.title}' ($url)")
                     withContext(Dispatchers.Main) {
                         _isLoading.value = false
-                        if (url.isNotEmpty()) {
-                             val fallbackMediaItem = MediaItem.Builder()
-                                .setUri(url.toUri())
-                                .setMediaId(url)
-                                .build()
-                            controller.setMediaItem(fallbackMediaItem)
-                            controller.prepare()
-                            controller.play()
-                        }
                     }
                 }
             }

@@ -1,5 +1,5 @@
 [versions]
-agp = "9.1.0"
+agp = "9.3.0"
 kotlin = "2.2.10"
 coreKtx = "1.15.0"
 junit = "4.13.2"
@@ -14,16 +14,31 @@ retrofit = "2.11.0"
 coroutines = "1.9.0"
 coil = "2.7.0"
 navigation = "2.8.4"
-newpipe = "v0.26.0"
+newpipe = "v0.26.5"
 room = "2.8.4"
-ksp = "2.2.10-2.0.2"
+ksp = "2.3.2"
 material3 = "1.4.0"
 foundation = "1.10.6"
 foundationLayout = "1.10.6"
+firebaseBom = "34.15.0"
+palette = "1.0.0"
+playServicesAuth = "21.2.0"
+playServicesAds = "23.1.0"
+generativeai = "0.9.0"
 
 [libraries]
 # Use JitPack for NewPipeExtractor since repo.newpipe.net is down
 # Format: com.github.User.Repo:Artifact:Tag
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
+androidx-palette = { group = "androidx.palette", name = "palette", version.ref = "palette" }
+play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
+play-services-ads = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "playServicesAds" }
+google-generativeai = { group = "com.google.ai.client.generativeai", name = "generativeai", version.ref = "generativeai" }
+firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
+firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
+firebase-dataconnect = { group = "com.google.firebase", name = "firebase-dataconnect" }
+kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "coroutines" }
 logging-interceptor = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "loggingInterceptor" }
 newpipe-extractor = { group = "com.github.TeamNewPipe", name = "NewPipeExtractor", version.ref = "newpipe" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

@@ -11,14 +11,24 @@ data class TrackEntity(
     val artist: String,
     val albumArtUrl: String?,
     val isFavorite: Boolean = false,
-    val lastPlayedTimestamp: Long? = null
+    val lastPlayedTimestamp: Long? = null,
+    val playCount: Int = 0,
+    val plainLyrics: String? = null,
+    val syncedLyrics: String? = null,
+    val cachedPlayableUrl: String? = null,
+    val cachedPlayableUrlExpiry: Long? = null,
+    val localPath: String? = null,
+    val album: String? = null,
+    val genre: String? = null
 )
 
 fun TrackEntity.toModel() = TrackModel(
     title = title,
     artist = artist,
     audioUrl = audioUrl,
-    albumArtUrl = albumArtUrl
+    albumArtUrl = albumArtUrl,
+    album = album,
+    genre = genre
 )
 
 fun TrackModel.toEntity(isFavorite: Boolean = false, lastPlayed: Long? = null) = TrackEntity(
@@ -27,5 +37,7 @@ fun TrackModel.toEntity(isFavorite: Boolean = false, lastPlayed: Long? = null) =
     artist = artist,
     albumArtUrl = albumArtUrl,
     isFavorite = isFavorite,
-    lastPlayedTimestamp = lastPlayed
+    lastPlayedTimestamp = lastPlayed,
+    album = album,
+    genre = genre
 )

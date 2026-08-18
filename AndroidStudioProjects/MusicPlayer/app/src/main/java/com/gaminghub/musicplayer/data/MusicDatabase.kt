@@ -5,7 +5,18 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [TrackEntity::class, PlaylistEntity::class], version = 2, exportSchema = false)
+@Database(
+    entities = [
+        TrackEntity::class, 
+        PlaylistEntity::class,
+        com.gaminghub.musify.data.FollowedArtistEntity::class,
+        com.gaminghub.musify.data.PlaylistTrackEntity::class,
+        com.gaminghub.musify.data.PlaybackStateEntity::class,
+        com.gaminghub.musify.data.QueueTrackEntity::class
+    ], 
+    version = 8, 
+    exportSchema = false
+)
 abstract class MusicDatabase : RoomDatabase() {
     abstract val dao: MusicDao
 
@@ -18,7 +29,7 @@ abstract class MusicDatabase : RoomDatabase() {
                 Room.databaseBuilder(
                     context.applicationContext,
                     MusicDatabase::class.java,
-                    "music_db"
+                    "music_player.db"
                 )
                 .fallbackToDestructiveMigration()
                 .build().also { instance = it }

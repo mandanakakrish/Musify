@@ -8,12 +8,13 @@ import org.schabi.newpipe.extractor.downloader.Response
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody
 
+import com.gaminghub.musify.util.CommonUtils
+
 class NewPipeDownloader(private val client: OkHttpClient) : Downloader() {
 
     private val tag = "NewPipeDownloader"
     
-    // Updated to a very recent Chrome stable version (March 2024)
-    private val browserUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+    private val browserUserAgent = CommonUtils.CURRENT_USER_AGENT
 
     override fun execute(request: Request): Response {
         val method = request.httpMethod()
@@ -40,30 +41,12 @@ class NewPipeDownloader(private val client: OkHttpClient) : Downloader() {
             
             okHttpRequestBuilder.header("Referer", "$origin/")
             okHttpRequestBuilder.header("Origin", origin)
-            
-            // Critical: Match these versions to current Chrome expectations
-            if (url.contains("youtubei/v1")) {
-                okHttpRequestBuilder.header("X-YouTube-Client-Name", if (isMusic) "67" else "1")
-                okHttpRequestBuilder.header("X-YouTube-Client-Version", if (isMusic) "1.20240312.01.00" else "2.20240313.05.00")
-                okHttpRequestBuilder.header("X-Goog-Api-Format-Version", "2")
-            }
-            
-            // Sec headers help verify the request isn't a simple script
-            okHttpRequestBuilder.header("Sec-Fetch-Dest", "empty")
-            okHttpRequestBuilder.header("Sec-Fetch-Mode", "cors")
-            okHttpRequestBuilder.header("Sec-Fetch-Site", "same-origin")
         }
 
         if (headers != null) {
             for (key in headers.keys) {
                 val values = headers[key]
                 if (!values.isNullOrEmpty()) {
-                    // Don't let NewPipeExtractor override our synchronized headers
-                    if (key.equals("User-Agent", true) || 
-                        key.equals("Referer", true) || 
-                        key.equals("Origin", true) ||
-                        key.startsWith("Sec-", true)) continue
-
                     okHttpRequestBuilder.header(key, values[0])
                     for (i in 1 until values.size) {
                         okHttpRequestBuilder.addHeader(key, values[i])

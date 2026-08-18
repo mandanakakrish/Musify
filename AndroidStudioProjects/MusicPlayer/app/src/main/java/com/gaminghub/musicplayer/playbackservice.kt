@@ -17,21 +17,34 @@ import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 
+import com.gaminghub.musify.util.CommonUtils
+
 @UnstableApi
 class MusicPlaybackService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
 
+    companion object {
+        var currentAudioSessionId: Int = -1
+            private set
+
+        @JvmStatic
+        fun cacheTrack(context: android.content.Context, url: String) {
+            android.util.Log.d("PlaybackService", "Pre-caching track: $url")
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         
-        // Use the same User-Agent as the extractor to ensure consistency
-        val userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+        // Use the synchronized User-Agent across extractor, verifier and ExoPlayer
+        val userAgent = CommonUtils.CURRENT_USER_AGENT
         
         // Critical headers for YouTube streaming (googlevideo.com)
         val defaultRequestProperties = mutableMapOf<String, String>().apply {
             put("Referer", "https://www.youtube.com/")
             put("Origin", "https://www.youtube.com")
             put("User-Agent", userAgent)
+            put("Accept", "*/*")
         }
 
         val httpDataSourceFactory = DefaultHttpDataSource.Factory()
@@ -55,6 +68,8 @@ class MusicPlaybackService : MediaSessionService() {
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
+
+        currentAudioSessionId = player.audioSessionId
 
         val intent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
@@ -83,6 +98,11 @@ class MusicPlaybackService : MediaSessionService() {
             .build()
             
         player.addListener(object : Player.Listener {
+            override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                super.onAudioSessionIdChanged(audioSessionId)
+                currentAudioSessionId = audioSessionId
+            }
+
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                 super.onPlayerError(error)
                 android.util.Log.e("PlaybackService", "ExoPlayer Error: ${error.message} (Code: ${error.errorCode})")
@@ -102,6 +122,7 @@ class MusicPlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        currentAudioSessionId = -1
         mediaSession?.run {
             player.release()
             release()
