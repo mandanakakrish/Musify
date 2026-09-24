@@ -66,7 +66,7 @@ fun YouTubeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // ── Top Bar (Menu + Search Bar) ───────────────────────────
         Row(
@@ -76,14 +76,15 @@ fun YouTubeScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onMenuClick) {
-                Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color.White)
+                Icon(Icons.Default.Menu, contentDescription = "Menu", tint = MaterialTheme.colorScheme.onBackground)
             }
 
             Spacer(modifier = Modifier.width(8.dp))
 
             Surface(
                 shape = RoundedCornerShape(24.dp),
-                color = Color(0xFF242424),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
                 modifier = Modifier
                     .weight(1f)
                     .clickable { /* If needed, handle inline or navigate */ }
@@ -92,12 +93,12 @@ fun YouTubeScreen(
                     value = searchQuery,
                     onValueChange = { viewModel.onSearchQueryChanged(it) },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Songs, albums or artists", color = Color(0xFF9E9E9E), fontSize = 14.sp) },
+                    placeholder = { Text("Songs, albums or artists", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp) },
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                         cursorColor = MusifyGreen,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent
@@ -273,7 +274,7 @@ fun YouTubeScreen(
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Text(
                                             text = track.title,
-                                            color = Color.White,
+                                            color = MaterialTheme.colorScheme.onBackground,
                                             fontSize = 13.sp,
                                             fontWeight = FontWeight.Bold,
                                             maxLines = 1,
@@ -282,7 +283,7 @@ fun YouTubeScreen(
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(
                                             text = track.artist,
-                                            color = Color.Gray,
+                                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                                             fontSize = 11.sp,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
@@ -380,7 +381,7 @@ fun ModernYouTubeTrackItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = track.title,
-                color = if (isCurrent) MusifyGreen else Color.White,
+                color = if (isCurrent) MusifyGreen else MaterialTheme.colorScheme.onBackground,
                 fontSize = 15.sp,
                 fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
                 maxLines = 1,
@@ -389,7 +390,7 @@ fun ModernYouTubeTrackItem(
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = track.artist,
-                color = Color(0xFFB3B3B3),
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                 fontSize = 13.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -400,7 +401,7 @@ fun ModernYouTubeTrackItem(
             Icon(
                 if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                 contentDescription = "Favorite",
-                tint = if (isFavorite) MusifyGreen else Color.White.copy(alpha = 0.8f),
+                tint = if (isFavorite) MusifyGreen else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                 modifier = Modifier.size(22.dp)
             )
         }
@@ -410,7 +411,7 @@ fun ModernYouTubeTrackItem(
                 Icon(
                     Icons.Default.MoreVert,
                     contentDescription = "Options",
-                    tint = Color.White.copy(alpha = 0.8f),
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -418,7 +419,7 @@ fun ModernYouTubeTrackItem(
             DropdownMenu(
                 expanded = showMenu,
                 onDismissRequest = { showMenu = false },
-                modifier = Modifier.background(Color(0xFF242424))
+                modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 DropdownMenuItem(
                     text = { Text(if (isDownloaded) "Downloaded" else "Download Song", color = MusifyGreen) },
@@ -426,28 +427,28 @@ fun ModernYouTubeTrackItem(
                     onClick = { viewModel.toggleDownload(track); showMenu = false }
                 )
                 DropdownMenuItem(
-                    text = { Text("Play Next", color = Color.White) },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = Color.White) },
+                    text = { Text("Play Next", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = { showMenu = false }
                 )
                 DropdownMenuItem(
-                    text = { Text("Add to Queue", color = Color.White) },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = Color.White) },
+                    text = { Text("Add to Queue", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = { showMenu = false }
                 )
                 DropdownMenuItem(
-                    text = { Text("Add to Playlist", color = Color.White) },
-                    leadingIcon = { Icon(Icons.Default.Add, null, tint = Color.White) },
+                    text = { Text("Add to Playlist", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = { showMenu = false }
                 )
                 DropdownMenuItem(
-                    text = { Text("View Artist (${track.artist.take(15)})", color = Color.White) },
-                    leadingIcon = { Icon(Icons.Default.Person, null, tint = Color.White) },
+                    text = { Text("View Artist (${track.artist.take(15)})", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.Default.Person, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = { showMenu = false }
                 )
                 DropdownMenuItem(
-                    text = { Text("Play Radio", color = Color.White) },
-                    leadingIcon = { Icon(Icons.Default.Podcasts, null, tint = Color.White) },
+                    text = { Text("Play Radio", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.Default.Podcasts, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = { showMenu = false }
                 )
             }

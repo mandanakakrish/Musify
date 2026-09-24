@@ -20,14 +20,30 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     val isLoggedIn: StateFlow<Boolean> = authManager.isLoggedIn
     val isAdmin: StateFlow<Boolean> = authManager.isAdmin
 
-    fun verifyAdminPasscode(passcode: String): Boolean {
-        val success = authManager.verifyAdminPasscode(passcode)
-        if (success) {
-            _successMessage.value = "Admin access granted!"
-        } else {
-            _errorMessage.value = "Invalid Admin passcode"
+    fun verifyAdminPasscode(passcode: String, onResult: (Boolean, String) -> Unit = { _, _ -> }) {
+        _isLoading.value = true
+        authManager.verifyAdminPasscode(passcode) { success, msg ->
+            _isLoading.value = false
+            if (success) {
+                _successMessage.value = msg
+            } else {
+                _errorMessage.value = msg
+            }
+            onResult(success, msg)
         }
-        return success
+    }
+
+    fun checkAdminStatus(onResult: (Boolean) -> Unit = {}) {
+        _isLoading.value = true
+        authManager.checkAdminStatus { isAdm ->
+            _isLoading.value = false
+            if (isAdm) {
+                _successMessage.value = "Admin access verified via Firebase!"
+            } else {
+                _errorMessage.value = "No admin privileges found in Firebase."
+            }
+            onResult(isAdm)
+        }
     }
 
     fun revokeAdminAccess() {

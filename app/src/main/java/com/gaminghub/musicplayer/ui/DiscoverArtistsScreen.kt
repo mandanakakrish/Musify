@@ -376,7 +376,7 @@ fun DiscoverArtistsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // ── 1. Top App Bar ──────────────────────────────────────────
@@ -390,14 +390,14 @@ fun DiscoverArtistsScreen(
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = Color.White
+                        tint = MaterialTheme.colorScheme.onBackground
                     )
                 }
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Discover Artists",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -411,9 +411,9 @@ fun DiscoverArtistsScreen(
                 // Following Quick Link Chip
                 Surface(
                     onClick = { navController.navigate("subscriptions") },
-                    color = MusifyGlassSurface,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
                     shape = RoundedCornerShape(20.dp),
-                    border = BorderStroke(1.dp, MusifyGlassBorder),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
                     modifier = Modifier.padding(end = 8.dp)
                 ) {
                     Row(
@@ -429,7 +429,7 @@ fun DiscoverArtistsScreen(
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "${followedArtists.size} Following",
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -439,9 +439,9 @@ fun DiscoverArtistsScreen(
 
             // ── 2. Live Search Bar ───────────────────────────────────────
             Surface(
-                color = MusifyGlassSurface,
+                color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.dp, MusifyGlassBorder),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
@@ -472,8 +472,8 @@ fun DiscoverArtistsScreen(
                             unfocusedContainerColor = Color.Transparent,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
+                            focusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                         ),
                         singleLine = true,
                         modifier = Modifier.weight(1f)
@@ -515,13 +515,13 @@ fun DiscoverArtistsScreen(
                             )
                         },
                         colors = FilterChipDefaults.filterChipColors(
-                            containerColor = Color(0xFF1C1C24),
-                            labelColor = Color.LightGray,
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             selectedContainerColor = MusifyGreen,
                             selectedLabelColor = Color.Black
                         ),
                         border = FilterChipDefaults.filterChipBorder(
-                            borderColor = if (isSelected) MusifyGreen else Color(0x33FFFFFF),
+                            borderColor = if (isSelected) MusifyGreen else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
                             enabled = true,
                             selected = isSelected,
                             borderWidth = 1.dp
@@ -559,7 +559,7 @@ fun DiscoverArtistsScreen(
                         ) {
                             Text(
                                 text = if (selectedCategory == "All") "Popular & Trending Artists" else "$selectedCategory Artists",
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onBackground,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -623,8 +623,8 @@ private fun SpotlightHeroCard(
             .fillMaxWidth()
             .clickable { onCardClick() },
         shape = RoundedCornerShape(20.dp),
-        color = Color(0xFF1A1A24),
-        border = BorderStroke(1.dp, MusifyGlassBorder)
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
     ) {
         Box(
             modifier = Modifier
@@ -633,7 +633,7 @@ private fun SpotlightHeroCard(
                     Brush.verticalGradient(
                         colors = listOf(
                             MusifyGreen.copy(alpha = 0.25f),
-                            Color(0xFF14141E)
+                            Color.Transparent
                         )
                     )
                 )
@@ -689,7 +689,7 @@ private fun SpotlightHeroCard(
 
                         Text(
                             text = artist.name,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
@@ -698,7 +698,7 @@ private fun SpotlightHeroCard(
 
                         Text(
                             text = if (followersFormatted.isNotBlank()) "$followersFormatted followers • ${artist.genre}" else artist.genre,
-                            color = Color.LightGray,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                             fontSize = 12.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -750,10 +750,10 @@ private fun SpotlightHeroCard(
                     OutlinedButton(
                         onClick = { viewModel.toggleFollowArtist(artist.name, artist.imageUrl) },
                         colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = if (isFollowed) Color(0xFF282834) else Color.Transparent,
-                            contentColor = if (isFollowed) MusifyGreen else Color.White
+                            containerColor = if (isFollowed) MaterialTheme.colorScheme.surface else Color.Transparent,
+                            contentColor = if (isFollowed) MusifyGreen else MaterialTheme.colorScheme.onSurfaceVariant
                         ),
-                        border = BorderStroke(1.dp, if (isFollowed) MusifyGreen else Color(0x66FFFFFF)),
+                        border = BorderStroke(1.dp, if (isFollowed) MusifyGreen else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                         shape = RoundedCornerShape(20.dp),
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(vertical = 8.dp)
@@ -788,9 +788,9 @@ private fun DiscoverArtistCard(
     val followersFormatted by viewModel.getArtistFollowersFormatted(artist.name).collectAsState(initial = "")
 
     Surface(
-        color = MusifyGlassSurface,
+        color = MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, MusifyGlassBorder),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
@@ -822,7 +822,7 @@ private fun DiscoverArtistCard(
             // Artist Name
             Text(
                 text = artist.name,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
@@ -845,7 +845,7 @@ private fun DiscoverArtistCard(
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = if (followersFormatted.isNotBlank()) "$followersFormatted followers" else "Artist",
-                color = Color(0xFFAAAAAA),
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
@@ -864,8 +864,8 @@ private fun DiscoverArtistCard(
                 Surface(
                     onClick = onStartRadio,
                     shape = CircleShape,
-                    color = Color(0xFF282834),
-                    border = BorderStroke(1.dp, MusifyGlassBorder),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
                     modifier = Modifier.size(32.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
@@ -882,7 +882,7 @@ private fun DiscoverArtistCard(
                 Button(
                     onClick = { viewModel.toggleFollowArtist(artist.name, artist.imageUrl) },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isFollowed) Color(0xFF22222E) else MusifyGreen,
+                        containerColor = if (isFollowed) MaterialTheme.colorScheme.surface else MusifyGreen,
                         contentColor = if (isFollowed) MusifyGreen else Color.Black
                     ),
                     shape = RoundedCornerShape(16.dp),
@@ -914,8 +914,8 @@ private fun OnlineSearchFallbackCard(
             .fillMaxWidth()
             .padding(vertical = 12.dp),
         shape = RoundedCornerShape(16.dp),
-        color = MusifyGlassSurface,
-        border = BorderStroke(1.dp, MusifyGlassBorder)
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
     ) {
         Column(
             modifier = Modifier
@@ -932,7 +932,7 @@ private fun OnlineSearchFallbackCard(
             Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = "Search “$query” on YouTube Music",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
@@ -940,7 +940,7 @@ private fun OnlineSearchFallbackCard(
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "Explore this artist's top tracks, albums, and discography.",
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center
             )
@@ -957,8 +957,8 @@ private fun OnlineSearchFallbackCard(
                 }
                 OutlinedButton(
                     onClick = onStartRadio,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-                    border = BorderStroke(1.dp, MusifyGlassBorder),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                     shape = RoundedCornerShape(20.dp)
                 ) {
                     Icon(Icons.Default.Podcasts, contentDescription = null, modifier = Modifier.size(16.dp))

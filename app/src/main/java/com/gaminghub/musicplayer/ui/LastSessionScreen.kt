@@ -44,13 +44,13 @@ fun LastSessionScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // Top Bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.Black)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(horizontal = 8.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
@@ -60,13 +60,13 @@ fun LastSessionScreen(
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = Color.White
+                        tint = MaterialTheme.colorScheme.onBackground
                     )
                 }
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = "Last Session & History",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -77,7 +77,7 @@ fun LastSessionScreen(
                     Icon(
                         Icons.Default.DeleteOutline,
                         contentDescription = "Clear History",
-                        tint = Color.White.copy(alpha = 0.8f)
+                        tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
                     )
                 }
             }
@@ -97,7 +97,7 @@ fun LastSessionScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             "No Recently Played Songs",
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onBackground,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -119,7 +119,7 @@ fun LastSessionScreen(
                 ) {
                     Text(
                         text = "${recentTracks.size} Recently Played Tracks",
-                        color = Color(0xFFB3B3B3),
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -171,8 +171,8 @@ fun LastSessionScreen(
     if (showClearConfirm) {
         AlertDialog(
             onDismissRequest = { showClearConfirm = false },
-            title = { Text("Clear Listening History?", color = Color.White) },
-            text = { Text("This will remove all tracks from your Last Session history.", color = Color(0xFFB3B3B3)) },
+            title = { Text("Clear Listening History?", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+            text = { Text("This will remove all tracks from your Last Session history.", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -185,10 +185,10 @@ fun LastSessionScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showClearConfirm = false }) {
-                    Text("Cancel", color = Color.White)
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
-            containerColor = Color(0xFF1E1E1E)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     }
 }
@@ -239,7 +239,7 @@ private fun HistorySongRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = track.title,
-                color = if (isCurrent) MusifyGreen else Color.White,
+                color = if (isCurrent) MusifyGreen else MaterialTheme.colorScheme.onBackground,
                 fontSize = 14.sp,
                 fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.SemiBold,
                 maxLines = 1,
@@ -249,7 +249,7 @@ private fun HistorySongRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = track.artist,
-                    color = Color(0xFFB3B3B3),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                     fontSize = 12.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -257,7 +257,7 @@ private fun HistorySongRow(
                 if (!track.uploaderChannel.isNullOrBlank() && !track.uploaderChannel.equals(track.artist, ignoreCase = true)) {
                     Text(
                         text = " • ${track.uploaderChannel}",
-                        color = Color(0xFF757575),
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                         fontSize = 11.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -285,7 +285,7 @@ private fun HistorySongRow(
             Icon(
                 Icons.Default.Close,
                 contentDescription = "Remove from history",
-                tint = Color.White.copy(alpha = 0.6f),
+                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -303,10 +303,10 @@ private fun HistorySongRow(
             DropdownMenu(
                 expanded = showMenu,
                 onDismissRequest = { showMenu = false },
-                modifier = Modifier.background(Color(0xFF242424))
+                modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 DropdownMenuItem(
-                    text = { Text("Copy Song Link", color = Color.White) },
+                    text = { Text("Copy Song Link", color = MaterialTheme.colorScheme.onSurface) },
                     leadingIcon = { Icon(Icons.Default.ContentCopy, null, tint = MusifyGreen) },
                     onClick = {
                         showMenu = false
@@ -314,7 +314,7 @@ private fun HistorySongRow(
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Share Song", color = Color.White) },
+                    text = { Text("Share Song", color = MaterialTheme.colorScheme.onSurface) },
                     leadingIcon = { Icon(Icons.Default.Share, null, tint = MusifyGreen) },
                     onClick = {
                         showMenu = false
@@ -322,7 +322,7 @@ private fun HistorySongRow(
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("View Artist (${track.artist})", color = Color.White) },
+                    text = { Text("View Artist (${track.artist})", color = MaterialTheme.colorScheme.onSurface) },
                     leadingIcon = { Icon(Icons.Default.Person, null, tint = MusifyGreen) },
                     onClick = {
                         showMenu = false
@@ -330,7 +330,7 @@ private fun HistorySongRow(
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Link / Change Artist", color = Color.White) },
+                    text = { Text("Link / Change Artist", color = MaterialTheme.colorScheme.onSurface) },
                     leadingIcon = { Icon(Icons.Default.PersonPin, null, tint = MusifyGreen) },
                     onClick = {
                         showMenu = false

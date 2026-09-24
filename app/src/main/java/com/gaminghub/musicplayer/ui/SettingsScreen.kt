@@ -1,5 +1,6 @@
 package com.gaminghub.musicplayer.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -26,6 +27,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.gaminghub.musicplayer.auth.AuthViewModel
@@ -61,7 +65,7 @@ fun SettingsScreen(
         SettingsItemData("Music & Playback", "Music Language, Streaming Quality, Spotify Local Charts Location", Icons.Outlined.MusicNote, "music_playback_settings"),
         SettingsItemData("Others", "Language, Include/Exclude Folders, Min Audio Length to search music", Icons.Outlined.Settings, "others_settings"),
         SettingsItemData("Backup & Restore", "Create Backup, Restore, Auto Backup", Icons.Outlined.History, "backup_restore_settings"),
-        SettingsItemData(if (isAdmin) "Admin Mode (Unlocked ★)" else "Admin & Developer Access", if (isAdmin) "Tap to manage or revoke Admin privileges" else "Enter Admin Passkey to verify Dev's Picks", Icons.Outlined.AdminPanelSettings, "admin_dialog"),
+        SettingsItemData(if (isAdmin) "Admin Mode (Firebase Verified ★)" else "Firebase Admin Access", if (isAdmin) "Verified via Firebase. Tap to manage privileges" else "Permissions managed in Firebase Firestore", Icons.Outlined.AdminPanelSettings, "admin_dialog"),
         SettingsItemData("About", "Version, Share App, Contact Us", Icons.Outlined.Info, "about_settings")
     )
 
@@ -76,7 +80,7 @@ fun SettingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // ── Top Header ──────────────────────────────────────────
         Box(
@@ -88,12 +92,12 @@ fun SettingsScreen(
                 onClick = { navController.popBackStack() },
                 modifier = Modifier.align(Alignment.CenterStart)
             ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
             }
 
             Text(
                 text = "Settings",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.Center)
@@ -104,24 +108,25 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 6.dp),
-            color = Color(0xFF242424),
-            shape = RoundedCornerShape(20.dp)
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            shape = RoundedCornerShape(20.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp)
             ) {
-                Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(10.dp))
                 TextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    placeholder = { Text("Search", color = Color.Gray, fontSize = 15.sp) },
+                    placeholder = { Text("Search", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 15.sp) },
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
                         cursorColor = MusifyGreen
@@ -156,21 +161,21 @@ fun SettingsScreen(
                     Icon(
                         imageVector = item.icon,
                         contentDescription = null,
-                        tint = if (item.route == "admin_dialog" && isAdmin) MusifyGreen else Color.White,
+                        tint = if (item.route == "admin_dialog" && isAdmin) MusifyGreen else MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.size(26.dp)
                     )
                     Spacer(modifier = Modifier.width(20.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = item.title,
-                            color = if (item.route == "admin_dialog" && isAdmin) MusifyGreen else Color.White,
+                            color = if (item.route == "admin_dialog" && isAdmin) MusifyGreen else MaterialTheme.colorScheme.onBackground,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Medium
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = item.subtitle,
-                            color = Color.Gray,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                             fontSize = 13.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -182,77 +187,176 @@ fun SettingsScreen(
     }
 
     if (showAdminPasscodeDialog) {
+        val userEmail = googleEmail ?: currentUser?.email ?: ""
+        val clipboardManager = LocalClipboardManager.current
+        var isCheckingFirebase by remember { mutableStateOf(false) }
+
         androidx.compose.ui.window.Dialog(onDismissRequest = { showAdminPasscodeDialog = false }) {
             Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = Color(0xFF1E1E28),
-                modifier = Modifier.fillMaxWidth().padding(8.dp)
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
+                Column(modifier = Modifier.padding(22.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Outlined.AdminPanelSettings,
+                            contentDescription = null,
+                            tint = if (isAdmin) MusifyGreen else MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(26.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = if (isAdmin) "Firebase Admin Active ★" else "Firebase Admin Access",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (isAdmin) MusifyGreen.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        Text(
+                            text = if (isAdmin) "✓ Verified in Firebase Firestore" else "Permission Controlled in Firebase",
+                            color = if (isAdmin) MusifyGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
                     Text(
-                        text = if (isAdmin) "Admin Mode Active" else "Enter Admin Passkey",
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = if (isAdmin) 
-                            "You have full admin privileges. You can toggle Dev's Pick for any song and cloud-sync verified tracks."
-                            else "Enter your master admin key (e.g. ADMIN_JOY_7788) to unlock Dev's Pick management.",
-                        color = Color.Gray,
-                        fontSize = 13.sp
+                        text = if (isAdmin)
+                            "Your account is authorized in Firebase Firestore. You have permission to toggle Dev's Pick and sync cloud tracks."
+                            else "Admin access is strictly controlled from Firebase. The owner grants permission by adding your email or UID to the 'admins' collection in Firebase Firestore with active = true.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp
                     )
 
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    if (userEmail.isNotBlank()) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Signed in account:", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(userEmail, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                                IconButton(
+                                    onClick = {
+                                        clipboardManager.setText(AnnotatedString(userEmail))
+                                        Toast.makeText(context, "Email copied to clipboard", Toast.LENGTH_SHORT).show()
+                                    },
+                                    modifier = Modifier.size(30.dp)
+                                ) {
+                                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy Email", tint = MusifyGreen, modifier = Modifier.size(16.dp))
+                                }
+                            }
+                        }
+                    } else {
+                        Text("Not signed in. Please sign in via Google first.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                    }
+
                     if (!isAdmin) {
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("Optional Dynamic Passkey (from Firebase):", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(modifier = Modifier.height(6.dp))
                         TextField(
                             value = adminPasscodeInput,
                             onValueChange = { adminPasscodeInput = it },
-                            placeholder = { Text("Enter Passkey...", color = Color.Gray) },
+                            placeholder = { Text("Enter Passkey...", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp) },
                             singleLine = true,
                             colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color(0xFF2B2B38),
-                                unfocusedContainerColor = Color(0xFF2B2B38),
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White,
-                                cursorColor = MusifyGreen
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                cursorColor = MusifyGreen,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent
                             ),
+                            shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(18.dp))
 
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         TextButton(onClick = { showAdminPasscodeDialog = false }) {
-                            Text("Close", color = Color.Gray)
+                            Text("Close", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        if (isAdmin) {
-                            Button(
-                                onClick = {
-                                    authViewModel.revokeAdminAccess()
-                                    showAdminPasscodeDialog = false
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935)),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Text("Revoke Admin", color = Color.White, fontWeight = FontWeight.Bold)
-                            }
-                        } else {
-                            Button(
-                                onClick = {
-                                    val ok = authViewModel.verifyAdminPasscode(adminPasscodeInput)
-                                    if (ok) {
+
+                        Row {
+                            if (isAdmin) {
+                                Button(
+                                    onClick = {
+                                        authViewModel.revokeAdminAccess()
                                         showAdminPasscodeDialog = false
-                                        adminPasscodeInput = ""
-                                    }
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = MusifyGreen),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Text("Unlock", color = Color.Black, fontWeight = FontWeight.Bold)
+                                        Toast.makeText(context, "Admin access revoked", Toast.LENGTH_SHORT).show()
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935)),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text("Revoke", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                }
+                            } else {
+                                Button(
+                                    onClick = {
+                                        if (adminPasscodeInput.isNotBlank()) {
+                                            isCheckingFirebase = true
+                                            authViewModel.verifyAdminPasscode(adminPasscodeInput) { ok, msg ->
+                                                isCheckingFirebase = false
+                                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                                if (ok) {
+                                                    showAdminPasscodeDialog = false
+                                                    adminPasscodeInput = ""
+                                                }
+                                            }
+                                        } else {
+                                            isCheckingFirebase = true
+                                            authViewModel.checkAdminStatus { ok ->
+                                                isCheckingFirebase = false
+                                                val msg = if (ok) "Admin access verified via Firebase!" else "No admin permissions found in Firebase for this account."
+                                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = MusifyGreen),
+                                    shape = RoundedCornerShape(8.dp),
+                                    enabled = !isCheckingFirebase
+                                ) {
+                                    Text(
+                                        text = if (isCheckingFirebase) "Checking..." else if (adminPasscodeInput.isNotBlank()) "Verify Key" else "Check Firebase",
+                                        color = Color.Black,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp
+                                    )
+                                }
                             }
                         }
                     }

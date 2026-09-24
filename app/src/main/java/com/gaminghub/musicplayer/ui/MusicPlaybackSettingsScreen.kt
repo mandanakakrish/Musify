@@ -41,7 +41,7 @@ fun MusicPlaybackSettingsScreen(navController: NavController, settingsViewModel:
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
     ) {
         // ── Top Header ──────────────────────────────────────────
@@ -54,12 +54,12 @@ fun MusicPlaybackSettingsScreen(navController: NavController, settingsViewModel:
                 onClick = { navController.popBackStack() },
                 modifier = Modifier.align(Alignment.CenterStart)
             ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
             }
 
             Text(
                 text = "Music & Playback",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.Center)
@@ -79,21 +79,21 @@ fun MusicPlaybackSettingsScreen(navController: NavController, settingsViewModel:
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Music Language", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+                    Text("Music Language", color = MaterialTheme.colorScheme.onBackground, fontSize = 15.sp, fontWeight = FontWeight.Normal)
                     Spacer(modifier = Modifier.height(2.dp))
-                    Text("To display songs and recommendations on Home Screen", color = Color.Gray, fontSize = 13.sp)
+                    Text("To display songs and recommendations on Home Screen", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 13.sp)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(musicLanguage, color = Color.White, fontSize = 14.sp)
+                    Text(musicLanguage, color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("▼", color = Color.Gray, fontSize = 10.sp)
+                    Text("▼", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 10.sp)
                 }
             }
 
             DropdownMenu(
                 expanded = showMusicLangDropdown,
                 onDismissRequest = { showMusicLangDropdown = false },
-                modifier = Modifier.background(Color(0xFF242424))
+                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
             ) {
                 listOf("All / Global", "English", "Hindi", "Punjabi", "Tamil", "Telugu", "Spanish").forEach { lang ->
                     val isSelected = musicLanguage == lang
@@ -101,7 +101,7 @@ fun MusicPlaybackSettingsScreen(navController: NavController, settingsViewModel:
                         text = {
                             Text(
                                 lang,
-                                color = if (isSelected) MusifyGreen else Color.White,
+                                color = if (isSelected) MusifyGreen else MaterialTheme.colorScheme.onSurface,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                             )
                         },
@@ -125,21 +125,21 @@ fun MusicPlaybackSettingsScreen(navController: NavController, settingsViewModel:
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Spotify Local Charts Location", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+                    Text("Spotify Local Charts Location", color = MaterialTheme.colorScheme.onBackground, fontSize = 15.sp, fontWeight = FontWeight.Normal)
                     Spacer(modifier = Modifier.height(2.dp))
-                    Text("Country for Top Spotify Local Charts", color = Color.Gray, fontSize = 13.sp)
+                    Text("Country for Top Spotify Local Charts", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 13.sp)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(spotifyLocation, color = Color.White, fontSize = 14.sp)
+                    Text(spotifyLocation, color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("▼", color = Color.Gray, fontSize = 10.sp)
+                    Text("▼", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 10.sp)
                 }
             }
 
             DropdownMenu(
                 expanded = showCountryDropdown,
                 onDismissRequest = { showCountryDropdown = false },
-                modifier = Modifier.background(Color(0xFF242424))
+                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
             ) {
                 listOf("India", "United States", "United Kingdom", "Canada", "Australia", "Global").forEach { country ->
                     val isSelected = spotifyLocation == country
@@ -147,7 +147,7 @@ fun MusicPlaybackSettingsScreen(navController: NavController, settingsViewModel:
                         text = {
                             Text(
                                 country,
-                                color = if (isSelected) MusifyGreen else Color.White,
+                                color = if (isSelected) MusifyGreen else MaterialTheme.colorScheme.onSurface,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                             )
                         },
@@ -171,21 +171,21 @@ fun MusicPlaybackSettingsScreen(navController: NavController, settingsViewModel:
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Streaming Quality (Mobile)", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+                    Text("Streaming Quality (Mobile)", color = MaterialTheme.colorScheme.onBackground, fontSize = 15.sp, fontWeight = FontWeight.Normal)
                     Spacer(modifier = Modifier.height(2.dp))
-                    Text("Higher quality uses more cellular data", color = Color.Gray, fontSize = 13.sp)
+                    Text("Higher quality uses more cellular data", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 13.sp)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(streamingQuality, color = Color.White, fontSize = 14.sp)
+                    Text(streamingQuality, color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("▼", color = Color.Gray, fontSize = 10.sp)
+                    Text("▼", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 10.sp)
                 }
             }
 
             DropdownMenu(
                 expanded = showQualityDropdown,
                 onDismissRequest = { showQualityDropdown = false },
-                modifier = Modifier.background(Color(0xFF242424))
+                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
             ) {
                 listOf("96 kbps (Low)", "160 kbps (High)", "320 kbps (Ultra)").forEach { q ->
                     val cleanQ = q.substringBefore(" ")
@@ -194,7 +194,7 @@ fun MusicPlaybackSettingsScreen(navController: NavController, settingsViewModel:
                         text = {
                             Text(
                                 q,
-                                color = if (isSelected) MusifyGreen else Color.White,
+                                color = if (isSelected) MusifyGreen else MaterialTheme.colorScheme.onSurface,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                             )
                         },
@@ -218,21 +218,21 @@ fun MusicPlaybackSettingsScreen(navController: NavController, settingsViewModel:
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Streaming Quality (Wifi)", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+                    Text("Streaming Quality (Wifi)", color = MaterialTheme.colorScheme.onBackground, fontSize = 15.sp, fontWeight = FontWeight.Normal)
                     Spacer(modifier = Modifier.height(2.dp))
-                    Text("Used automatically whenever connected to Wi-Fi", color = Color.Gray, fontSize = 13.sp)
+                    Text("Used automatically whenever connected to Wi-Fi", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 13.sp)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(wifiStreamingQuality, color = Color.White, fontSize = 14.sp)
+                    Text(wifiStreamingQuality, color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("▼", color = Color.Gray, fontSize = 10.sp)
+                    Text("▼", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 10.sp)
                 }
             }
 
             DropdownMenu(
                 expanded = showWifiQualityDropdown,
                 onDismissRequest = { showWifiQualityDropdown = false },
-                modifier = Modifier.background(Color(0xFF242424))
+                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
             ) {
                 listOf("96 kbps (Low)", "160 kbps (High)", "320 kbps (Ultra)").forEach { q ->
                     val cleanQ = q.substringBefore(" ")
@@ -241,7 +241,7 @@ fun MusicPlaybackSettingsScreen(navController: NavController, settingsViewModel:
                         text = {
                             Text(
                                 q,
-                                color = if (isSelected) MusifyGreen else Color.White,
+                                color = if (isSelected) MusifyGreen else MaterialTheme.colorScheme.onSurface,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                             )
                         },

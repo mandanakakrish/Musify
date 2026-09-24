@@ -19,15 +19,14 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -37,12 +36,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.navigation.NavController
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 
 @Composable
 fun AboutSettingsScreen(navController: NavController) {
@@ -63,7 +56,7 @@ fun AboutSettingsScreen(navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // ── Top Header ──────────────────────────────────────────
         Box(
@@ -75,12 +68,16 @@ fun AboutSettingsScreen(navController: NavController) {
                 onClick = { navController.popBackStack() },
                 modifier = Modifier.align(Alignment.CenterStart)
             ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.onBackground
+                )
             }
 
             Text(
                 text = "About",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.Center)
@@ -105,7 +102,12 @@ fun AboutSettingsScreen(navController: NavController) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Version", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+                Text(
+                    "Version",
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Normal
+                )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = when {
@@ -113,7 +115,8 @@ fun AboutSettingsScreen(navController: NavController) {
                         updateInfo?.isUpdateAvailable == true -> "New version ${updateInfo?.latestVersion} available! Tap to prompt update."
                         else -> "Tap to check for updates on GitHub"
                     },
-                    color = if (updateInfo?.isUpdateAvailable == true) Color(0xFF00C853) else Color.Gray,
+                    color = if (updateInfo?.isUpdateAvailable == true) Color(0xFF00C853)
+                    else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                     fontSize = 13.sp
                 )
             }
@@ -126,30 +129,12 @@ fun AboutSettingsScreen(navController: NavController) {
             } else {
                 Text(
                     text = updateInfo?.latestVersion ?: currentVersion,
-                    color = if (updateInfo?.isUpdateAvailable == true) Color(0xFF00C853) else Color.White,
+                    color = if (updateInfo?.isUpdateAvailable == true) Color(0xFF00C853)
+                    else MaterialTheme.colorScheme.onBackground,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
-        }
-
-        // ── Test Update Prompt Row ──────────────────────────────
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                    com.gaminghub.musicplayer.update.AppUpdateManager.triggerTestPrompt(context)
-                }
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Test Strict Update Prompt", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Normal)
-                Spacer(modifier = Modifier.height(2.dp))
-                Text("Simulates the mandatory update dialog to verify UI and strict behavior", color = Color.Gray, fontSize = 13.sp)
-            }
-            Text("Test", color = Color(0xFF1DB954), fontSize = 13.sp, fontWeight = FontWeight.Bold)
         }
 
         // ── 2. Share App ────────────────────────────────────────
@@ -159,55 +144,58 @@ fun AboutSettingsScreen(navController: NavController) {
                 .clickable {
                     val shareIntent = Intent(Intent.ACTION_SEND).apply {
                         type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, "Stream unlimited high quality ad-free music with Musify! 🎧\n\nDownload the app:\nhttps://github.com/mandanakakrish/Musify")
+                        putExtra(
+                            Intent.EXTRA_TEXT,
+                            "Stream unlimited high quality ad-free music with Musify! 🎧\n\nDownload the app:\nhttps://github.com/mandanakakrish/Musify"
+                        )
                     }
                     context.startActivity(Intent.createChooser(shareIntent, "Share App"))
                 }
                 .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
-            Text("Share App", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+            Text(
+                "Share App",
+                color = MaterialTheme.colorScheme.onBackground,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Normal
+            )
             Spacer(modifier = Modifier.height(2.dp))
-            Text("Let you friends know about us", color = Color.Gray, fontSize = 13.sp)
+            Text(
+                "Let your friends know about us",
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                fontSize = 13.sp
+            )
         }
 
-        // ── 3. Contact Us ───────────────────────────────────────
+        // ── 3. Contact Us → Musify GitHub ───────────────────────
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable {
                     try {
-                        val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
-                            data = "mailto:support@musify.app".toUri()
-                            putExtra(Intent.EXTRA_SUBJECT, "Musify Feedback")
-                        }
-                        context.startActivity(emailIntent)
+                        val browserIntent = Intent(
+                            Intent.ACTION_VIEW,
+                            "https://github.com/mandanakakrish/Musify".toUri()
+                        )
+                        context.startActivity(browserIntent)
                     } catch (_: Exception) {
-                        Toast.makeText(context, "Contact: support@musify.app", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "github.com/mandanakakrish/Musify", Toast.LENGTH_SHORT).show()
                     }
                 }
                 .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
-            Text("Contact Us", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+            Text(
+                "Contact Us",
+                color = MaterialTheme.colorScheme.onBackground,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Normal
+            )
             Spacer(modifier = Modifier.height(2.dp))
-            Text("Feedbacks Appreciated!", color = Color.Gray, fontSize = 13.sp)
-        }
-
-        // ── 4. GitHub Repository Link ───────────────────────────
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                    try {
-                        val browserIntent = Intent(Intent.ACTION_VIEW,
-                            "https://github.com/mandanakakrish/Music-Player".toUri())
-                        context.startActivity(browserIntent)
-                    } catch (_: Exception) {}
-                }
-                .padding(horizontal = 16.dp, vertical = 14.dp)
-        ) {
-            Text("GitHub Source", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Normal)
-            Spacer(modifier = Modifier.height(2.dp))
-            Text("mandanakakrish/Music-Player", color = Color.Gray, fontSize = 13.sp)
+            Text(
+                "github.com/mandanakakrish/Musify",
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                fontSize = 13.sp
+            )
         }
     }
 }

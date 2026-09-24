@@ -91,7 +91,7 @@ fun AuthScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF000000))
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -123,7 +123,7 @@ fun AuthScreen(
 
             Text(
                 text = "Millions of Songs.\nFree on Musify.",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.ExtraBold,
                 textAlign = TextAlign.Center,
@@ -134,7 +134,7 @@ fun AuthScreen(
 
             Text(
                 text = "Sign in with your Google account to access streaming, playlists, and fast downloads.",
-                color = Color(0xFFB3B3B3),
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                 fontSize = 14.sp,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 16.dp)
@@ -147,8 +147,8 @@ fun AuthScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFF121212))
-                    .border(BorderStroke(1.dp, Color(0xFF222222)), RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)), RoundedCornerShape(16.dp))
                     .padding(18.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
@@ -195,12 +195,16 @@ fun AuthScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                 shape = RoundedCornerShape(27.dp),
                 enabled = !isLoading
             ) {
                 if (isLoading) {
-                    CircularProgressIndicator(color = Color.Black, modifier = Modifier.size(24.dp), strokeWidth = 2.5.dp)
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp), strokeWidth = 2.5.dp)
                 } else {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -215,7 +219,7 @@ fun AuthScreen(
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = "Continue with Google",
-                            color = Color.Black,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp
                         )
@@ -246,7 +250,7 @@ fun AuthScreen(
 
             Text(
                 text = "By continuing, you agree to Musify's Terms of Service and Privacy Policy.",
-                color = Color(0xFF666666),
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                 fontSize = 11.sp,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 24.dp)
@@ -271,6 +275,6 @@ private fun FeatureRow(
             Icon(icon, contentDescription = null, tint = MusifyGreen, modifier = Modifier.size(18.dp))
         }
         Spacer(modifier = Modifier.width(12.dp))
-        Text(text, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, fontWeight = FontWeight.Medium)
     }
 }

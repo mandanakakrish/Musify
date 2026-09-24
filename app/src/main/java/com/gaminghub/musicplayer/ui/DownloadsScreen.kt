@@ -32,6 +32,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -73,7 +74,7 @@ fun DownloadsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MusifyDarkBg)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // Top Bar
         Row(
@@ -88,14 +89,14 @@ fun DownloadsScreen(
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = Color.White
+                        tint = MaterialTheme.colorScheme.onBackground
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text(
                         "Downloads",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -133,7 +134,7 @@ fun DownloadsScreen(
                     Spacer(modifier = Modifier.height(20.dp))
                     Text(
                         "No Downloads Yet",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -185,7 +186,7 @@ fun DownloadsScreen(
                         ) {
                             Text(
                                 text = "OFFLINE SONGS (${downloadedTracks.size})",
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onBackground,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -208,9 +209,9 @@ fun DownloadsScreen(
                                 shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier.weight(1f)
                             ) {
-                                Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color.White)
+                                Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color.Black)
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Play All", fontWeight = FontWeight.Bold)
+                                Text("Play All", color = Color.Black, fontWeight = FontWeight.Bold)
                             }
 
                             OutlinedButton(
@@ -220,14 +221,14 @@ fun DownloadsScreen(
                                         viewModel.playTrack(shuffled.first(), shuffled)
                                     }
                                 },
-                                border = BorderStroke(1.dp, MusifyGlassBorder),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                                 shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onBackground),
                                 modifier = Modifier.weight(1f)
                             ) {
-                                Icon(Icons.Default.Shuffle, contentDescription = null, tint = Color.White)
+                                Icon(Icons.Default.Shuffle, contentDescription = null, tint = MaterialTheme.colorScheme.onBackground)
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Shuffle")
+                                Text("Shuffle", color = MaterialTheme.colorScheme.onBackground)
                             }
                         }
                     }
@@ -255,7 +256,7 @@ fun ActiveDownloadCard(
 ) {
     Surface(
         shape = RoundedCornerShape(14.dp),
-        color = MusifyGlassSurface,
+        color = MaterialTheme.colorScheme.surfaceVariant,
         border = BorderStroke(1.dp, MusifyGreen.copy(alpha = 0.4f)),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -275,7 +276,7 @@ fun ActiveDownloadCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = progress.track.title,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
@@ -284,7 +285,7 @@ fun ActiveDownloadCard(
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = progress.track.artist,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -295,7 +296,7 @@ fun ActiveDownloadCard(
                     Icon(
                         Icons.Default.Close,
                         contentDescription = "Cancel Download",
-                        tint = Color.LightGray,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -310,7 +311,7 @@ fun ActiveDownloadCard(
                         .height(4.dp)
                         .clip(RoundedCornerShape(2.dp)),
                     color = MusifyGreen,
-                    trackColor = Color(0xFF2B2B36)
+                    trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
                 )
             } else {
                 LinearProgressIndicator(
@@ -320,7 +321,7 @@ fun ActiveDownloadCard(
                         .height(4.dp)
                         .clip(RoundedCornerShape(2.dp)),
                     color = MusifyGreen,
-                    trackColor = Color(0xFF2B2B36)
+                    trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
                 )
             }
 
@@ -333,7 +334,7 @@ fun ActiveDownloadCard(
             ) {
                 Text(
                     text = "${progress.downloadedFormatted} / ${progress.totalFormatted} (${progress.progressPercent}%)",
-                    color = Color.LightGray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -358,8 +359,8 @@ fun DownloadedTrackItem(
 ) {
     Surface(
         shape = RoundedCornerShape(14.dp),
-        color = if (isCurrent) MusifyGreen.copy(alpha = 0.15f) else MusifyGlassSurface,
-        border = BorderStroke(1.dp, if (isCurrent) MusifyGreen.copy(alpha = 0.5f) else MusifyGlassBorder),
+        color = if (isCurrent) MusifyGreen.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant,
+        border = BorderStroke(1.dp, if (isCurrent) MusifyGreen.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
@@ -383,7 +384,7 @@ fun DownloadedTrackItem(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = track.title,
-                    color = if (isCurrent) MusifyGreen else Color.White,
+                    color = if (isCurrent) MusifyGreen else MaterialTheme.colorScheme.onBackground,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
@@ -406,7 +407,7 @@ fun DownloadedTrackItem(
                     }
                     Text(
                         text = track.artist,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -418,7 +419,7 @@ fun DownloadedTrackItem(
                 Icon(
                     Icons.Default.DeleteOutline,
                     contentDescription = "Delete Download",
-                    tint = Color.Gray,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(22.dp)
                 )
             }

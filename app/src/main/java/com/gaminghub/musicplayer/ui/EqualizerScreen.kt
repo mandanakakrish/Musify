@@ -49,25 +49,25 @@ fun EqualizerScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // Top Bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.Black)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(horizontal = 8.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = MaterialTheme.colorScheme.onBackground)
                 }
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = "Equalizer & Audio Effects",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -80,7 +80,7 @@ fun EqualizerScreen(
                     checkedThumbColor = Color.Black,
                     checkedTrackColor = MusifyGreen,
                     uncheckedThumbColor = Color.Gray,
-                    uncheckedTrackColor = Color(0xFF333333)
+                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
             )
         }
@@ -97,7 +97,7 @@ fun EqualizerScreen(
             // ── Presets Selector ──────────────────────────────────────
             Text(
                 text = "Presets",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -112,15 +112,15 @@ fun EqualizerScreen(
                     val isSelected = selectedPreset == preset.name
                     Surface(
                         shape = RoundedCornerShape(20.dp),
-                        color = if (isSelected) MusifyGreen else MusifyGlassSurface,
-                        border = BorderStroke(1.dp, if (isSelected) MusifyGreen else MusifyGlassBorder),
+                        color = if (isSelected) MusifyGreen else MaterialTheme.colorScheme.surfaceVariant,
+                        border = BorderStroke(1.dp, if (isSelected) MusifyGreen else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
                         modifier = Modifier
                             .clip(RoundedCornerShape(20.dp))
                             .clickable(enabled = isEnabled) { eqManager.setPreset(preset.name) }
                     ) {
                         Text(
                             text = preset.name,
-                            color = if (isSelected) Color.Black else if (isEnabled) Color.White else Color.Gray,
+                            color = if (isSelected) Color.Black else if (isEnabled) MaterialTheme.colorScheme.onSurfaceVariant else Color.Gray,
                             fontSize = 13.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
@@ -131,15 +131,15 @@ fun EqualizerScreen(
 
             // ── 5-Band Equalizer Sliders ──────────────────────────────
             Surface(
-                color = MusifyGlassSurface,
+                color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, MusifyGlassBorder),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = "Graphic Equalizer",
-                        color = if (isEnabled) Color.White else Color.Gray,
+                        color = if (isEnabled) MaterialTheme.colorScheme.onSurfaceVariant else Color.Gray,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -155,7 +155,7 @@ fun EqualizerScreen(
                         ) {
                             Text(
                                 text = freqLabel,
-                                color = if (isEnabled) Color.White else Color.Gray,
+                                color = if (isEnabled) MaterialTheme.colorScheme.onSurfaceVariant else Color.Gray,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier.width(60.dp)
@@ -168,13 +168,13 @@ fun EqualizerScreen(
                                 colors = SliderDefaults.colors(
                                     thumbColor = MusifyGreen,
                                     activeTrackColor = MusifyGreen,
-                                    inactiveTrackColor = Color(0xFF333344)
+                                    inactiveTrackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
                                 ),
                                 modifier = Modifier.weight(1f)
                             )
                             Text(
                                 text = "${if (level > 0) "+" else ""}$level dB",
-                                color = if (!isEnabled) Color.Gray else if (level != 0) MusifyGreen else Color.LightGray,
+                                color = if (!isEnabled) Color.Gray else if (level != 0) MusifyGreen else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.width(48.dp),
@@ -192,9 +192,9 @@ fun EqualizerScreen(
             ) {
                 // Bass Boost Card
                 Surface(
-                    color = MusifyGlassSurface,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
                     shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, MusifyGlassBorder),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
                     modifier = Modifier.weight(1f)
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
@@ -205,7 +205,7 @@ fun EqualizerScreen(
                         ) {
                             Text(
                                 text = "Bass Boost",
-                                color = if (isEnabled) Color.White else Color.Gray,
+                                color = if (isEnabled) MaterialTheme.colorScheme.onSurfaceVariant else Color.Gray,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -227,7 +227,7 @@ fun EqualizerScreen(
                             colors = SliderDefaults.colors(
                                 thumbColor = MusifyGreen,
                                 activeTrackColor = MusifyGreen,
-                                inactiveTrackColor = Color(0xFF333344)
+                                inactiveTrackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
                             )
                         )
                     }
@@ -235,9 +235,9 @@ fun EqualizerScreen(
 
                 // 3D Virtualizer Card
                 Surface(
-                    color = MusifyGlassSurface,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
                     shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, MusifyGlassBorder),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
                     modifier = Modifier.weight(1f)
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
@@ -248,7 +248,7 @@ fun EqualizerScreen(
                         ) {
                             Text(
                                 text = "3D Surround",
-                                color = if (isEnabled) Color.White else Color.Gray,
+                                color = if (isEnabled) MaterialTheme.colorScheme.onSurfaceVariant else Color.Gray,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -270,7 +270,7 @@ fun EqualizerScreen(
                             colors = SliderDefaults.colors(
                                 thumbColor = MusifyGreen,
                                 activeTrackColor = MusifyGreen,
-                                inactiveTrackColor = Color(0xFF333344)
+                                inactiveTrackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
                             )
                         )
                     }
@@ -302,8 +302,8 @@ fun QuickEqualizerDialog(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(18.dp),
-            color = Color(0xFF1E1E28),
-            border = BorderStroke(1.dp, MusifyGlassBorder),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(4.dp)
@@ -324,7 +324,7 @@ fun QuickEqualizerDialog(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Equalizer",
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -337,7 +337,7 @@ fun QuickEqualizerDialog(
                             checkedThumbColor = Color.Black,
                             checkedTrackColor = MusifyGreen,
                             uncheckedThumbColor = Color.Gray,
-                            uncheckedTrackColor = Color(0xFF333344)
+                            uncheckedTrackColor = MaterialTheme.colorScheme.surface
                         )
                     )
                 }
@@ -345,7 +345,7 @@ fun QuickEqualizerDialog(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // Presets
-                Text("Presets:", color = Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text("Presets:", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Row(
@@ -358,12 +358,12 @@ fun QuickEqualizerDialog(
                         val isSelected = selectedPreset == preset.name
                         Surface(
                             shape = RoundedCornerShape(14.dp),
-                            color = if (isSelected) MusifyGreen else Color(0xFF282836),
+                            color = if (isSelected) MusifyGreen else MaterialTheme.colorScheme.surface,
                             modifier = Modifier.clickable(enabled = isEnabled) { eqManager.setPreset(preset.name) }
                         ) {
                             Text(
                                 text = preset.name,
-                                color = if (isSelected) Color.Black else if (isEnabled) Color.White else Color.Gray,
+                                color = if (isSelected) Color.Black else if (isEnabled) MaterialTheme.colorScheme.onSurfaceVariant else Color.Gray,
                                 fontSize = 12.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
@@ -382,7 +382,7 @@ fun QuickEqualizerDialog(
                 ) {
                     Text(
                         text = "Frequency Bands",
-                        color = if (isEnabled) Color.White else Color.Gray,
+                        color = if (isEnabled) MaterialTheme.colorScheme.onSurfaceVariant else Color.Gray,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -407,7 +407,7 @@ fun QuickEqualizerDialog(
                     ) {
                         Text(
                             text = freqLabel,
-                            color = if (isEnabled) Color.White else Color.Gray,
+                            color = if (isEnabled) MaterialTheme.colorScheme.onSurfaceVariant else Color.Gray,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.width(55.dp)
@@ -420,13 +420,13 @@ fun QuickEqualizerDialog(
                             colors = SliderDefaults.colors(
                                 thumbColor = MusifyGreen,
                                 activeTrackColor = MusifyGreen,
-                                inactiveTrackColor = Color(0xFF333344)
+                                inactiveTrackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
                             ),
                             modifier = Modifier.weight(1f)
                         )
                         Text(
                             text = "${if (level > 0) "+" else ""}$level dB",
-                            color = if (!isEnabled) Color.Gray else if (level != 0) MusifyGreen else Color.LightGray,
+                            color = if (!isEnabled) Color.Gray else if (level != 0) MusifyGreen else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.width(42.dp),
@@ -442,7 +442,7 @@ fun QuickEqualizerDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Bass Boost", color = if (isEnabled) Color.White else Color.Gray, fontSize = 12.sp)
+                    Text("Bass Boost", color = if (isEnabled) MaterialTheme.colorScheme.onSurfaceVariant else Color.Gray, fontSize = 12.sp)
                     Text("$bassBoost%", color = if (isEnabled) MusifyGreen else Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
                 Slider(
@@ -450,14 +450,14 @@ fun QuickEqualizerDialog(
                     onValueChange = { eqManager.setBassBoost(it.toInt()) },
                     valueRange = 0f..100f,
                     enabled = isEnabled,
-                    colors = SliderDefaults.colors(thumbColor = MusifyGreen, activeTrackColor = MusifyGreen, inactiveTrackColor = Color(0xFF333344))
+                    colors = SliderDefaults.colors(thumbColor = MusifyGreen, activeTrackColor = MusifyGreen, inactiveTrackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
                 )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("3D Surround", color = if (isEnabled) Color.White else Color.Gray, fontSize = 12.sp)
+                    Text("3D Surround", color = if (isEnabled) MaterialTheme.colorScheme.onSurfaceVariant else Color.Gray, fontSize = 12.sp)
                     Text("$virtualizer%", color = if (isEnabled) MusifyGreen else Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
                 Slider(
@@ -465,7 +465,7 @@ fun QuickEqualizerDialog(
                     onValueChange = { eqManager.setVirtualizer(it.toInt()) },
                     valueRange = 0f..100f,
                     enabled = isEnabled,
-                    colors = SliderDefaults.colors(thumbColor = MusifyGreen, activeTrackColor = MusifyGreen, inactiveTrackColor = Color(0xFF333344))
+                    colors = SliderDefaults.colors(thumbColor = MusifyGreen, activeTrackColor = MusifyGreen, inactiveTrackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))

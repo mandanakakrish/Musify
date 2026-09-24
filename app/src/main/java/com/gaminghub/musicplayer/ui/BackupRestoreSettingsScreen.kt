@@ -28,6 +28,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -114,7 +115,7 @@ fun BackupRestoreSettingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
     ) {
         // ── Top Header ──────────────────────────────────────────
@@ -127,12 +128,12 @@ fun BackupRestoreSettingsScreen(
                 onClick = { navController.popBackStack() },
                 modifier = Modifier.align(Alignment.CenterStart)
             ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
             }
 
             Text(
                 text = "Backup & Restore",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.Center)
@@ -238,9 +239,9 @@ fun BackupRestoreSettingsScreen(
                 }
                 .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
-            Text("Create JSON Backup", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+            Text("Create JSON Backup", color = MaterialTheme.colorScheme.onBackground, fontSize = 15.sp, fontWeight = FontWeight.Normal)
             Spacer(modifier = Modifier.height(2.dp))
-            Text("Save your playlists, favorites and settings as a JSON file", color = Color.Gray, fontSize = 13.sp)
+            Text("Save your playlists, favorites and settings as a JSON file", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 13.sp)
         }
 
         Column(
@@ -252,9 +253,9 @@ fun BackupRestoreSettingsScreen(
                 }
                 .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
-            Text("Restore from JSON File", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+            Text("Restore from JSON File", color = MaterialTheme.colorScheme.onBackground, fontSize = 15.sp, fontWeight = FontWeight.Normal)
             Spacer(modifier = Modifier.height(2.dp))
-            Text("Select and restore from a JSON backup file in local storage", color = Color.Gray, fontSize = 13.sp)
+            Text("Select and restore from a JSON backup file in local storage", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 13.sp)
         }
 
         // ── 3. Auto Backup ──────────────────────────────────────
@@ -274,13 +275,13 @@ fun BackupRestoreSettingsScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Auto Backup Location", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+                Text("Auto Backup Location", color = MaterialTheme.colorScheme.onBackground, fontSize = 15.sp, fontWeight = FontWeight.Normal)
                 Spacer(modifier = Modifier.height(2.dp))
-                Text(autoBackupLocation, color = Color.Gray, fontSize = 13.sp)
+                Text(autoBackupLocation, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 13.sp)
             }
             Text(
                 "Reset",
-                color = Color.White,
+                color = MusifyGreen,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier

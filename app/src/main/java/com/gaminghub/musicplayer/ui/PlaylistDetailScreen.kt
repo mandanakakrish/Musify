@@ -48,6 +48,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -108,13 +109,13 @@ fun PlaylistDetailScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // Top Bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.Black)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
@@ -127,13 +128,13 @@ fun PlaylistDetailScreen(
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = Color.White
+                        tint = MaterialTheme.colorScheme.onBackground
                     )
                 }
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = playlistName,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -143,17 +144,17 @@ fun PlaylistDetailScreen(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { navController.navigate("search") }) {
-                    Icon(Icons.Default.Search, contentDescription = "Search", tint = Color.White)
+                    Icon(Icons.Default.Search, contentDescription = "Search", tint = MaterialTheme.colorScheme.onBackground)
                 }
                 IconButton(onClick = { }) {
-                    Icon(Icons.Default.Sort, contentDescription = "Sort", tint = Color.White)
+                    Icon(Icons.Default.Sort, contentDescription = "Sort", tint = MaterialTheme.colorScheme.onBackground)
                 }
             }
         }
             // ── Tabs ─────────────────────────────────────────────────────────
             TabRow(
                 selectedTabIndex = selectedTab,
-                containerColor = Color.Black,
+                containerColor = MaterialTheme.colorScheme.background,
                 contentColor = MusifyGreen,
                 indicator = { tabPositions ->
                     if (selectedTab < tabPositions.size) {
@@ -164,7 +165,7 @@ fun PlaylistDetailScreen(
                         )
                     }
                 },
-                divider = { HorizontalDivider(color = Color(0x22FFFFFF)) }
+                divider = { HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)) }
             ) {
                 tabs.forEachIndexed { index, title ->
                     Tab(
@@ -173,7 +174,7 @@ fun PlaylistDetailScreen(
                         text = {
                             Text(
                                 title,
-                                color = if (selectedTab == index) Color.White else Color.Gray,
+                                color = if (selectedTab == index) MusifyGreen else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                                 fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Medium,
                                 fontSize = 14.sp
                             )
@@ -197,7 +198,7 @@ fun PlaylistDetailScreen(
                         ) {
                             Text(
                                 "${playlistTracks.size} Songs",
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onBackground,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -214,9 +215,9 @@ fun PlaylistDetailScreen(
                                         .padding(horizontal = 8.dp, vertical = 4.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(Icons.Default.Shuffle, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                    Icon(Icons.Default.Shuffle, contentDescription = null, tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(18.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Shuffle", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                    Text("Shuffle", color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                                 }
                                 Spacer(modifier = Modifier.width(16.dp))
                                 IconButton(
@@ -227,7 +228,7 @@ fun PlaylistDetailScreen(
                                     },
                                     modifier = Modifier.size(36.dp)
                                 ) {
-                                    Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = Color.White, modifier = Modifier.size(28.dp))
+                                    Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(28.dp))
                                 }
                             }
                         }
@@ -283,7 +284,7 @@ fun PlaylistDetailScreen(
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = albumName,
-                                            color = Color.White,
+                                            color = MaterialTheme.colorScheme.onBackground,
                                             fontSize = 15.sp,
                                             fontWeight = FontWeight.SemiBold,
                                             maxLines = 1,
@@ -292,7 +293,7 @@ fun PlaylistDetailScreen(
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(
                                             text = if (tracks.size == 1) "1 Song" else "${tracks.size} Songs",
-                                            color = Color(0xFFB3B3B3),
+                                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                                             fontSize = 13.sp
                                         )
                                     }
@@ -332,7 +333,7 @@ fun PlaylistDetailScreen(
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = artistName,
-                                            color = Color.White,
+                                            color = MaterialTheme.colorScheme.onBackground,
                                             fontSize = 15.sp,
                                             fontWeight = FontWeight.SemiBold,
                                             maxLines = 1,
@@ -341,7 +342,7 @@ fun PlaylistDetailScreen(
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(
                                             text = if (followers.isNotBlank()) "$followers Followers • ${if (tracks.size == 1) "1 Song" else "${tracks.size} Songs"}" else if (tracks.size == 1) "1 Song" else "${tracks.size} Songs",
-                                            color = Color(0xFFB3B3B3),
+                                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                                             fontSize = 13.sp
                                         )
                                     }
@@ -373,7 +374,7 @@ fun PlaylistDetailScreen(
                                         modifier = Modifier
                                             .size(54.dp)
                                             .clip(RoundedCornerShape(8.dp))
-                                            .background(Color(0xFF242424))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant)
                                     ) {
                                         val arts = tracks.take(4).mapNotNull { it.albumArtUrl }
                                         if (arts.size >= 4) {
@@ -398,7 +399,7 @@ fun PlaylistDetailScreen(
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = genreName,
-                                            color = Color.White,
+                                            color = MaterialTheme.colorScheme.onBackground,
                                             fontSize = 15.sp,
                                             fontWeight = FontWeight.SemiBold,
                                             maxLines = 1,
@@ -407,7 +408,7 @@ fun PlaylistDetailScreen(
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(
                                             text = if (tracks.size == 1) "1 Song" else "${tracks.size} Songs",
-                                            color = Color(0xFFB3B3B3),
+                                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                                             fontSize = 13.sp
                                         )
                                     }
@@ -461,7 +462,7 @@ fun PlaylistSongRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = track.title,
-                color = if (isCurrent) MusifyGreen else Color.White,
+                color = if (isCurrent) MusifyGreen else MaterialTheme.colorScheme.onBackground,
                 fontSize = 15.sp,
                 fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
                 maxLines = 1,
@@ -470,7 +471,7 @@ fun PlaylistSongRow(
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = if (songLikes.isNotBlank()) "${track.artist} • $songLikes likes" else track.artist,
-                color = Color(0xFFB3B3B3),
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                 fontSize = 13.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -481,7 +482,7 @@ fun PlaylistSongRow(
             Icon(
                 if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                 contentDescription = "Favorite",
-                tint = if (isFavorite) MusifyGreen else Color.White.copy(alpha = 0.8f),
+                tint = if (isFavorite) MusifyGreen else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                 modifier = Modifier.size(22.dp)
             )
         }
@@ -491,7 +492,7 @@ fun PlaylistSongRow(
                 Icon(
                     Icons.Default.MoreVert,
                     contentDescription = "Options",
-                    tint = Color.White.copy(alpha = 0.8f),
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -499,7 +500,7 @@ fun PlaylistSongRow(
             DropdownMenu(
                 expanded = showMenu,
                 onDismissRequest = { showMenu = false },
-                modifier = Modifier.background(Color(0xFF242424))
+                modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 DropdownMenuItem(
                     text = { Text("Remove from Playlist", color = Color(0xFFFF5252)) },
@@ -510,7 +511,7 @@ fun PlaylistSongRow(
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Link / Edit Artist", color = Color.White) },
+                    text = { Text("Link / Edit Artist", color = MaterialTheme.colorScheme.onSurface) },
                     leadingIcon = { Icon(Icons.Default.PersonPin, null, tint = MusifyGreen) },
                     onClick = {
                         showMenu = false
@@ -518,7 +519,7 @@ fun PlaylistSongRow(
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Copy Song Link", color = Color.White) },
+                    text = { Text("Copy Song Link", color = MaterialTheme.colorScheme.onSurface) },
                     leadingIcon = { Icon(Icons.Default.ContentCopy, null, tint = MusifyGreen) },
                     onClick = {
                         showMenu = false
@@ -526,7 +527,7 @@ fun PlaylistSongRow(
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Share Song", color = Color.White) },
+                    text = { Text("Share Song", color = MaterialTheme.colorScheme.onSurface) },
                     leadingIcon = { Icon(Icons.Default.Share, null, tint = MusifyGreen) },
                     onClick = {
                         showMenu = false
@@ -534,33 +535,33 @@ fun PlaylistSongRow(
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Play Next", color = Color.White) },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = Color.White) },
+                    text = { Text("Play Next", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = { showMenu = false }
                 )
                 DropdownMenuItem(
-                    text = { Text("Add to Queue", color = Color.White) },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = Color.White) },
+                    text = { Text("Add to Queue", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = { showMenu = false }
                 )
                 DropdownMenuItem(
-                    text = { Text("Add to Playlist", color = Color.White) },
-                    leadingIcon = { Icon(Icons.Default.Add, null, tint = Color.White) },
+                    text = { Text("Add to Playlist", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = { showMenu = false }
                 )
                 DropdownMenuItem(
-                    text = { Text("View Album", color = Color.White) },
-                    leadingIcon = { Icon(Icons.Default.Album, null, tint = Color.White) },
+                    text = { Text("View Album", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.Default.Album, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = { showMenu = false }
                 )
                 DropdownMenuItem(
-                    text = { Text("View Artist (${track.artist.take(15)})", color = Color.White) },
-                    leadingIcon = { Icon(Icons.Default.Person, null, tint = Color.White) },
+                    text = { Text("View Artist (${track.artist.take(15)})", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.Default.Person, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = { showMenu = false }
                 )
                 DropdownMenuItem(
-                    text = { Text("Play Radio", color = Color.White) },
-                    leadingIcon = { Icon(Icons.Default.Podcasts, null, tint = Color.White) },
+                    text = { Text("Play Radio", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.Default.Podcasts, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = { showMenu = false }
                 )
                 DropdownMenuItem(

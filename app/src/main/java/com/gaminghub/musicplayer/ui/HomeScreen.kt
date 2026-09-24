@@ -46,6 +46,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -214,7 +215,7 @@ fun HomeScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         LazyColumn(
             state = scrollState,
@@ -234,7 +235,7 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(onClick = onMenuClick) {
-                            Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color.White)
+                            Icon(Icons.Default.Menu, contentDescription = "Menu", tint = MaterialTheme.colorScheme.onBackground)
                         }
 
                         Column(
@@ -251,7 +252,7 @@ fun HomeScreen(
                             )
                             Text(
                                 text = userName.ifBlank { "Krish" },//TODO:Krish->User Name
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onBackground,
                                 fontSize = 28.sp,
                                 fontWeight = FontWeight.ExtraBold
                             )
@@ -263,7 +264,8 @@ fun HomeScreen(
                     // Clean Musify Search Pill
                     Surface(
                         shape = RoundedCornerShape(24.dp),
-                        color = Color(0xFF242424),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { navController.navigate("search") }
@@ -281,7 +283,7 @@ fun HomeScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
                                 text = "Songs, albums or artists",
-                                color = Color(0xFF9E9E9E),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Medium
                             )
@@ -382,7 +384,7 @@ fun HomeScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = "My Supermix",
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.onBackground,
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -396,7 +398,7 @@ fun HomeScreen(
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = "${supermix.size} personalized songs tuned to your taste",
-                                    color = Color.Gray,
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                                     fontSize = 12.sp
                                 )
                             }
@@ -808,7 +810,7 @@ fun CuratedSquareCard(
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = card.title,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onBackground,
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             maxLines = 2,
@@ -819,7 +821,7 @@ fun CuratedSquareCard(
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = card.subtitle,
-                color = Color(0xFFB3B3B3),
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                 fontSize = 11.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -921,7 +923,7 @@ fun ModernTrackListItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = track.title,
-                color = if (isCurrent) MusifyGreen else Color.White,
+                color = if (isCurrent) MusifyGreen else MaterialTheme.colorScheme.onBackground,
                 fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
                 fontSize = 14.sp,
                 maxLines = 1,
@@ -930,7 +932,7 @@ fun ModernTrackListItem(
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = if (songLikes.isNotBlank()) "${track.artist} • $songLikes likes" else track.artist,
-                color = Color(0xFFB3B3B3),
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                 fontSize = 12.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -941,7 +943,7 @@ fun ModernTrackListItem(
             Icon(
                 if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                 contentDescription = "Favorite",
-                tint = if (isFavorite) MusifyGreen else Color.White.copy(alpha = 0.8f),
+                tint = if (isFavorite) MusifyGreen else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -951,7 +953,7 @@ fun ModernTrackListItem(
                 Icon(
                     Icons.Default.MoreVert,
                     contentDescription = "Options",
-                    tint = Color.White.copy(alpha = 0.8f),
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -959,7 +961,7 @@ fun ModernTrackListItem(
             DropdownMenu(
                 expanded = showMenu,
                 onDismissRequest = { showMenu = false },
-                modifier = Modifier.background(Color(0xFF242424))
+                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
             ) {
                 DropdownMenuItem(
                     text = { Text(if (isDownloaded) "Downloaded" else "Download Song", color = MusifyGreen) },
@@ -967,7 +969,7 @@ fun ModernTrackListItem(
                     onClick = { viewModel.toggleDownload(track); showMenu = false }
                 )
                 DropdownMenuItem(
-                    text = { Text("Copy Song Link", color = Color.White) },
+                    text = { Text("Copy Song Link", color = MaterialTheme.colorScheme.onSurface) },
                     leadingIcon = { Icon(Icons.Default.ContentCopy, null, tint = MusifyGreen) },
                     onClick = {
                         showMenu = false
@@ -975,7 +977,7 @@ fun ModernTrackListItem(
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Share Song", color = Color.White) },
+                    text = { Text("Share Song", color = MaterialTheme.colorScheme.onSurface) },
                     leadingIcon = { Icon(Icons.Default.Share, null, tint = MusifyGreen) },
                     onClick = {
                         showMenu = false
@@ -983,28 +985,28 @@ fun ModernTrackListItem(
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Play Next", color = Color.White) },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = Color.White) },
+                    text = { Text("Play Next", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = { showMenu = false }
                 )
                 DropdownMenuItem(
-                    text = { Text("Add to Queue", color = Color.White) },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = Color.White) },
+                    text = { Text("Add to Queue", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = { showMenu = false }
                 )
                 DropdownMenuItem(
-                    text = { Text("Add to Playlist", color = Color.White) },
-                    leadingIcon = { Icon(Icons.Default.Add, null, tint = Color.White) },
+                    text = { Text("Add to Playlist", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = { showMenu = false }
                 )
                 DropdownMenuItem(
-                    text = { Text("View Artist (${track.artist.take(15)})", color = Color.White) },
-                    leadingIcon = { Icon(Icons.Default.Person, null, tint = Color.White) },
+                    text = { Text("View Artist (${track.artist.take(15)})", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.Default.Person, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = { showMenu = false }
                 )
                 DropdownMenuItem(
-                    text = { Text("Play Radio", color = Color.White) },
-                    leadingIcon = { Icon(Icons.Default.Podcasts, null, tint = Color.White) },
+                    text = { Text("Play Radio", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.Default.Podcasts, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = { showMenu = false }
                 )
                 DropdownMenuItem(

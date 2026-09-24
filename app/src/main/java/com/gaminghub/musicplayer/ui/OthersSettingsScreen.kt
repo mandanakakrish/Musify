@@ -46,7 +46,7 @@ fun OthersSettingsScreen(navController: NavController, settingsViewModel: Settin
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
     ) {
         // ── Top Header ──────────────────────────────────────────
@@ -59,12 +59,12 @@ fun OthersSettingsScreen(navController: NavController, settingsViewModel: Settin
                 onClick = { navController.popBackStack() },
                 modifier = Modifier.align(Alignment.CenterStart)
             ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
             }
 
             Text(
                 text = "Others",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.Center)
@@ -84,21 +84,21 @@ fun OthersSettingsScreen(navController: NavController, settingsViewModel: Settin
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Language", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+                    Text("Language", color = MaterialTheme.colorScheme.onBackground, fontSize = 15.sp, fontWeight = FontWeight.Normal)
                     Spacer(modifier = Modifier.height(2.dp))
-                    Text("App Text Language", color = Color.Gray, fontSize = 13.sp)
+                    Text("App Text Language", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 13.sp)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(appLanguage, color = Color.White, fontSize = 14.sp)
+                    Text(appLanguage, color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("▼", color = Color.Gray, fontSize = 10.sp)
+                    Text("▼", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 10.sp)
                 }
             }
 
             DropdownMenu(
                 expanded = showLanguageDropdown,
                 onDismissRequest = { showLanguageDropdown = false },
-                modifier = Modifier.background(Color(0xFF242424))
+                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
             ) {
                 listOf("English", "Hindi", "Spanish", "French", "German").forEach { lang ->
                     val isSelected = appLanguage == lang
@@ -106,7 +106,7 @@ fun OthersSettingsScreen(navController: NavController, settingsViewModel: Settin
                         text = {
                             Text(
                                 lang,
-                                color = if (isSelected) MusifyGreen else Color.White,
+                                color = if (isSelected) MusifyGreen else MaterialTheme.colorScheme.onSurface,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                             )
                         },
@@ -126,9 +126,9 @@ fun OthersSettingsScreen(navController: NavController, settingsViewModel: Settin
                 .clickable { showFoldersDialog = true }
                 .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
-            Text("Include/Exclude Folders", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+            Text("Include/Exclude Folders", color = MaterialTheme.colorScheme.onBackground, fontSize = 15.sp, fontWeight = FontWeight.Normal)
             Spacer(modifier = Modifier.height(2.dp))
-            Text("Filter ringtones, recordings or notification sounds from 'My Music'", color = Color.Gray, fontSize = 13.sp)
+            Text("Filter ringtones, recordings or notification sounds from 'My Music'", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 13.sp)
         }
 
         // ── 3. Min Audio Length to search music ─────────────────
@@ -141,11 +141,11 @@ fun OthersSettingsScreen(navController: NavController, settingsViewModel: Settin
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Min Audio Length to search music", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+                Text("Min Audio Length to search music", color = MaterialTheme.colorScheme.onBackground, fontSize = 15.sp, fontWeight = FontWeight.Normal)
                 Spacer(modifier = Modifier.height(2.dp))
-                Text("Audios shorter than this won't show in 'My Music'", color = Color.Gray, fontSize = 13.sp)
+                Text("Audios shorter than this won't show in 'My Music'", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 13.sp)
             }
-            Text("$minAudioLength sec", color = Color.White, fontSize = 14.sp)
+            Text("$minAudioLength sec", color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
         }
 
         // ── 4. Live Search ──────────────────────────────────────
@@ -206,9 +206,9 @@ fun OthersSettingsScreen(navController: NavController, settingsViewModel: Settin
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Proxy Settings", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+                Text("Proxy Settings", color = MaterialTheme.colorScheme.onBackground, fontSize = 15.sp, fontWeight = FontWeight.Normal)
                 Spacer(modifier = Modifier.height(2.dp))
-                Text("Change Proxy IP and Port", color = Color.Gray, fontSize = 13.sp)
+                Text("Change Proxy IP and Port", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 13.sp)
             }
             Text(proxyAddress, color = MusifyGreen, fontSize = 13.sp)
         }

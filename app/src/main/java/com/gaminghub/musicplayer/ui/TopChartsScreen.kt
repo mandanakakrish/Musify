@@ -43,6 +43,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -95,7 +96,7 @@ fun TopChartsScreen(viewModel: MusicViewModel, onMenuClick: (() -> Unit)? = null
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // ── Top Bar ──────────────────────────────────────────
         Row(
@@ -106,19 +107,19 @@ fun TopChartsScreen(viewModel: MusicViewModel, onMenuClick: (() -> Unit)? = null
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { onMenuClick?.invoke() }) {
-                Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color.White)
+                Icon(Icons.Default.Menu, contentDescription = "Menu", tint = MaterialTheme.colorScheme.onBackground)
             }
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     text = "Top Charts",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = if (selectedTab == 0) "Top Played by All Users" else "All-Time Top Played by All Users",
-                    color = Color(0xFFB3B3B3),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                     fontSize = 11.sp
                 )
             }
@@ -128,7 +129,7 @@ fun TopChartsScreen(viewModel: MusicViewModel, onMenuClick: (() -> Unit)? = null
                     Icon(
                         imageVector = Icons.Default.Refresh,
                         contentDescription = "Refresh Charts",
-                        tint = if (isGlobalChartsLoading) MusifyGreen else Color.White.copy(alpha = 0.8f),
+                        tint = if (isGlobalChartsLoading) MusifyGreen else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -136,7 +137,7 @@ fun TopChartsScreen(viewModel: MusicViewModel, onMenuClick: (() -> Unit)? = null
                     Icon(
                         imageVector = Icons.Default.Info,
                         contentDescription = "Chart Info",
-                        tint = Color.White.copy(alpha = 0.7f),
+                        tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -146,7 +147,7 @@ fun TopChartsScreen(viewModel: MusicViewModel, onMenuClick: (() -> Unit)? = null
         // ── Tabs ─────────────────────────────────────────────
         TabRow(
             selectedTabIndex = selectedTab,
-            containerColor = Color.Black,
+            containerColor = MaterialTheme.colorScheme.background,
             contentColor = MusifyGreen,
             indicator = { tabPositions ->
                 if (selectedTab < tabPositions.size) {
@@ -157,7 +158,7 @@ fun TopChartsScreen(viewModel: MusicViewModel, onMenuClick: (() -> Unit)? = null
                     )
                 }
             },
-            divider = { HorizontalDivider(color = Color(0x22FFFFFF)) }
+            divider = { HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)) }
         ) {
             tabs.forEachIndexed { index, title ->
                 Tab(
@@ -166,7 +167,7 @@ fun TopChartsScreen(viewModel: MusicViewModel, onMenuClick: (() -> Unit)? = null
                     text = {
                         Text(
                             title,
-                            color = if (selectedTab == index) Color.White else Color.Gray,
+                            color = if (selectedTab == index) MusifyGreen else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                             fontSize = 14.sp,
                             fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Medium
                         )
@@ -400,7 +401,7 @@ fun TopChartsList(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
                                         text = title,
-                                        color = Color.White,
+                                        color = MaterialTheme.colorScheme.onBackground,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1,
@@ -430,11 +431,11 @@ fun TopChartsList(
                                 OutlinedButton(
                                     onClick = { viewModel.playTrack(tracks.shuffled().first(), tracks.shuffled()) },
                                     shape = RoundedCornerShape(16.dp),
-                                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)),
                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
                                     modifier = Modifier.height(32.dp)
                                 ) {
-                                    Icon(Icons.Default.Shuffle, null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                    Icon(Icons.Default.Shuffle, null, tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(14.dp))
                                 }
                             }
                         }
@@ -521,7 +522,7 @@ fun TopChartTrackRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = track.title,
-                color = if (isCurrent) MusifyGreen else Color.White,
+                color = if (isCurrent) MusifyGreen else MaterialTheme.colorScheme.onBackground,
                 fontSize = 15.sp,
                 fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
                 maxLines = 1,
@@ -534,7 +535,7 @@ fun TopChartTrackRow(
             ) {
                 Text(
                     text = track.artist,
-                    color = Color(0xFFB3B3B3),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                     fontSize = 13.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

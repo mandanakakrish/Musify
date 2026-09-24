@@ -95,7 +95,7 @@ fun CuratedPlaylistScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // ── Top Bar ──────────────────────────────────────────
         Row(
@@ -108,12 +108,12 @@ fun CuratedPlaylistScreen(
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    tint = Color.White
+                    tint = MaterialTheme.colorScheme.onBackground
                 )
             }
             Text(
                 text = title,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
@@ -159,7 +159,7 @@ fun CuratedPlaylistScreen(
 
                     Text(
                         text = title,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.ExtraBold,
                         textAlign = TextAlign.Center,
@@ -171,7 +171,7 @@ fun CuratedPlaylistScreen(
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = subtitle,
-                            color = Color(0xFFB3B3B3),
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                             fontSize = 13.sp,
                             textAlign = TextAlign.Center,
                             maxLines = 2,
@@ -383,7 +383,7 @@ private fun CuratedTrackItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = track.title,
-                color = if (isCurrent) MusifyGreen else Color.White,
+                color = if (isCurrent) MusifyGreen else MaterialTheme.colorScheme.onBackground,
                 fontSize = 14.sp,
                 fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
                 maxLines = 1,
@@ -392,7 +392,7 @@ private fun CuratedTrackItem(
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = track.artist,
-                color = Color(0xFFB3B3B3),
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                 fontSize = 12.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -406,7 +406,7 @@ private fun CuratedTrackItem(
             Icon(
                 if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                 contentDescription = "Favorite",
-                tint = if (isFavorite) MusifyGreen else Color.White.copy(alpha = 0.7f),
+                tint = if (isFavorite) MusifyGreen else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -419,7 +419,7 @@ private fun CuratedTrackItem(
                 Icon(
                     Icons.Default.MoreVert,
                     contentDescription = "Options",
-                    tint = Color.White.copy(alpha = 0.7f),
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -427,7 +427,7 @@ private fun CuratedTrackItem(
             DropdownMenu(
                 expanded = showMenu,
                 onDismissRequest = { showMenu = false },
-                modifier = Modifier.background(Color(0xFF242424))
+                modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 DropdownMenuItem(
                     text = { Text(if (isDownloaded) "Downloaded" else "Download Song", color = MusifyGreen) },
@@ -438,7 +438,7 @@ private fun CuratedTrackItem(
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Copy Song Link", color = Color.White) },
+                    text = { Text("Copy Song Link", color = MaterialTheme.colorScheme.onSurface) },
                     leadingIcon = { Icon(Icons.Default.ContentCopy, null, tint = MusifyGreen) },
                     onClick = {
                         showMenu = false
@@ -446,7 +446,7 @@ private fun CuratedTrackItem(
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Share Song", color = Color.White) },
+                    text = { Text("Share Song", color = MaterialTheme.colorScheme.onSurface) },
                     leadingIcon = { Icon(Icons.Default.Share, null, tint = MusifyGreen) },
                     onClick = {
                         showMenu = false
@@ -454,24 +454,24 @@ private fun CuratedTrackItem(
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Play Next", color = Color.White) },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = Color.White) },
+                    text = { Text("Play Next", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = {
                         showMenu = false
                         Toast.makeText(context, "Added to play next", Toast.LENGTH_SHORT).show()
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Add to Queue", color = Color.White) },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = Color.White) },
+                    text = { Text("Add to Queue", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = {
                         showMenu = false
                         Toast.makeText(context, "Added to queue", Toast.LENGTH_SHORT).show()
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Add to Playlist", color = Color.White) },
-                    leadingIcon = { Icon(Icons.Default.Add, null, tint = Color.White) },
+                    text = { Text("Add to Playlist", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = {
                         showMenu = false
                         Toast.makeText(context, "Add to playlist", Toast.LENGTH_SHORT).show()

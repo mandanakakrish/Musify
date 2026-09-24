@@ -49,13 +49,13 @@ fun StatsScreen(navController: NavController, viewModel: MusicViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // Top Bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.Black)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(horizontal = 8.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -63,13 +63,13 @@ fun StatsScreen(navController: NavController, viewModel: MusicViewModel) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    tint = Color.White
+                    tint = MaterialTheme.colorScheme.onBackground
                 )
             }
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "Listening Stats",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -85,9 +85,9 @@ fun StatsScreen(navController: NavController, viewModel: MusicViewModel) {
             // ── 1. Total Songs Played Metric Card ─────────────────────────
             item {
                 Surface(
-                    color = MusifyGlassSurface,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
                     shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, MusifyGlassBorder),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Box(
@@ -111,14 +111,14 @@ fun StatsScreen(navController: NavController, viewModel: MusicViewModel) {
                             Column {
                                 Text(
                                     text = "Total Songs Played",
-                                    color = Color.Gray,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Medium
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = "$totalSongsPlayed",
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 42.sp,
                                     fontWeight = FontWeight.ExtraBold
                                 )
@@ -152,7 +152,7 @@ fun StatsScreen(navController: NavController, viewModel: MusicViewModel) {
             // ── 2. All Users Weekly Top Songs Cloud Banner ───────────────
             item {
                 Surface(
-                    color = MusifyGlassSurface,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
                     shape = RoundedCornerShape(16.dp),
                     border = BorderStroke(1.dp, MusifyGreen.copy(alpha = 0.35f)),
                     modifier = Modifier
@@ -183,7 +183,7 @@ fun StatsScreen(navController: NavController, viewModel: MusicViewModel) {
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
                                         text = "All Users Weekly Top Chart",
-                                        color = Color.White,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontSize = 15.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -196,7 +196,7 @@ fun StatsScreen(navController: NavController, viewModel: MusicViewModel) {
                                     } else {
                                         "Top played songs across all Musify users over the past 7 days"
                                     },
-                                    color = Color(0xFFB3B3B3),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                     fontSize = 12.sp,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
@@ -224,7 +224,7 @@ fun StatsScreen(navController: NavController, viewModel: MusicViewModel) {
             item {
                 Text(
                     text = "Most Played Song",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -234,7 +234,7 @@ fun StatsScreen(navController: NavController, viewModel: MusicViewModel) {
                 if (topMostPlayedTrack != null) {
                     val track = topMostPlayedTrack!!
                     Surface(
-                        color = MusifyGlassSurface,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
                         shape = RoundedCornerShape(16.dp),
                         border = BorderStroke(1.dp, MusifyGreen.copy(alpha = 0.4f)),
                         modifier = Modifier
@@ -270,7 +270,7 @@ fun StatsScreen(navController: NavController, viewModel: MusicViewModel) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
                                         text = track.title,
-                                        color = Color.White,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1,
@@ -290,14 +290,14 @@ fun StatsScreen(navController: NavController, viewModel: MusicViewModel) {
                                 Spacer(modifier = Modifier.height(3.dp))
                                 Text(
                                     text = track.artist,
-                                    color = Color.Gray,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                     fontSize = 13.sp,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Surface(
-                                    color = Color(0xFF263238),
+                                    color = MaterialTheme.colorScheme.surface,
                                     shape = RoundedCornerShape(12.dp)
                                 ) {
                                     Text(
@@ -328,9 +328,9 @@ fun StatsScreen(navController: NavController, viewModel: MusicViewModel) {
                     }
                 } else {
                     Surface(
-                        color = MusifyGlassSurface,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
                         shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(1.dp, MusifyGlassBorder),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Box(
@@ -341,7 +341,7 @@ fun StatsScreen(navController: NavController, viewModel: MusicViewModel) {
                         ) {
                             Text(
                                 text = "Play some songs to see your #1 most played track!",
-                                color = Color.Gray,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                 fontSize = 13.sp,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
@@ -356,7 +356,7 @@ fun StatsScreen(navController: NavController, viewModel: MusicViewModel) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Top Played Songs",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -385,9 +385,9 @@ fun LeaderboardTrackRow(
     onClick: () -> Unit
 ) {
     Surface(
-        color = if (isCurrent) Color(0x221DB954) else MusifyGlassSurface,
+        color = if (isCurrent) MusifyGreen.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, if (isCurrent) MusifyGreen.copy(alpha = 0.5f) else MusifyGlassBorder),
+        border = BorderStroke(1.dp, if (isCurrent) MusifyGreen.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
@@ -424,7 +424,7 @@ fun LeaderboardTrackRow(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = track.title,
-                        color = if (isCurrent) MusifyGreen else Color.White,
+                        color = if (isCurrent) MusifyGreen else MaterialTheme.colorScheme.onBackground,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,

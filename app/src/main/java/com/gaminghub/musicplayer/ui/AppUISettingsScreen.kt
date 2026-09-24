@@ -42,7 +42,7 @@ fun AppUISettingsScreen(navController: NavController, settingsViewModel: Setting
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
     ) {
         // ── Top Header ──────────────────────────────────────────
@@ -55,12 +55,12 @@ fun AppUISettingsScreen(navController: NavController, settingsViewModel: Setting
                 onClick = { navController.popBackStack() },
                 modifier = Modifier.align(Alignment.CenterStart)
             ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
             }
 
             Text(
                 text = "App UI",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.Center)
@@ -79,11 +79,11 @@ fun AppUISettingsScreen(navController: NavController, settingsViewModel: Setting
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Player Screen Background", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+                Text("Player Screen Background", color = MaterialTheme.colorScheme.onBackground, fontSize = 15.sp, fontWeight = FontWeight.Normal)
                 Spacer(modifier = Modifier.height(2.dp))
-                Text(playerBackground, color = Color.Gray, fontSize = 13.sp)
+                Text(playerBackground, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 13.sp)
             }
-            Text("▼", color = Color.Gray, fontSize = 10.sp)
+            Text("▼", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 10.sp)
         }
 
         // ── 2. Use Dense Miniplayer ─────────────────────────────
@@ -104,7 +104,7 @@ fun AppUISettingsScreen(navController: NavController, settingsViewModel: Setting
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Buttons to show in Mini Player", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+                Text("Buttons to show in Mini Player", color = MaterialTheme.colorScheme.onBackground, fontSize = 15.sp, fontWeight = FontWeight.Normal)
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     listOfNotNull(
@@ -113,7 +113,7 @@ fun AppUISettingsScreen(navController: NavController, settingsViewModel: Setting
                         "Play/Pause",
                         "Next"
                     ).joinToString(", "),
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                     fontSize = 13.sp
                 )
             }
@@ -127,9 +127,9 @@ fun AppUISettingsScreen(navController: NavController, settingsViewModel: Setting
                 .clickable { Toast.makeText(context, "Notification buttons: Prev, Play/Pause, Next active", Toast.LENGTH_SHORT).show() }
                 .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
-            Text("Compact Notification Buttons", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+            Text("Compact Notification Buttons", color = MaterialTheme.colorScheme.onBackground, fontSize = 15.sp, fontWeight = FontWeight.Normal)
             Spacer(modifier = Modifier.height(2.dp))
-            Text("Previous, Play/Pause, Next enabled for notification controls", color = Color.Gray, fontSize = 13.sp)
+            Text("Previous, Play/Pause, Next enabled for notification controls", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 13.sp)
         }
 
         // ── 5. Show Playlists on Home Screen ────────────────────

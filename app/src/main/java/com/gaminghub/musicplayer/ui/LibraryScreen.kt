@@ -1,6 +1,7 @@
 package com.gaminghub.musicplayer.ui
 
 import androidx.annotation.OptIn
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -47,28 +48,28 @@ fun LibraryScreen(viewModel: MusicViewModel, navController: NavController, onMen
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // Top Bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.Black)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             IconButton(onClick = onMenuClick) {
-                Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color.White)
+                Icon(Icons.Default.Menu, contentDescription = "Menu", tint = MaterialTheme.colorScheme.onBackground)
             }
             Text(
                 text = "Library",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
             IconButton(onClick = { navController.navigate("search") }) {
-                Icon(Icons.Default.Search, contentDescription = "Search", tint = Color.White)
+                Icon(Icons.Default.Search, contentDescription = "Search", tint = MaterialTheme.colorScheme.onBackground)
             }
         }
 
@@ -96,7 +97,8 @@ fun LibraryGroupCard(items: List<LibraryItemData>, onNavigate: (String) -> Unit)
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = Color(0xFF181818)
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
     ) {
         Column {
             items.forEachIndexed { index, item ->
@@ -112,13 +114,13 @@ fun LibraryGroupCard(items: List<LibraryItemData>, onNavigate: (String) -> Unit)
                         Surface(
                             modifier = Modifier.size(38.dp),
                             shape = RoundedCornerShape(10.dp),
-                            color = Color(0xFF282828)
+                            color = MaterialTheme.colorScheme.surface
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = item.icon,
                                     contentDescription = null,
-                                    tint = Color.White,
+                                    tint = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -126,7 +128,7 @@ fun LibraryGroupCard(items: List<LibraryItemData>, onNavigate: (String) -> Unit)
                         Spacer(modifier = Modifier.width(14.dp))
                         Text(
                             text = item.title,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Medium
                         )
@@ -135,14 +137,14 @@ fun LibraryGroupCard(items: List<LibraryItemData>, onNavigate: (String) -> Unit)
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                         contentDescription = null,
-                        tint = Color(0xFF757575),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                         modifier = Modifier.size(13.dp)
                     )
                 }
 
                 if (index < items.size - 1) {
                     HorizontalDivider(
-                        color = Color(0x1AFFFFFF),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
                         thickness = 0.5.dp,
                         modifier = Modifier.padding(start = 68.dp)
                     )

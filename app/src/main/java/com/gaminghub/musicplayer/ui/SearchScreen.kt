@@ -98,7 +98,7 @@ fun SearchScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // ── Search Header Bar ─────────────────────────────────
         Row(
@@ -109,7 +109,7 @@ fun SearchScreen(
         ) {
             Surface(
                 shape = RoundedCornerShape(24.dp),
-                color = Color(0xFF242424),
+                color = MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -117,18 +117,18 @@ fun SearchScreen(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
                 ) {
                     IconButton(onClick = onBack, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
 
                     TextField(
                         value = searchQuery,
                         onValueChange = { viewModel.onSearchQueryChanged(it) },
-                        placeholder = { Text("Songs, albums or artists", color = Color(0xFF9E9E9E), fontSize = 15.sp) },
+                        placeholder = { Text("Songs, albums or artists", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f), fontSize = 15.sp) },
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent,
                             unfocusedContainerColor = Color.Transparent,
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             cursorColor = MusifyGreen,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent
@@ -146,7 +146,7 @@ fun SearchScreen(
 
                     if (searchQuery.isNotEmpty()) {
                         IconButton(onClick = { viewModel.onSearchQueryChanged("") }, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear", tint = Color.White)
+                            Icon(Icons.Default.Clear, contentDescription = "Clear", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -178,7 +178,7 @@ fun SearchScreen(
                     trendingChips.forEach { chip ->
                         Surface(
                             shape = RoundedCornerShape(20.dp),
-                            color = Color(0xFF242424),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(20.dp))
                                 .clickable {
@@ -188,7 +188,7 @@ fun SearchScreen(
                         ) {
                             Text(
                                 text = chip,
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium,
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
@@ -318,7 +318,7 @@ fun SearchScreen(
                             Spacer(modifier = Modifier.width(18.dp))
                             Text(
                                 text = item,
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onBackground,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Medium,
                                 maxLines = 1,
@@ -433,7 +433,7 @@ fun SearchScreen(
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
                                         text = name,
-                                        color = Color.White,
+                                        color = MaterialTheme.colorScheme.onBackground,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1,
@@ -441,7 +441,7 @@ fun SearchScreen(
                                     )
                                     Text(
                                         text = "$followers Followers",
-                                        color = Color.Gray,
+                                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                                         fontSize = 11.sp,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -549,7 +549,7 @@ fun SearchScreen(
                                     Spacer(modifier = Modifier.height(6.dp))
                                     Text(
                                         text = title,
-                                        color = Color.White,
+                                        color = MaterialTheme.colorScheme.onBackground,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1,
@@ -557,7 +557,7 @@ fun SearchScreen(
                                     )
                                     Text(
                                         text = subtitle,
-                                        color = Color.Gray,
+                                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                                         fontSize = 11.sp,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -614,7 +614,7 @@ fun SearchSongRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = track.title,
-                    color = if (isCurrent) MusifyGreen else Color.White,
+                    color = if (isCurrent) MusifyGreen else MaterialTheme.colorScheme.onBackground,
                     fontSize = 15.sp,
                     fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
                     maxLines = 1,
@@ -634,7 +634,7 @@ fun SearchSongRow(
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = if (songLikes.isNotBlank()) "Song • ${track.artist} • $songLikes likes" else "Song • ${track.artist}",
-                color = Color(0xFFB3B3B3),
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                 fontSize = 13.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -646,7 +646,7 @@ fun SearchSongRow(
                 Icon(
                     Icons.Default.MoreVert,
                     contentDescription = "Options",
-                    tint = Color.White.copy(alpha = 0.8f),
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -654,7 +654,7 @@ fun SearchSongRow(
             DropdownMenu(
                 expanded = showMenu,
                 onDismissRequest = { showMenu = false },
-                modifier = Modifier.background(Color(0xFF242424))
+                modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 if (isAdmin) {
                     DropdownMenuItem(
@@ -684,7 +684,7 @@ fun SearchSongRow(
                     onClick = { viewModel.toggleDownload(track); showMenu = false }
                 )
                 DropdownMenuItem(
-                    text = { Text("Copy Song Link", color = Color.White) },
+                    text = { Text("Copy Song Link", color = MaterialTheme.colorScheme.onSurface) },
                     leadingIcon = { Icon(Icons.Default.ContentCopy, null, tint = MusifyGreen) },
                     onClick = {
                         showMenu = false
@@ -692,7 +692,7 @@ fun SearchSongRow(
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Share Song", color = Color.White) },
+                    text = { Text("Share Song", color = MaterialTheme.colorScheme.onSurface) },
                     leadingIcon = { Icon(Icons.Default.Share, null, tint = MusifyGreen) },
                     onClick = {
                         showMenu = false
@@ -700,37 +700,37 @@ fun SearchSongRow(
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Play Next", color = Color.White) },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = Color.White) },
+                    text = { Text("Play Next", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = {
                         showMenu = false
                         viewModel.playNextTrackInQueue(track)
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Add to Queue", color = Color.White) },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = Color.White) },
+                    text = { Text("Add to Queue", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = {
                         showMenu = false
                         viewModel.addToQueue(track)
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Add to Playlist", color = Color.White) },
-                    leadingIcon = { Icon(Icons.Default.Add, null, tint = Color.White) },
+                    text = { Text("Add to Playlist", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = { showMenu = false }
                 )
                 DropdownMenuItem(
-                    text = { Text("View Artist (${track.artist.take(15)})", color = Color.White) },
-                    leadingIcon = { Icon(Icons.Default.Person, null, tint = Color.White) },
+                    text = { Text("View Artist (${track.artist.take(15)})", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.Default.Person, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = {
                         showMenu = false
                         viewModel.searchMusic(track.artist)
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Play Radio", color = Color.White) },
-                    leadingIcon = { Icon(Icons.Default.Podcasts, null, tint = Color.White) },
+                    text = { Text("Play Radio", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.Default.Podcasts, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = {
                         showMenu = false
                         viewModel.playRadioForTrack(track)

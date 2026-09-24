@@ -66,6 +66,7 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -190,13 +191,21 @@ class MainActivity : ComponentActivity() {
                     darkColorScheme(
                          primary = accentColor,
                          surface = surfaceColor,
-                         background = bgColor
+                         background = bgColor,
+                         onBackground = Color.White,
+                         onSurface = Color.White,
+                         surfaceVariant = Color(0xFF242424),
+                         onSurfaceVariant = Color(0xFFCAC4D0)
                     )
                 } else {
                     lightColorScheme(
                          primary = accentColor,
                          surface = surfaceColor,
-                         background = bgColor
+                         background = bgColor,
+                         onBackground = Color(0xFF191C1E),
+                         onSurface = Color(0xFF191C1E),
+                         surfaceVariant = Color(0xFFE8E8E8),
+                         onSurfaceVariant = Color(0xFF44474E)
                     )
                 }
             ) {
@@ -398,24 +407,31 @@ fun MusifyMainScreen(
         )
     }
 
+    val isDarkMode by settingsViewModel.isDarkMode.collectAsState()
+    val useSystemTheme by settingsViewModel.useSystemTheme.collectAsState()
+    val isSystemDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val effectiveDark = if (useSystemTheme) isSystemDark else isDarkMode
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet(
-                drawerContainerColor = MaterialTheme.colorScheme.surface,
+                drawerContainerColor = if (effectiveDark) Color(0xFF121212) else MaterialTheme.colorScheme.surface,
                 modifier = Modifier.width(310.dp),
             ){
                 Box(
                     modifier = Modifier.fillMaxHeight()
                         .fillMaxWidth()
-
+                        .background(if (effectiveDark) Color(0xFF121212) else MaterialTheme.colorScheme.surface)
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.musify_drawer_bg_perfect),
-                        contentDescription = "background",
-                        modifier=Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
+                    if (effectiveDark) {
+                        Image(
+                            painter = painterResource(id = R.drawable.musify_drawer_bg_perfect),
+                            contentDescription = "background",
+                            modifier=Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
 
                 Column(
                     modifier = Modifier
@@ -431,7 +447,7 @@ fun MusifyMainScreen(
                     ) {
                         Text(
                             text = "Musify",
-                            color = Color.White,
+                            color = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface,
                             fontSize = 38.sp,
                             fontFamily = FontFamily(Font(R.font.montserrat_bold, FontWeight.Bold)),
                             fontWeight = FontWeight.Bold,
@@ -445,6 +461,29 @@ fun MusifyMainScreen(
                                 .clip(CircleShape)
                                 .background(MusifyGreen)
                         )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        val drawerVersion = remember(context) {
+                            try {
+                                val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+                                "v${pInfo.versionName}"
+                            } catch (_: Exception) {
+                                "v1.7.0"
+                            }
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MusifyGreen.copy(alpha = 0.15f),
+                            border = BorderStroke(1.dp, MusifyGreen.copy(alpha = 0.35f)),
+                            modifier = Modifier.padding(top = 8.dp)
+                        ) {
+                            Text(
+                                text = drawerVersion,
+                                color = MusifyGreen,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
                     }
                 // ── Google User Profile Header ──
                 Surface(
@@ -452,9 +491,9 @@ fun MusifyMainScreen(
                         .fillMaxWidth()
                         .padding(vertical = 6.dp)
                         .clip(RoundedCornerShape(14.dp)),
-                    color = Color.Transparent,
+                    color = if (effectiveDark) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.dp, MusifyGlassBorder.copy(alpha = 0.35f))
+                    border = BorderStroke(1.dp, if (effectiveDark) MusifyGlassBorder.copy(alpha = 0.35f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
                 ) {
                     Row(
                         modifier = Modifier.padding(8.dp),
@@ -485,7 +524,7 @@ fun MusifyMainScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = googleDisplayName ?: currentUser?.displayName ?: googleEmail?.substringBefore("@") ?: "Google User",
-                                color = Color.White,
+                                color = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 15.sp,
                                 maxLines = 1,
@@ -517,101 +556,131 @@ fun MusifyMainScreen(
                 Surface(
                     color = Color.Transparent,
                     shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp,MusifyGlassBorder)
+                    border = BorderStroke(1.dp, if (effectiveDark) MusifyGlassBorder else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
                 ) {
                 NavigationDrawerItem(
-                        label = { Text("Home") },
+                        label = { Text("Home", color = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface) },
                         selected = currentRoute == "home",
                         onClick = {
                             scope.launch { drawerState.close() }
                             navController.navigate("home") { launchSingleTop = true }
                         },
-                        icon = { Icon(Icons.Default.Home, contentDescription = null) },
+                        icon = { Icon(Icons.Default.Home, contentDescription = null, tint = if (currentRoute == "home") MusifyGreen else (if (effectiveDark) Color.White.copy(0.7f) else MaterialTheme.colorScheme.onSurface.copy(0.7f))) },
                         modifier = Modifier,
                         shape = RoundedCornerShape(12.dp),
                         colors =
-                            NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent, selectedContainerColor = MusifyGreen.copy(0.25f))
+                            NavigationDrawerItemDefaults.colors(
+                                unselectedContainerColor = Color.Transparent, 
+                                selectedContainerColor = MusifyGreen.copy(0.2f),
+                                selectedTextColor = MusifyGreen,
+                                unselectedTextColor = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface
+                            )
                 )}
                 Spacer(modifier = Modifier.height(2.dp))
                 Surface(
                     color = Color.Transparent,
                     shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp,MusifyGlassBorder)
+                    border = BorderStroke(1.dp, if (effectiveDark) MusifyGlassBorder else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
                 ) {
                 NavigationDrawerItem(
-                    label = { Text("My Music") },
+                    label = { Text("My Music", color = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface) },
                     selected = currentRoute == "my_music",
                     onClick = { 
                         scope.launch { drawerState.close() }
                         navController.navigate("my_music") { launchSingleTop = true }
                     },
                     shape = RoundedCornerShape(12.dp),
-                    icon = { Icon(Icons.Default.Folder, contentDescription = null) },
-                    colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent, selectedContainerColor = MusifyGreen.copy(0.25f))
+                    icon = { Icon(Icons.Default.Folder, contentDescription = null, tint = if (currentRoute == "my_music") MusifyGreen else (if (effectiveDark) Color.White.copy(0.7f) else MaterialTheme.colorScheme.onSurface.copy(0.7f))) },
+                    colors = NavigationDrawerItemDefaults.colors(
+                        unselectedContainerColor = Color.Transparent, 
+                        selectedContainerColor = MusifyGreen.copy(0.2f),
+                        selectedTextColor = MusifyGreen,
+                        unselectedTextColor = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface
+                    )
                 )}
                 Spacer(modifier = Modifier.height(2.dp))
                 Surface(
                     color = Color.Transparent,
                     shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp,MusifyGlassBorder)
+                    border = BorderStroke(1.dp, if (effectiveDark) MusifyGlassBorder else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
                 ) {
                 NavigationDrawerItem(
-                    label = { Text("Downloads") },
+                    label = { Text("Downloads", color = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface) },
                     selected = currentRoute == "downloads",
                     onClick = { 
                         scope.launch { drawerState.close() }
                         navController.navigate("downloads") { launchSingleTop = true }
                     },
                     shape = RoundedCornerShape(12.dp),
-                    icon = { Icon(Icons.Default.DownloadForOffline, contentDescription = null) },
-                    colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent, selectedContainerColor = MusifyGreen.copy(0.25f))
+                    icon = { Icon(Icons.Default.DownloadForOffline, contentDescription = null, tint = if (currentRoute == "downloads") MusifyGreen else (if (effectiveDark) Color.White.copy(0.7f) else MaterialTheme.colorScheme.onSurface.copy(0.7f))) },
+                    colors = NavigationDrawerItemDefaults.colors(
+                        unselectedContainerColor = Color.Transparent, 
+                        selectedContainerColor = MusifyGreen.copy(0.2f),
+                        selectedTextColor = MusifyGreen,
+                        unselectedTextColor = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface
+                    )
                 )}
                 Spacer(modifier = Modifier.height(2.dp))
                 Surface(
                     color = Color.Transparent,
                     shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp,MusifyGlassBorder)
+                    border = BorderStroke(1.dp, if (effectiveDark) MusifyGlassBorder else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
                 ) {
                 NavigationDrawerItem(
-                    label = { Text("Playlists") },
+                    label = { Text("Playlists", color = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface) },
                     selected = currentRoute == "playlists",
                     onClick = { 
                         scope.launch { drawerState.close() }
                         navController.navigate("playlists") { launchSingleTop = true }
                     },
                     shape = RoundedCornerShape(12.dp),
-                    icon = { Icon(Icons.AutoMirrored.Filled.PlaylistPlay, contentDescription = null) },
-                    colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent, selectedContainerColor = MusifyGreen.copy(0.25f))
+                    icon = { Icon(Icons.AutoMirrored.Filled.PlaylistPlay, contentDescription = null, tint = if (currentRoute == "playlists") MusifyGreen else (if (effectiveDark) Color.White.copy(0.7f) else MaterialTheme.colorScheme.onSurface.copy(0.7f))) },
+                    colors = NavigationDrawerItemDefaults.colors(
+                        unselectedContainerColor = Color.Transparent, 
+                        selectedContainerColor = MusifyGreen.copy(0.2f),
+                        selectedTextColor = MusifyGreen,
+                        unselectedTextColor = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface
+                    )
                 )}
                 Spacer(modifier = Modifier.height(2.dp))
                 Surface(
                     color = Color.Transparent,
                     shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp,MusifyGlassBorder)
+                    border = BorderStroke(1.dp, if (effectiveDark) MusifyGlassBorder else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
                 ) {
                 NavigationDrawerItem(
-                    label = { Text("Settings") },
+                    label = { Text("Settings", color = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface) },
                     selected = currentRoute == "settings",
                     onClick = { 
                         scope.launch { drawerState.close() }
                         navController.navigate("settings") { launchSingleTop = true }
                     },
                     shape = RoundedCornerShape(12.dp),
-                    icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                    colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent, selectedContainerColor = MusifyGreen.copy(0.25f))
+                    icon = { Icon(Icons.Default.Settings, contentDescription = null, tint = if (currentRoute == "settings") MusifyGreen else (if (effectiveDark) Color.White.copy(0.7f) else MaterialTheme.colorScheme.onSurface.copy(0.7f))) },
+                    colors = NavigationDrawerItemDefaults.colors(
+                        unselectedContainerColor = Color.Transparent, 
+                        selectedContainerColor = MusifyGreen.copy(0.2f),
+                        selectedTextColor = MusifyGreen,
+                        unselectedTextColor = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface
+                    )
                 )}
                 Spacer(modifier = Modifier.height(2.dp))
                 Surface(
                     color = Color.Transparent,
                     shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp,MusifyGlassBorder)
+                    border = BorderStroke(1.dp, if (effectiveDark) MusifyGlassBorder else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
                 ) {
                 NavigationDrawerItem(
-                    label = { Text("Help us by rating") },
+                    label = { Text("Help us by rating", color = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface) },
                     selected = false,
                     onClick = { scope.launch { drawerState.close() } },
-                    icon = { Icon(Icons.Default.Star, contentDescription = null) },
-                    colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent, selectedContainerColor = MusifyGreen.copy(0.25f))
+                    icon = { Icon(Icons.Default.Star, contentDescription = null, tint = if (effectiveDark) Color.White.copy(0.7f) else MaterialTheme.colorScheme.onSurface.copy(0.7f)) },
+                    colors = NavigationDrawerItemDefaults.colors(
+                        unselectedContainerColor = Color.Transparent, 
+                        selectedContainerColor = MusifyGreen.copy(0.2f),
+                        selectedTextColor = MusifyGreen,
+                        unselectedTextColor = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface
+                    )
                 )}
                 Spacer(modifier = Modifier.weight(1f))
                 Button(
@@ -619,12 +688,12 @@ fun MusifyMainScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 20.dp, top = 8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0x30000000)),
+                    colors = ButtonDefaults.buttonColors(containerColor = if (effectiveDark) Color(0x30000000) else Color(0xFFFFF9E6)),
                     border = BorderStroke(1.dp, Color(0xFFD4AF37).copy(alpha = 0.6f)),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Go Premium now", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                        Text("Go Premium now", color = if (effectiveDark) Color.White else Color(0xFF8D6E14), fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("👑")
                     }
@@ -800,9 +869,9 @@ fun MiniPlayer(viewModel: MusicViewModel, settingsViewModel: SettingsViewModel, 
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = if (useDenseMiniplayer) 2.dp else 4.dp),
             onClick = onClick,
-            color = Color(0xF0181824),
+            color = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, Color(0x33FFFFFF))
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
         ) {
             Column {
                 // Top Mini Progress Strip
@@ -810,7 +879,7 @@ fun MiniPlayer(viewModel: MusicViewModel, settingsViewModel: SettingsViewModel, 
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(2.5.dp)
-                        .background(Color.White.copy(alpha = 0.1f))
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
                 ) {
                     Box(
                         modifier = Modifier
@@ -843,7 +912,7 @@ fun MiniPlayer(viewModel: MusicViewModel, settingsViewModel: SettingsViewModel, 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = track.title,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = if (useDenseMiniplayer) 13.sp else 14.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
@@ -852,7 +921,7 @@ fun MiniPlayer(viewModel: MusicViewModel, settingsViewModel: SettingsViewModel, 
                         Spacer(modifier = Modifier.height(1.dp))
                         Text(
                             text = track.artist,
-                            color = Color(0xFFB3B3B3),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
                             fontSize = if (useDenseMiniplayer) 11.sp else 12.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -876,13 +945,13 @@ fun MiniPlayer(viewModel: MusicViewModel, settingsViewModel: SettingsViewModel, 
                                     modifier = Modifier.size(18.dp),
                                     color = MusifyGreen,
                                     strokeWidth = 2.dp,
-                                    trackColor = Color(0xFF2B2B36)
+                                    trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)
                                 )
                             } else {
                                 Icon(
                                     imageVector = if (isDl) Icons.Default.CheckCircle else Icons.Default.DownloadForOffline,
                                     contentDescription = "Download",
-                                    tint = if (isDl) MusifyGreen else Color.Gray,
+                                    tint = if (isDl) MusifyGreen else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                                     modifier = Modifier.size(if (useDenseMiniplayer) 20.dp else 22.dp)
                                 )
                             }
@@ -900,7 +969,7 @@ fun MiniPlayer(viewModel: MusicViewModel, settingsViewModel: SettingsViewModel, 
                             Icon(
                                 imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                                 contentDescription = "Favorite",
-                                tint = if (isFavorite) MusifyGreen else Color.Gray,
+                                tint = if (isFavorite) MusifyGreen else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                                 modifier = Modifier.size(if (useDenseMiniplayer) 20.dp else 22.dp)
                             )
                         }
@@ -941,7 +1010,7 @@ fun MiniPlayer(viewModel: MusicViewModel, settingsViewModel: SettingsViewModel, 
                         onClick = { viewModel.playNext() },
                         modifier = Modifier.size(36.dp)
                     ) {
-                        Icon(Icons.Default.SkipNext, contentDescription = "Next", tint = Color.White, modifier = Modifier.size(24.dp))
+                        Icon(Icons.Default.SkipNext, contentDescription = "Next", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp))
                     }
                 }
             }
@@ -961,8 +1030,8 @@ fun MusifyBottomNavBar(navController: NavController) {
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding(),
-        color = Color(0xFF0D0D0D),
-        border = BorderStroke(0.5.dp, Color(0x26FFFFFF))
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
     ) {
         Row(
             modifier = Modifier
@@ -1056,13 +1125,13 @@ private fun BottomNavItem(
         Icon(
             imageVector = icon,
             contentDescription = title,
-            tint = if (isSelected) MusifyGreen else Color(0xFF8E8E93),
+            tint = if (isSelected) MusifyGreen else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
             modifier = Modifier.size(22.dp)
         )
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = title,
-            color = if (isSelected) MusifyGreen else Color(0xFF8E8E93),
+            color = if (isSelected) MusifyGreen else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
             fontSize = 11.sp,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
         )

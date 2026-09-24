@@ -57,13 +57,13 @@ fun FollowingScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // Top Bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.Black)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -71,13 +71,13 @@ fun FollowingScreen(
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    tint = Color.White
+                    tint = MaterialTheme.colorScheme.onBackground
                 )
             }
             Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = "Following",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f)
@@ -99,9 +99,9 @@ fun FollowingScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Surface(
-                        color = Color(0xFF1E1E1E),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
                         shape = RoundedCornerShape(20.dp),
-                        border = BorderStroke(1.dp, Color(0x33FFFFFF)),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
                         modifier = Modifier
                             .fillMaxWidth(0.55f)
                             .height(38.dp)
@@ -124,7 +124,7 @@ fun FollowingScreen(
                                 onValueChange = { searchQuery = it },
                                 singleLine = true,
                                 textStyle = androidx.compose.ui.text.TextStyle(
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 13.sp
                                 ),
                                 modifier = Modifier.weight(1f),
@@ -132,7 +132,7 @@ fun FollowingScreen(
                                     if (searchQuery.isEmpty()) {
                                         Text(
                                             "Search...",
-                                            color = Color.Gray,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                                             fontSize = 13.sp
                                         )
                                     }
@@ -184,14 +184,14 @@ fun FollowingScreen(
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
                             text = "No Followed Artists Yet",
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onBackground,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Follow artists from now playing or search to see them here.",
-                            color = Color.Gray,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                             fontSize = 13.sp,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
@@ -252,9 +252,9 @@ fun FollowedArtistItem(
     val followersFormatted by viewModel.getArtistFollowersFormatted(artist.name).collectAsState(initial = "")
 
     Surface(
-        color = MusifyGlassSurface,
+        color = MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, MusifyGlassBorder),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
@@ -284,7 +284,7 @@ fun FollowedArtistItem(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = artist.name,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,

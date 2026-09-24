@@ -95,7 +95,7 @@ fun ThemeSettingsScreen(navController: NavController, settingsViewModel: Setting
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(if (useAmoled || canvasColor == "Black") Color.Black else Color(0xFF121212))
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
     ) {
         // ── Top Header ──────────────────────────────────────────
@@ -108,12 +108,12 @@ fun ThemeSettingsScreen(navController: NavController, settingsViewModel: Setting
                 onClick = { navController.popBackStack() },
                 modifier = Modifier.align(Alignment.CenterStart)
             ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
             }
 
             Text(
                 text = "Theme",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.Center)
@@ -148,16 +148,16 @@ fun ThemeSettingsScreen(navController: NavController, settingsViewModel: Setting
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Accent Color & Hue", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+                Text("Accent Color & Hue", color = MaterialTheme.colorScheme.onBackground, fontSize = 15.sp, fontWeight = FontWeight.Normal)
                 Spacer(modifier = Modifier.height(2.dp))
-                Text(accentColorName, color = Color.Gray, fontSize = 13.sp)
+                Text(accentColorName, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 13.sp)
             }
             Box(
                 modifier = Modifier
                     .size(26.dp)
                     .clip(CircleShape)
                     .background(currentColor)
-                    .border(2.dp, Color.White.copy(alpha = 0.3f), CircleShape)
+                    .border(2.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f), CircleShape)
             )
         }
 
@@ -202,21 +202,21 @@ fun ThemeSettingsScreen(navController: NavController, settingsViewModel: Setting
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Canvas Color", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+                    Text("Canvas Color", color = MaterialTheme.colorScheme.onBackground, fontSize = 15.sp, fontWeight = FontWeight.Normal)
                     Spacer(modifier = Modifier.height(2.dp))
-                    Text("Color of Background Canvas", color = Color.Gray, fontSize = 13.sp)
+                    Text("Color of Background Canvas", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 13.sp)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(canvasColor, color = Color.White, fontSize = 14.sp)
+                    Text(canvasColor, color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("▼", color = Color.Gray, fontSize = 10.sp)
+                    Text("▼", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 10.sp)
                 }
             }
 
             DropdownMenu(
                 expanded = showCanvasDropdown,
                 onDismissRequest = { showCanvasDropdown = false },
-                modifier = Modifier.background(Color(0xFF242424))
+                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
             ) {
                 listOf("Black", "Grey").forEach { option ->
                     val isSelected = canvasColor == option
@@ -224,7 +224,7 @@ fun ThemeSettingsScreen(navController: NavController, settingsViewModel: Setting
                         text = {
                             Text(
                                 option,
-                                color = if (isSelected) currentColor else Color.White,
+                                color = if (isSelected) currentColor else MaterialTheme.colorScheme.onSurface,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                             )
                         },
@@ -248,21 +248,21 @@ fun ThemeSettingsScreen(navController: NavController, settingsViewModel: Setting
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Card Color", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+                    Text("Card Color", color = MaterialTheme.colorScheme.onBackground, fontSize = 15.sp, fontWeight = FontWeight.Normal)
                     Spacer(modifier = Modifier.height(2.dp))
-                    Text("Color of Search Bar, Alert Dialogs, Cards", color = Color.Gray, fontSize = 13.sp)
+                    Text("Color of Search Bar, Alert Dialogs, Cards", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 13.sp)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(cardColor, color = Color.White, fontSize = 14.sp)
+                    Text(cardColor, color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("▼", color = Color.Gray, fontSize = 10.sp)
+                    Text("▼", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 10.sp)
                 }
             }
 
             DropdownMenu(
                 expanded = showCardDropdown,
                 onDismissRequest = { showCardDropdown = false },
-                modifier = Modifier.background(Color(0xFF242424))
+                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
             ) {
                 listOf("Grey800", "Grey850", "Grey900", "Black").forEach { option ->
                     val isSelected = cardColor == option
@@ -270,7 +270,7 @@ fun ThemeSettingsScreen(navController: NavController, settingsViewModel: Setting
                         text = {
                             Text(
                                 option,
-                                color = if (isSelected) currentColor else Color.White,
+                                color = if (isSelected) currentColor else MaterialTheme.colorScheme.onSurface,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                             )
                         },
@@ -305,21 +305,21 @@ fun ThemeSettingsScreen(navController: NavController, settingsViewModel: Setting
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Current Theme", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+                    Text("Current Theme", color = MaterialTheme.colorScheme.onBackground, fontSize = 15.sp, fontWeight = FontWeight.Normal)
                     Spacer(modifier = Modifier.height(2.dp))
-                    Text("Active preset theme style", color = Color.Gray, fontSize = 13.sp)
+                    Text("Active preset theme style", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 13.sp)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(currentTheme, color = Color.White, fontSize = 14.sp)
+                    Text(currentTheme, color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("▼", color = Color.Gray, fontSize = 10.sp)
+                    Text("▼", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 10.sp)
                 }
             }
 
             DropdownMenu(
                 expanded = showThemeDropdown,
                 onDismissRequest = { showThemeDropdown = false },
-                modifier = Modifier.background(Color(0xFF242424))
+                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
             ) {
                 listOf("Default", "Custom").forEach { option ->
                     val isSelected = currentTheme == option
@@ -327,7 +327,7 @@ fun ThemeSettingsScreen(navController: NavController, settingsViewModel: Setting
                         text = {
                             Text(
                                 option,
-                                color = if (isSelected) currentColor else Color.White,
+                                color = if (isSelected) currentColor else MaterialTheme.colorScheme.onSurface,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                             )
                         },
@@ -514,10 +514,10 @@ fun ThemeSwitchRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+            Text(title, color = MaterialTheme.colorScheme.onBackground, fontSize = 15.sp, fontWeight = FontWeight.Normal)
             if (subtitle != null) {
                 Spacer(modifier = Modifier.height(2.dp))
-                Text(subtitle, color = Color.Gray, fontSize = 13.sp)
+                Text(subtitle, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 13.sp)
             }
         }
         Switch(
@@ -526,8 +526,8 @@ fun ThemeSwitchRow(
             colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.White,
                 checkedTrackColor = MusifyGreen,
-                uncheckedThumbColor = Color(0xFFB0B0B0),
-                uncheckedTrackColor = Color(0xFF383838)
+                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
             )
         )
     }
@@ -548,9 +548,9 @@ fun GradientOptionRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+            Text(title, color = MaterialTheme.colorScheme.onBackground, fontSize = 15.sp, fontWeight = FontWeight.Normal)
             Spacer(modifier = Modifier.height(2.dp))
-            Text(subtitle, color = Color.Gray, fontSize = 13.sp)
+            Text(subtitle, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 13.sp)
         }
         Box(
             modifier = Modifier

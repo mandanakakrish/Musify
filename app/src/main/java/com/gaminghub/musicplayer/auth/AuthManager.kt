@@ -57,10 +57,17 @@ class AuthManager private constructor(private val context: Context) {
     private val _isLoggedIn = MutableStateFlow(isUserLoggedIn())
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
 
-    private val _isAdmin = MutableStateFlow(prefs.getBoolean("is_admin_session", false))
+    private val _isAdmin = MutableStateFlow(false)
     val isAdmin: StateFlow<Boolean> = _isAdmin.asStateFlow()
 
+    private var adminListenerEmail: com.google.firebase.firestore.ListenerRegistration? = null
+    private var adminListenerUid: com.google.firebase.firestore.ListenerRegistration? = null
+
     init {
+        // Clear any old insecure local admin bypass
+        if (prefs.contains("is_admin_session")) {
+            prefs.edit().remove("is_admin_session").apply()
+        }
         try {
             _currentUser.value = auth?.currentUser
             auth?.addAuthStateListener { firebaseAuth ->
@@ -93,59 +100,152 @@ class AuthManager private constructor(private val context: Context) {
         _isLoggedIn.value = isUserLoggedIn()
     }
 
-    fun checkAdminStatus() {
-        if (prefs.getBoolean("is_admin_session", false)) {
-            _isAdmin.value = true
-            return
-        }
+    fun checkAdminStatus(onResult: ((Boolean) -> Unit)? = null) {
+        adminListenerEmail?.remove()
+        adminListenerEmail = null
+        adminListenerUid?.remove()
+        adminListenerUid = null
 
-        val email = _googleEmail.value ?: _currentUser.value?.email ?: ""
-        val uid = _currentUser.value?.uid ?: ""
+        val email = (_googleEmail.value ?: _currentUser.value?.email ?: "").lowercase().trim()
+        val uid = (_currentUser.value?.uid ?: "").trim()
 
         if (email.isBlank() && uid.isBlank()) {
             _isAdmin.value = false
+            onResult?.invoke(false)
             return
         }
 
         try {
             val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            var checkedEmail = false
+            var checkedUid = false
+
             if (email.isNotBlank()) {
-                db.collection("admins").document(email.lowercase()).get()
-                    .addOnSuccessListener { doc ->
-                        if (doc.exists() && doc.getBoolean("active") != false) {
+                adminListenerEmail = db.collection("admins").document(email)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            Log.w("AuthManager", "Admin email listener error: ${error.message}")
+                            if (!checkedEmail) {
+                                checkedEmail = true
+                                if (checkedUid || uid.isBlank()) onResult?.invoke(_isAdmin.value)
+                            }
+                            return@addSnapshotListener
+                        }
+                        val isActive = snapshot != null && snapshot.exists() && snapshot.getBoolean("active") != false
+                        if (isActive) {
                             _isAdmin.value = true
-                        } else if (uid.isNotBlank()) {
-                            db.collection("admins").document(uid).get()
-                                .addOnSuccessListener { uidDoc ->
-                                    _isAdmin.value = uidDoc.exists() && uidDoc.getBoolean("active") != false
-                                }
-                        } else {
+                        } else if (uid.isBlank() || !(_isAdmin.value)) {
                             _isAdmin.value = false
                         }
-                    }
-                    .addOnFailureListener {
-                        _isAdmin.value = prefs.getBoolean("is_admin_session", false)
+                        if (!checkedEmail) {
+                            checkedEmail = true
+                            if (checkedUid || uid.isBlank()) onResult?.invoke(_isAdmin.value)
+                        }
                     }
             }
-        } catch (_: Exception) {
-            _isAdmin.value = prefs.getBoolean("is_admin_session", false)
+
+            if (uid.isNotBlank()) {
+                adminListenerUid = db.collection("admins").document(uid)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            Log.w("AuthManager", "Admin uid listener error: ${error.message}")
+                            if (!checkedUid) {
+                                checkedUid = true
+                                if (checkedEmail || email.isBlank()) onResult?.invoke(_isAdmin.value)
+                            }
+                            return@addSnapshotListener
+                        }
+                        val isActive = snapshot != null && snapshot.exists() && snapshot.getBoolean("active") != false
+                        if (isActive) {
+                            _isAdmin.value = true
+                        } else if (email.isBlank() || !(_isAdmin.value)) {
+                            _isAdmin.value = false
+                        }
+                        if (!checkedUid) {
+                            checkedUid = true
+                            if (checkedEmail || email.isBlank()) onResult?.invoke(_isAdmin.value)
+                        }
+                    }
+            }
+        } catch (e: Exception) {
+            Log.e("AuthManager", "Error setting up admin listener: ${e.message}")
+            _isAdmin.value = false
+            onResult?.invoke(false)
         }
     }
 
-    fun verifyAdminPasscode(passcode: String): Boolean {
+    fun verifyAdminPasscode(passcode: String, onResult: (Boolean, String) -> Unit) {
         val clean = passcode.trim()
-        // Master Admin passcodes: "ADMIN_JOY_7788", "ADMIN_DEV_PICK", or custom owner codes
-        if (clean == "ADMIN_JOY_7788" || clean == "ADMIN_DEV_PICK" || clean == "778899") {
-            prefs.edit().putBoolean("is_admin_session", true).apply()
-            _isAdmin.value = true
-            return true
+        if (clean.isBlank()) {
+            onResult(false, "Passcode cannot be empty")
+            return
         }
-        return false
+
+        try {
+            val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            // Checks dynamic passcode configured by owner in Firebase Firestore: "admins/config"
+            db.collection("admins").document("config").get()
+                .addOnSuccessListener { doc ->
+                    val firebaseKey = doc.getString("passcode") ?: doc.getString("admin_key")
+                    val isEnabled = doc.getBoolean("enabled") ?: true
+                    if (isEnabled && !firebaseKey.isNullOrBlank() && firebaseKey == clean) {
+                        _isAdmin.value = true
+                        val email = (_googleEmail.value ?: _currentUser.value?.email ?: "").lowercase().trim()
+                        if (email.isNotBlank()) {
+                            db.collection("admins").document(email).set(
+                                mapOf("active" to true, "role" to "admin", "grantedAt" to com.google.firebase.Timestamp.now()),
+                                com.google.firebase.firestore.SetOptions.merge()
+                            )
+                        }
+                        onResult(true, "Admin permission verified via Firebase!")
+                    } else {
+                        // Fallback check "admin_config/access"
+                        db.collection("admin_config").document("access").get()
+                            .addOnSuccessListener { fallbackDoc ->
+                                val fallbackKey = fallbackDoc.getString("passcode") ?: fallbackDoc.getString("admin_key")
+                                val fallbackEnabled = fallbackDoc.getBoolean("enabled") ?: true
+                                if (fallbackEnabled && !fallbackKey.isNullOrBlank() && fallbackKey == clean) {
+                                    _isAdmin.value = true
+                                    val email = (_googleEmail.value ?: _currentUser.value?.email ?: "").lowercase().trim()
+                                    if (email.isNotBlank()) {
+                                        db.collection("admins").document(email).set(
+                                            mapOf("active" to true, "role" to "admin", "grantedAt" to com.google.firebase.Timestamp.now()),
+                                            com.google.firebase.firestore.SetOptions.merge()
+                                        )
+                                    }
+                                    onResult(true, "Admin permission verified via Firebase!")
+                                } else {
+                                    onResult(false, "Invalid passcode. Permission denied by Firebase.")
+                                }
+                            }
+                            .addOnFailureListener {
+                                onResult(false, "Firebase verification failed. Check internet connection.")
+                            }
+                    }
+                }
+                .addOnFailureListener { e ->
+                    onResult(false, "Firebase error: ${e.message}")
+                }
+        } catch (e: Exception) {
+            onResult(false, "Error: ${e.message}")
+        }
     }
 
     fun revokeAdminAccess() {
-        prefs.edit().putBoolean("is_admin_session", false).apply()
         _isAdmin.value = false
+        val email = (_googleEmail.value ?: _currentUser.value?.email ?: "").lowercase().trim()
+        val uid = (_currentUser.value?.uid ?: "").trim()
+        try {
+            val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            if (email.isNotBlank()) {
+                db.collection("admins").document(email).update("active", false)
+            }
+            if (uid.isNotBlank()) {
+                db.collection("admins").document(uid).update("active", false)
+            }
+        } catch (e: Exception) {
+            Log.w("AuthManager", "Error updating Firestore on revoke: ${e.message}")
+        }
     }
 
     fun saveGoogleAccount(account: GoogleSignInAccount) {
