@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Musify</string>
+    <string name="discover_music">Discover Music</string>
+    <string name="play_pause">Play / Pause</string>
+    <string name="default_web_client_id">466360010676-gjcnp1isug7vem9nk2b5vtebha376u4c.apps.googleusercontent.com</string>
+    <string name="appwidget_text">Musify</string>
+    <string name="add_widget">Add Musify Widget</string>
+    <string name="app_widget_description">Control your music from the home screen</string>
+</resources>

@@ -1,0 +1,56 @@
+{
+  "project_info": {
+    "project_number": "466360010676",
+    "firebase_url": "https://musify-8df01-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "musify-8df01",
+    "storage_bucket": "musify-8df01.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:466360010676:android:127884f270b36fea5d94e1",
+        "android_client_info": {
+          "package_name": "com.gaminghub.musify"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "466360010676-8khh35cbjpaa5kp2oo615a75vga6bbv9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.gaminghub.musify",
+            "certificate_hash": "c1f6acf6cad20e6f5c8cd2516f3a7796a9d63254"
+          }
+        },
+        {
+          "client_id": "466360010676-id7mcs9dlm5bueu705q02ki1igirju4t.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.gaminghub.musify",
+            "certificate_hash": "d6ada0f23776a0715db019a49159b92aa9678ffa"
+          }
+        },
+        {
+          "client_id": "466360010676-gjcnp1isug7vem9nk2b5vtebha376u4c.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCxf6HkoECeubQgc4lrhx9q-HIlmj3YUxY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "466360010676-gjcnp1isug7vem9nk2b5vtebha376u4c.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,12 @@
+﻿[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.gaminghub.musify",
+      "sha256_cert_fingerprints": [
+        "13:52:4F:E4:3A:0B:F1:CD:72:44:7C:79:2E:1F:B7:3E:38:6D:4E:AD:B0:D9:04:D1:92:D3:91:7B:A8:72:48:23"
+      ]
+    }
+  }
+]

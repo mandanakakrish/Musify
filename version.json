@@ -1,0 +1,9 @@
+{
+  "versionCode": 3,
+  "versionName": "1.7.1",
+  "minVersionCode": 3,
+  "forceUpdate": true,
+  "title": "Mandatory Musify Update",
+  "changelog": "• Fixed audio cracking and crystal-clear sound quality\n• Fixed Up Next queue: recommends similar songs instead of duplicate versions\n• Verified settings: streaming bitrates, cache, amoled theme, gestures\n• Strict update prompt and GitHub version detection system active",
+  "downloadUrl": "https://github.com/mandanakakrish/Musify/releases/latest"
+}

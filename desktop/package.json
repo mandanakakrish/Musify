@@ -1,0 +1,64 @@
+{
+  "name": "musify-desktop",
+  "productName": "Musify",
+  "version": "1.0.0",
+  "description": "Musify Music Player - Pure Lossless Audio",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win",
+    "build": "electron-builder --win"
+  },
+  "keywords": [
+    "music",
+    "player",
+    "musify",
+    "streaming"
+  ],
+  "author": "GamingHub",
+  "license": "MIT",
+  "devDependencies": {
+    "@electron/packager": "^20.3.0",
+    "electron": "^44.4.1",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.gaminghub.musify.desktop",
+    "productName": "Musify",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "styles.css",
+      "app.js",
+      "icon.png"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Musify"
+    }
+  }
+}

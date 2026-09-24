@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Musify - Pure Lossless Audio</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Desktop & Tablet Sidebar -->
+    <aside class="app-sidebar" id="appSidebar">
+      <div class="brand-header">
+        <img src="icon.png" class="brand-logo" alt="Musify">
+        <div class="brand-text">
+          <span class="brand-name">Musify</span>
+          <span class="brand-badge">PRO</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-btn active" data-tab="home" title="Home">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+          <span class="nav-label">Home</span>
+        </button>
+        <button class="nav-btn" data-tab="nowplaying" title="Now Playing (3-Panel)">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+          <span class="nav-label">Now Playing</span>
+        </button>
+        <button class="nav-btn" data-tab="charts" title="Top Charts">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg>
+          <span class="nav-label">Top Charts</span>
+        </button>
+        <button class="nav-btn" data-tab="favorites" title="Favorites">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          <span class="nav-label">Favorites</span>
+        </button>
+        <button class="nav-btn" data-tab="library" title="Library & Playlists">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12zm-7-2h2v-4h4V6h-6v6z"/></svg>
+          <span class="nav-label">Library</span>
+        </button>
+        <button class="nav-btn" data-tab="search" title="Search">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+          <span class="nav-label">Search</span>
+        </button>
+        <button class="nav-btn" data-tab="equalizer" title="Equalizer">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg>
+          <span class="nav-label">Equalizer</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-spacer"></div>
+
+      <!-- Account & Cloud Sync Card inside sidebar -->
+      <div class="account-card" id="sidebarAccountCard">
+        <div class="account-card-top">
+          <div class="account-avatar" id="sidebarAvatar">G</div>
+          <div class="account-info">
+            <div class="account-name" id="sidebarUserName">Guest User</div>
+            <div class="account-email" id="sidebarUserEmail">Sign in with Google</div>
+          </div>
+        </div>
+        <div class="account-sync-badge">
+          <span class="sync-dot" id="syncStatusDot"></span>
+          <span class="sync-text" id="syncStatusText">Cloud Database</span>
+        </div>
+        <button class="btn-account-action" id="btnSidebarAuth">Sign In / Google</button>
+      </div>
+    </aside>
+
+    <!-- Main Content Container -->
+    <main class="app-main">
+      <!-- Adaptive Top Navigation & Search Bar -->
+      <header class="app-header">
+        <div class="header-left">
+          <div class="search-input-wrapper">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+            <input type="text" id="searchInput" placeholder="Search songs, artists, or paste audio link..." autocomplete="off">
+            <button class="clear-search-btn" id="btnClearSearch" title="Clear">✕</button>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <!-- Cloud Database Sync Pill Button -->
+          <button class="cloud-sync-pill" id="btnHeaderSync" title="Sync with Musify Database">
+            <svg class="sync-spin-icon" id="syncSpinIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+            <span id="headerSyncLabel">Sync Database</span>
+          </button>
+
+          <!-- User Avatar Pill -->
+          <button class="header-user-btn" id="btnHeaderUser" title="Account Settings / Google Sign-In">
+            <div class="header-avatar" id="headerAvatar">G</div>
+          </button>
+        </div>
+      </header>
+
+      <!-- Scrollable Tab Content Area -->
+      <div class="content-scrollable" id="contentScrollable">
+        
+        <!-- Home Section matching Android app -->
+        <section id="tab-home" class="tab-view active">
+          <!-- Android Header Greeting matching screen_musify_home.png -->
+          <div class="android-home-header">
+            <div class="android-greeting">
+              <span class="android-greeting-sub" id="homeGreetingSub">Hi There,</span>
+              <h1 class="android-greeting-name" id="homeGreetingName">Krish</h1>
+            </div>
+            <div class="android-device-pill">
+              <svg class="android-device-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+              <span id="homeDeviceCount">1 device</span>
+            </div>
+          </div>
+
+          <!-- Material 3 Category Filter Chips -->
+          <div class="chips-carousel">
+            <button class="filter-chip active" data-filter="all">All</button>
+            <button class="filter-chip" data-filter="trending">Trending</button>
+            <button class="filter-chip" data-filter="pop">Pop</button>
+            <button class="filter-chip" data-filter="hiphop">Hip-Hop</button>
+            <button class="filter-chip" data-filter="bollywood">Bollywood</button>
+            <button class="filter-chip" data-filter="punjabi">Punjabi</button>
+            <button class="filter-chip" data-filter="romance">Romance</button>
+          </div>
+
+          <!-- Section: Your Playlists matching screen_musify_home.png -->
+          <div class="section-group">
+            <div class="section-header">
+              <h2 class="section-heading">Your Playlists</h2>
+            </div>
+            <div class="responsive-card-grid" id="homePlaylistsGrid"></div>
+          </div>
+
+          <!-- Section: Made for you (My Supermix) matching screen_musify_home.png -->
+          <div class="section-group">
+            <div class="section-header-row">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <h2 class="section-heading">Made for you</h2>
+                <span class="android-pill-badge">AI Personalized</span>
+              </div>
+              <button class="text-link-btn" id="btnPlayAllSupermix">Play all</button>
+            </div>
+            <div class="supermix-hero-card" id="supermixHeroCard">
+              <div class="supermix-info">
+                <h3 class="supermix-title">My Supermix</h3>
+                <p class="supermix-sub">Tailored for fans of Arijit Singh & Sachin-Jigar</p>
+                <span class="supermix-desc">12 personalized songs tuned to your taste</span>
+              </div>
+              <button class="supermix-play-btn" id="btnPlaySupermix" title="Play Supermix">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Hero Section: Trending -->
+          <div class="section-group">
+            <div class="section-header">
+              <h2 class="section-heading">Trending on Musify</h2>
+              <span class="section-subheading">Most streamed right now across all users</span>
+            </div>
+            <div class="responsive-card-grid" id="trendingGrid"></div>
+          </div>
+
+          <!-- Section: India's Biggest Hits -->
+          <div class="section-group">
+            <div class="section-header">
+              <h2 class="section-heading">🌟 India's Biggest Hits</h2>
+              <span class="section-subheading">Curated chartbusters & freshest releases</span>
+            </div>
+            <div class="responsive-card-grid" id="biggestHitsGrid"></div>
+          </div>
+
+          <!-- Section: Nostalgic Melodies -->
+          <div class="section-group">
+            <div class="section-header">
+              <h2 class="section-heading">🎵 Golden Nostalgia & Melodies</h2>
+              <span class="section-subheading">Timeless Bollywood, 90s hits, and rainy day classics</span>
+            </div>
+            <div class="responsive-card-grid" id="nostalgiaGrid"></div>
+          </div>
+
+          <!-- Section: Global Top Picks -->
+          <div class="section-group">
+            <div class="section-header">
+              <h2 class="section-heading">⭐ Global Top Picks</h2>
+              <span class="section-subheading">Lossless master streams</span>
+            </div>
+            <div class="track-list" id="homeTopCharts"></div>
+          </div>
+        </section>
+
+        <!-- ==========================================================
+             3-PART SPLIT NOW PLAYING MUSIC SCREEN
+             Part 1: Dashboard | Part 2: Song Details | Part 3: Up Next Queue
+             ========================================================== -->
+        <section id="tab-nowplaying" class="tab-view">
+          <div class="np-split-container">
+            
+            <!-- PART 1: DASHBOARD (Left Column) -->
+            <aside class="np-col np-dashboard-col">
+              <div class="np-col-header">
+                <div class="np-col-title-wrap">
+                  <svg class="np-col-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+                  <h2 class="np-col-title">Dashboard</h2>
+                </div>
+                <span class="np-badge-live">LIVE</span>
+              </div>
+
+              <!-- User Cloud Account Card -->
+              <div class="np-dash-card np-user-card" id="npUserCard">
+                <div class="np-user-top">
+                  <div class="np-user-avatar" id="npUserAvatar">G</div>
+                  <div class="np-user-details">
+                    <div class="np-user-name" id="npUserName">Guest User</div>
+                    <div class="np-user-email" id="npUserEmail">Sign in with Google to sync</div>
+                  </div>
+                </div>
+                <div class="np-sync-pill">
+                  <span class="np-pulse-dot" id="npSyncDot"></span>
+                  <span class="np-sync-label" id="npSyncLabel">Cloud Database Synced</span>
+                </div>
+              </div>
+
+              <!-- Audio Engine & DSP Metrics -->
+              <div class="np-dash-card">
+                <div class="np-card-header">
+                  <span class="np-card-label">AUDIO ENGINE DSP</span>
+                  <span class="np-quality-pill">320 KBPS</span>
+                </div>
+                <div class="np-engine-stats">
+                  <div class="np-stat-item">
+                    <span class="np-stat-val">Lossless Master</span>
+                    <span class="np-stat-lbl">Format Quality</span>
+                  </div>
+                  <div class="np-stat-item">
+                    <span class="np-stat-val" id="npEqStatus">Flat Mode</span>
+                    <span class="np-stat-lbl">DSP Equalizer</span>
+                  </div>
+                </div>
+                <!-- Live Spectrum Animation Wave -->
+                <div class="np-spectrum-wave" id="npSpectrumWave">
+                  <span class="bar bar1"></span>
+                  <span class="bar bar2"></span>
+                  <span class="bar bar3"></span>
+                  <span class="bar bar4"></span>
+                  <span class="bar bar5"></span>
+                  <span class="bar bar6"></span>
+                  <span class="bar bar7"></span>
+                  <span class="bar bar8"></span>
+                </div>
+              </div>
+
+              <!-- Quick Equalizer Presets -->
+              <div class="np-dash-card">
+                <div class="np-card-header">
+                  <span class="np-card-label">QUICK EQUALIZER PRESETS</span>
+                </div>
+                <div class="np-presets-grid">
+                  <button class="np-preset-btn active" data-preset="flat">Flat</button>
+                  <button class="np-preset-btn" data-preset="bass">Bass Boost</button>
+                  <button class="np-preset-btn" data-preset="vocal">Vocal Boost</button>
+                  <button class="np-preset-btn" data-preset="rock">Rock</button>
+                  <button class="np-preset-btn" data-preset="electronic">Electronic</button>
+                </div>
+              </div>
+
+              <!-- Quick Library Shortcuts -->
+              <div class="np-dash-card">
+                <div class="np-card-header">
+                  <span class="np-card-label">QUICK SHORTCUTS</span>
+                </div>
+                <div class="np-shortcuts-list">
+                  <button class="np-shortcut-item" data-goto="favorites">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    <span>Favorites (<strong id="npFavCount">0</strong>)</span>
+                  </button>
+                  <button class="np-shortcut-item" data-goto="charts">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg>
+                    <span>Cloud Top Charts</span>
+                  </button>
+                  <button class="np-shortcut-item" data-goto="library">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12zm-7-2h2v-4h4V6h-6v6z"/></svg>
+                    <span>Playlists</span>
+                  </button>
+                </div>
+              </div>
+            </aside>
+
+            <!-- PART 2: NOW PLAYING SONG DETAILS (Center Column) -->
+            <main class="np-col np-details-col">
+              <div class="np-col-header">
+                <div class="np-col-title-wrap">
+                  <svg class="np-col-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                  <h2 class="np-col-title">Now Playing</h2>
+                </div>
+                <span class="np-badge-mode" id="npPlaybackStatus">READY</span>
+              </div>
+
+              <!-- High-Res Vinyl Album Art Frame with Ambient Glow -->
+              <div class="np-art-wrapper">
+                <div class="np-art-ambient-glow" id="npArtGlow"></div>
+                <div class="np-art-frame">
+                  <img src="icon.png" class="np-main-art" id="npMainArt" alt="Album Art">
+                  <div class="np-vinyl-ring"></div>
+                </div>
+              </div>
+
+              <!-- Track Metadata -->
+              <div class="np-track-meta">
+                <div class="np-tag-row">
+                  <span class="np-source-tag">LOSSLESS AUDIO</span>
+                  <span class="np-genre-tag" id="npGenreTag">STUDIO MASTER</span>
+                </div>
+                <h1 class="np-song-title" id="npSongTitle">Musify Player</h1>
+                <h3 class="np-song-artist" id="npSongArtist">Ready to play</h3>
+                <div class="np-song-album" id="npSongAlbum">Select any track to start streaming</div>
+              </div>
+
+              <!-- Full Scrubber / Seek Bar -->
+              <div class="np-scrubber-box">
+                <div class="np-scrubber-rail">
+                  <input type="range" class="np-scrubber-slider" id="npSeekSlider" value="0" max="100" step="0.1">
+                  <div class="np-scrubber-fill" id="npScrubberFill"></div>
+                </div>
+                <div class="np-time-row">
+                  <span class="np-time-val" id="npCurrTime">0:00</span>
+                  <span class="np-time-val" id="npTotalTime">0:00</span>
+                </div>
+              </div>
+
+              <!-- Central Playback Controls -->
+              <div class="np-controls-box">
+                <button class="np-ctrl-btn" id="npBtnShuffle" title="Shuffle">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
+                </button>
+                <button class="np-ctrl-btn" id="npBtnPrev" title="Previous Track">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+                </button>
+                <button class="np-play-btn" id="npBtnPlayPause" title="Play / Pause">
+                  <svg class="np-play-svg" id="npPlaySvg" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                </button>
+                <button class="np-ctrl-btn" id="npBtnNext" title="Next Track">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+                </button>
+                <button class="np-ctrl-btn" id="npBtnRepeat" title="Repeat Track">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
+                </button>
+              </div>
+
+              <!-- Secondary Actions Toolbar -->
+              <!-- Secondary Actions Toolbar matching Android App -->
+              <div class="np-actions-bar">
+                <button class="np-action-btn" id="npBtnFavorite" title="Toggle Favorite">
+                  <svg class="heart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                  <span class="np-action-label" id="npFavLabel">Favorite</span>
+                </button>
+
+                <button class="np-action-btn" id="npBtnSpeed" title="Playback Speed">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.38 8.57l-1.23 1.85a8 8 0 0 1-.22 7.58H5.07A8 8 0 0 1 15.58 6.85l1.85-1.23A10 10 0 0 0 3.35 19a2 2 0 0 0 1.72 1h13.85a2 2 0 0 0 1.74-1 10 10 0 0 0-.28-10.43zM10.59 15.41a2 2 0 0 0 2.83 0l5.66-8.49-8.49 5.66a2 2 0 0 0 0 2.83z"/></svg>
+                  <span class="np-action-label" id="npSpeedLabel">1.0x</span>
+                </button>
+
+                <button class="np-action-btn" id="npBtnSleepTimer" title="Sleep Timer">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61l1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42C16.07 4.74 14.12 4 12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9 9-4.03 9-9c0-2.12-.74-4.07-1.97-5.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+                  <span class="np-action-label" id="npSleepLabel">Timer</span>
+                </button>
+
+                <button class="np-action-btn" id="npBtnLyrics" title="Toggle Synchronized Lyrics">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6zM8 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm11-12h-4v2h4V5zm0 4h-4v2h4V9zm0 4h-4v2h4v-2z"/></svg>
+                  <span class="np-action-label">Lyrics</span>
+                </button>
+
+                <div class="np-vol-control">
+                  <button class="np-ctrl-icon-btn" id="npBtnMute" title="Mute/Unmute">
+                    <svg id="npVolIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                  </button>
+                  <div class="np-vol-slider-rail">
+                    <input type="range" class="np-vol-slider" id="npVolumeSlider" min="0" max="1" step="0.01" value="0.8">
+                    <div class="np-vol-fill" id="npVolumeFill" style="width: 80%;"></div>
+                  </div>
+                </div>
+
+                <button class="np-action-btn" id="npBtnShare" title="Copy Song Info">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg>
+                  <span class="np-action-label">Share</span>
+                </button>
+              </div>
+
+              <!-- Collapsible Synchronized Lyrics Drawer matching Android -->
+              <div class="np-lyrics-drawer" id="npLyricsDrawer">
+                <div class="np-lyrics-header">
+                  <span class="np-lyrics-title">✨ Synchronized Lyrics</span>
+                  <button class="np-lyrics-close" id="btnCloseLyrics">✕</button>
+                </div>
+                <div class="np-lyrics-body" id="npLyricsBody">
+                  <p class="lyric-line active">Playing track...</p>
+                </div>
+              </div>
+            </main>
+
+            <!-- PART 3: UP NEXT SONGS LIST (Right Column) -->
+            <aside class="np-col np-queue-col">
+              <div class="np-col-header">
+                <div class="np-col-title-wrap">
+                  <svg class="np-col-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/></svg>
+                  <h2 class="np-col-title">Up Next</h2>
+                </div>
+                <span class="np-queue-count" id="npQueueCount">0 tracks</span>
+              </div>
+
+              <div class="np-queue-toolbar">
+                <button class="np-queue-action-btn" id="btnShuffleQueue" title="Shuffle Upcoming Queue">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
+                  <span>Shuffle</span>
+                </button>
+                <button class="np-queue-action-btn text-muted" id="btnClearQueue" title="Reset to Curated Catalog">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                  <span>Reset</span>
+                </button>
+              </div>
+
+              <!-- Active Playing Item in Queue -->
+              <div class="np-current-playing-banner">
+                <span class="np-now-badge">NOW PLAYING</span>
+                <div class="np-queue-item active" id="npQueueCurrentItem">
+                  <img src="icon.png" class="np-q-thumb" id="npQCurrentThumb" alt="Now Playing">
+                  <div class="np-q-meta">
+                    <div class="np-q-title" id="npQCurrentTitle">Musify Player</div>
+                    <div class="np-q-artist" id="npQCurrentArtist">Ready to play</div>
+                  </div>
+                  <div class="np-equalizer-bars">
+                    <span></span><span></span><span></span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="np-queue-subhead">UPCOMING IN QUEUE</div>
+
+              <!-- Scrollable Upcoming Queue List -->
+              <div class="np-queue-scrollable" id="npQueueList">
+                <!-- Injected via JavaScript -->
+              </div>
+            </aside>
+
+          </div>
+        </section>
+
+        <!-- Charts Section: Dual Weekly + All Time Side-by-Side (Desktop Adaptive) -->
+        <section id="tab-charts" class="tab-view">
+          <div class="charts-top-header">
+            <div>
+              <div class="charts-badge">🔥 CLOUD DATABASE LEADERBOARDS</div>
+              <h1 class="charts-main-title">Top Charts</h1>
+              <p class="charts-main-sub">Live streaming charts calculated across all Musify Android and Windows users in real time.</p>
+            </div>
+            <div class="charts-top-actions">
+              <button class="btn-charts-action" id="btnRefreshCharts" title="Refresh Live Charts">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+                <span>Refresh</span>
+              </button>
+              <button class="btn-charts-action" id="btnChartsInfo" title="About Top Charts">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 17h2v-6h-2v6zm1-15C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM11 9h2V7h-2v2z"/></svg>
+                <span>About</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Dual Side-by-Side Columns -->
+          <div class="charts-dual-grid">
+            <!-- Left Column: Weekly Top Songs (Past 7 Days) -->
+            <div class="chart-column-card weekly-column">
+              <div class="chart-hero-header weekly-hero">
+                <div class="chart-hero-meta">
+                  <span class="chart-scope-badge weekly-scope">🔥 PAST 7 DAYS • ROLLING TRENDS</span>
+                  <h2 class="chart-col-title">Weekly Top Songs</h2>
+                  <p class="chart-col-sub">Most played tracks by all listeners in the last 7 days</p>
+                </div>
+                <div class="chart-hero-btns">
+                  <button class="btn-chart-play-all" id="btnPlayAllWeekly" title="Play Weekly Top Chart">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    <span>Play All</span>
+                  </button>
+                  <button class="btn-chart-shuffle" id="btnShuffleWeekly" title="Shuffle Weekly Top Chart">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="chart-track-rows" id="weeklyChartsList"></div>
+            </div>
+
+            <!-- Right Column: All-Time Top Songs -->
+            <div class="chart-column-card alltime-column">
+              <div class="chart-hero-header alltime-hero">
+                <div class="chart-hero-meta">
+                  <span class="chart-scope-badge alltime-scope">👑 ALL-TIME • LEGENDARY HITS</span>
+                  <h2 class="chart-col-title">All-Time Top Songs</h2>
+                  <p class="chart-col-sub">All-time highest streamed songs across Musify cloud database</p>
+                </div>
+                <div class="chart-hero-btns">
+                  <button class="btn-chart-play-all" id="btnPlayAllAllTime" title="Play All-Time Top Chart">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    <span>Play All</span>
+                  </button>
+                  <button class="btn-chart-shuffle" id="btnShuffleAllTime" title="Shuffle All-Time Top Chart">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="chart-track-rows" id="allTimeChartsList"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Favorites Section (Synced from Cloud Database) -->
+        <section id="tab-favorites" class="tab-view">
+          <div class="section-group">
+            <div class="library-header-card">
+              <div class="library-icon-box fav-box">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              </div>
+              <div>
+                <span class="charts-badge">SYNCED FAVORITES</span>
+                <h1 class="charts-title">Favorite Songs</h1>
+                <p class="charts-desc" id="favCountDesc">Synced with your Musify cloud account</p>
+              </div>
+            </div>
+            <div class="track-list" id="favoritesList"></div>
+          </div>
+        </section>
+
+        <!-- Library & Playlists Section (Synced from Cloud Database) -->
+        <section id="tab-library" class="tab-view">
+          <!-- Library Category Filter Chips matching Android app -->
+          <div class="chips-carousel">
+            <button class="filter-chip active" data-lib-filter="all">All</button>
+            <button class="filter-chip" data-lib-filter="playlists">Playlists</button>
+            <button class="filter-chip" data-lib-filter="liked">Liked Songs</button>
+            <button class="filter-chip" data-lib-filter="downloads">Downloads</button>
+          </div>
+
+          <!-- Group 1: Session & Stats matching musify_screen.png -->
+          <div class="android-list-group">
+            <div class="android-list-item" id="libItemLastSession">
+              <div class="android-item-left">
+                <div class="android-item-icon">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+                </div>
+                <span class="android-item-title">Last Session</span>
+              </div>
+              <span class="android-item-arrow">›</span>
+            </div>
+            <div class="android-list-item" id="libItemStats">
+              <div class="android-item-left">
+                <div class="android-item-icon">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+                </div>
+                <span class="android-item-title">Listening Stats</span>
+              </div>
+              <span class="android-item-arrow">›</span>
+            </div>
+          </div>
+
+          <!-- Group 2: Library Collections matching musify_screen.png -->
+          <div class="android-list-group">
+            <div class="android-list-item" id="libItemFavorites">
+              <div class="android-item-left">
+                <div class="android-item-icon">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                </div>
+                <span class="android-item-title">Favorites</span>
+              </div>
+              <span class="android-item-arrow">›</span>
+            </div>
+            <div class="android-list-item" id="libItemMyMusic">
+              <div class="android-item-left">
+                <div class="android-item-icon">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                </div>
+                <span class="android-item-title">My Music</span>
+              </div>
+              <span class="android-item-arrow">›</span>
+            </div>
+            <div class="android-list-item" id="libItemPlaylists">
+              <div class="android-item-left">
+                <div class="android-item-icon">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 10h12v2H4zm0-4h12v2H4zm0 8h8v2H4zm10 0v6l5-3z"/></svg>
+                </div>
+                <span class="android-item-title">Playlists</span>
+              </div>
+              <span class="android-item-arrow">›</span>
+            </div>
+            <div class="android-list-item" id="libItemDownloads">
+              <div class="android-item-left">
+                <div class="android-item-icon">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+                </div>
+                <span class="android-item-title">Downloads</span>
+              </div>
+              <span class="android-item-arrow">›</span>
+            </div>
+          </div>
+
+          <div class="section-group">
+            <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+              <div>
+                <h2 class="section-heading">Your Cloud Playlists</h2>
+                <span class="section-subheading">Synchronized across your Android phone and PC</span>
+              </div>
+              <div style="display: flex; gap: 10px;">
+                <button class="btn-outline" id="btnImportPlaylist">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>
+                  Import Playlist
+                </button>
+                <button class="btn-primary" id="btnCreatePlaylist">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                  New Playlist
+                </button>
+              </div>
+            </div>
+            <div class="responsive-card-grid" id="playlistsGrid"></div>
+          </div>
+        </section>
+
+        <!-- Search Section -->
+        <section id="tab-search" class="tab-view">
+          <div class="section-group">
+            <div class="section-header">
+              <h2 class="section-heading" id="searchHeaderTitle">Explore & Search</h2>
+              <span class="section-subheading" id="searchHeaderSub">Find any track, artist, album, or paste audio URL</span>
+            </div>
+            <div class="track-list" id="searchResults"></div>
+          </div>
+        </section>
+
+        <!-- Equalizer Section -->
+        <section id="tab-equalizer" class="tab-view">
+          <div class="section-group">
+            <div class="eq-card">
+              <div class="eq-header">
+                <div>
+                  <h2 class="section-heading">🎚️ 5-Band Audio Equalizer</h2>
+                  <span class="section-subheading">Hardware-accelerated real-time DSP audio processing</span>
+                </div>
+                <button class="btn-outline" id="btnResetEq">Reset to Flat</button>
+              </div>
+
+              <!-- Preset Chips -->
+              <div class="eq-presets-row">
+                <span class="eq-presets-label">Presets:</span>
+                <button class="eq-chip active" data-preset="flat">Flat</button>
+                <button class="eq-chip" data-preset="bass">Bass Boost</button>
+                <button class="eq-chip" data-preset="vocal">Vocal Booster</button>
+                <button class="eq-chip" data-preset="rock">Rock</button>
+                <button class="eq-chip" data-preset="electronic">Electronic</button>
+              </div>
+
+              <!-- 5-Band Sliders -->
+              <div class="eq-bands-container">
+                <div class="eq-band-col">
+                  <span class="eq-band-val" id="eqVal0">+4 dB</span>
+                  <div class="eq-slider-rail">
+                    <input type="range" class="eq-slider" id="eqBand0" min="-12" max="12" value="4">
+                  </div>
+                  <span class="eq-band-label">60 Hz</span>
+                </div>
+
+                <div class="eq-band-col">
+                  <span class="eq-band-val" id="eqVal1">+2 dB</span>
+                  <div class="eq-slider-rail">
+                    <input type="range" class="eq-slider" id="eqBand1" min="-12" max="12" value="2">
+                  </div>
+                  <span class="eq-band-label">230 Hz</span>
+                </div>
+
+                <div class="eq-band-col">
+                  <span class="eq-band-val" id="eqVal2">0 dB</span>
+                  <div class="eq-slider-rail">
+                    <input type="range" class="eq-slider" id="eqBand2" min="-12" max="12" value="0">
+                  </div>
+                  <span class="eq-band-label">910 Hz</span>
+                </div>
+
+                <div class="eq-band-col">
+                  <span class="eq-band-val" id="eqVal3">+3 dB</span>
+                  <div class="eq-slider-rail">
+                    <input type="range" class="eq-slider" id="eqBand3" min="-12" max="12" value="3">
+                  </div>
+                  <span class="eq-band-label">3.6 kHz</span>
+                </div>
+
+                <div class="eq-band-col">
+                  <span class="eq-band-val" id="eqVal4">+5 dB</span>
+                  <div class="eq-slider-rail">
+                    <input type="range" class="eq-slider" id="eqBand4" min="-12" max="12" value="5">
+                  </div>
+                  <span class="eq-band-label">14 kHz</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Mobile Bottom Navigation Bar (< 680px) -->
+  <nav class="mobile-bottom-nav" id="mobileBottomNav">
+    <button class="mobile-nav-item active" data-tab="home">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span>Home</span>
+    </button>
+    <button class="mobile-nav-item" data-tab="nowplaying">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+      <span>Playing</span>
+    </button>
+    <button class="mobile-nav-item" data-tab="charts">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg>
+      <span>Charts</span>
+    </button>
+    <button class="mobile-nav-item" data-tab="favorites">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+      <span>Favorites</span>
+    </button>
+    <button class="mobile-nav-item" data-tab="library">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12zm-7-2h2v-4h4V6h-6v6z"/></svg>
+      <span>Library</span>
+    </button>
+  </nav>
+
+  <!-- Adaptive Bottom Player Bar -->
+  <footer class="player-bar" id="playerBar">
+    <div class="mini-progress-track">
+      <div class="mini-progress-fill" id="miniProgressFill"></div>
+    </div>
+
+    <!-- Track Info (Left) - Clicking expands to Now Playing -->
+    <div class="player-left" id="playerLeftTrack" title="Click to view 3-Part Now Playing screen">
+      <img src="icon.png" class="player-thumb" id="currentArt" alt="Track Art">
+      <div class="player-meta">
+        <div class="player-title" id="currentTitle">Musify Player</div>
+        <div class="player-artist" id="currentArtist">Ready to play</div>
+      </div>
+      <button class="icon-btn fav-btn" id="btnFavorite" title="Favorite">
+        <svg class="heart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+      </button>
+    </div>
+
+    <!-- Central Controls & Scrubber (Center) -->
+    <div class="player-center">
+      <div class="player-buttons">
+        <button class="icon-btn btn-secondary-ctrl" id="btnShuffle" title="Shuffle">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
+        </button>
+        <button class="icon-btn" id="btnPrev" title="Previous">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+        </button>
+        <button class="btn-main-play" id="btnPlayPause" title="Play/Pause">
+          <svg class="play-svg" id="playSvg" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <button class="icon-btn" id="btnNext" title="Next">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+        </button>
+        <button class="icon-btn btn-secondary-ctrl" id="btnRepeat" title="Repeat">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
+        </button>
+      </div>
+
+      <div class="scrubber-container">
+        <span class="time-label" id="currTime">0:00</span>
+        <div class="scrubber-bar-wrapper">
+          <input type="range" class="scrubber-range" id="seekSlider" value="0" max="100" step="0.1">
+          <div class="scrubber-fill" id="scrubberFill"></div>
+        </div>
+        <span class="time-label" id="totalTime">0:00</span>
+      </div>
+    </div>
+
+    <!-- Volume & Extras (Right) -->
+    <div class="player-right">
+      <button class="icon-btn" id="btnMute" title="Mute/Unmute">
+        <svg id="volIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+      </button>
+      <div class="volume-slider-wrapper">
+        <input type="range" class="volume-range" id="volumeSlider" min="0" max="1" step="0.01" value="0.8">
+        <div class="volume-fill" id="volumeFill" style="width: 80%;"></div>
+      </div>
+      <button class="icon-btn" id="btnEqQuick" title="Equalizer">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20h4V4h-4v16zm-6 0h4v-8H4v8zM16 9v11h4V9h-4z"/></svg>
+      </button>
+      <button class="icon-btn" id="btnExpandNowPlaying" title="Open 3-Part Now Playing Screen">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+      </button>
+    </div>
+  </footer>
+
+  <!-- ==========================================================
+       LOGIN WITH GOOGLE MODAL DIALOG
+       Matches the Android App's AuthScreen.kt perfectly
+       ========================================================== -->
+  <div class="modal-backdrop" id="authModal">
+    <div class="auth-dialog android-auth-card">
+      <div class="auth-dialog-header">
+        <div class="auth-brand">
+          <img src="icon.png" class="auth-logo" alt="Musify">
+          <div>
+            <div class="auth-title">Musify Cloud Account</div>
+            <div class="auth-subtitle">Android & Windows Sync</div>
+          </div>
+        </div>
+        <button class="btn-close-modal" id="btnCloseAuthModal" title="Close">✕</button>
+      </div>
+
+      <!-- Android App-style Hero Header -->
+      <div class="auth-android-hero">
+        <div class="auth-hero-logo-box">
+          <svg class="auth-hero-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+          </svg>
+        </div>
+        <h2 class="auth-hero-headline">Millions of Songs.<br>Free on Musify.</h2>
+        <p class="auth-hero-sub">Sign in with your Google account to access streaming, playlists, and cloud sync.</p>
+      </div>
+
+      <!-- Feature highlights like Android app -->
+      <div class="auth-features-box">
+        <div class="auth-feature-row">
+          <div class="auth-feat-icon-badge">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a9 9 0 0 0-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7a9 9 0 0 0-9-9z"/></svg>
+          </div>
+          <div class="auth-feat-text">High-Quality Studio Audio & Streaming</div>
+        </div>
+        <div class="auth-feature-row">
+          <div class="auth-feat-icon-badge">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3z"/></svg>
+          </div>
+          <div class="auth-feat-text">Sync Playlists & Favorites via Cloud Firestore</div>
+        </div>
+        <div class="auth-feature-row">
+          <div class="auth-feat-icon-badge">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+          </div>
+          <div class="auth-feat-text">Ultra-Fast Lossless Cache & Cloud Sync</div>
+        </div>
+      </div>
+
+      <!-- MAIN ACTION: Big White Pill Button "Continue with Google" -->
+      <button class="btn-continue-google" id="btnGoogleSignIn">
+        <svg class="google-g-logo" viewBox="0 0 48 48">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        </svg>
+        <span>Continue with Google</span>
+      </button>
+
+      <!-- Instant Google Email Direct Connect (matching Android signInWithGoogleEmail) -->
+      <div class="auth-divider">
+        <span>OR CONNECT WITH GOOGLE EMAIL</span>
+      </div>
+
+      <div class="auth-quick-email-row">
+        <input type="email" class="form-input" id="quickEmailInput" placeholder="Enter Android Google email (e.g. user@gmail.com)">
+        <button class="btn-primary btn-quick-email-submit" id="btnQuickConnect">Sync</button>
+      </div>
+
+      <!-- Feedback / Error messages -->
+      <div class="auth-feedback" id="authFeedback"></div>
+
+      <!-- Footer with Guest mode and Terms -->
+      <div class="auth-footer-android">
+        <button class="btn-guest-link" id="btnGuestMode">Continue as Guest</button>
+        <button class="btn-signout-link" id="btnSignOut" style="display: none;">Sign Out</button>
+        <div class="auth-legal-text">By continuing, you agree to Musify's Terms of Service and Privacy Policy.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- About Top Charts Modal matching Android App TopChartsScreen.kt -->
+  <div class="modal-backdrop" id="chartsInfoModal">
+    <div class="auth-dialog android-info-card">
+      <div class="auth-dialog-header">
+        <div class="auth-brand">
+          <svg style="width: 28px; height: 28px; color: var(--musify-green);" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/>
+          </svg>
+          <div>
+            <div class="auth-title">About Top Charts</div>
+            <div class="auth-subtitle">Musify Global Leaderboard</div>
+          </div>
+        </div>
+        <button class="btn-close-modal" id="btnCloseChartsInfo" title="Close">✕</button>
+      </div>
+      <div class="android-info-content">
+        <p>Both charts are calculated globally from <strong>ALL users</strong> directly on <strong>Cloud Firestore</strong>:</p>
+        <div class="info-bullet-item">
+          <span class="info-bullet-icon">🔥</span>
+          <div>
+            <strong>Weekly Top Songs:</strong>
+            <p>Live cloud leaderboard of the top songs played across ALL Musify users in the rolling past 7 days.</p>
+          </div>
+        </div>
+        <div class="info-bullet-item">
+          <span class="info-bullet-icon">👑</span>
+          <div>
+            <strong>All-Time Top Songs:</strong>
+            <p>Live cloud leaderboard of the all-time most played songs across ALL Musify users.</p>
+          </div>
+        </div>
+      </div>
+      <div style="text-align: right; margin-top: 20px;">
+        <button class="btn-primary" id="btnAckChartsInfo" style="padding: 10px 24px;">Got It</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sleep Timer Modal matching Android NowPlayingScreen.kt -->
+  <div class="modal-backdrop" id="sleepTimerModal">
+    <div class="auth-dialog android-option-card">
+      <div class="auth-dialog-header">
+        <div class="auth-brand">
+          <svg style="width: 26px; height: 26px; color: var(--musify-green);" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61l1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42C16.07 4.74 14.12 4 12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9 9-4.03 9-9c0-2.12-.74-4.07-1.97-5.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+          </svg>
+          <div>
+            <div class="auth-title">Sleep Timer</div>
+            <div class="auth-subtitle">Automatic stop playback</div>
+          </div>
+        </div>
+        <button class="btn-close-modal" id="btnCloseSleepModal" title="Close">✕</button>
+      </div>
+      <div class="timer-options-list">
+        <button class="timer-opt-btn" data-minutes="15">15 Minutes</button>
+        <button class="timer-opt-btn" data-minutes="30">30 Minutes</button>
+        <button class="timer-opt-btn" data-minutes="45">45 Minutes</button>
+        <button class="timer-opt-btn" data-minutes="60">60 Minutes</button>
+        <button class="timer-opt-btn" data-minutes="end">End of Track</button>
+        <button class="timer-opt-btn opt-cancel" data-minutes="0">Turn Off Timer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Playback Speed Modal matching Android NowPlayingScreen.kt -->
+  <div class="modal-backdrop" id="speedModal">
+    <div class="auth-dialog android-option-card">
+      <div class="auth-dialog-header">
+        <div class="auth-brand">
+          <svg style="width: 26px; height: 26px; color: var(--musify-green);" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20.38 8.57l-1.23 1.85a8 8 0 0 1-.22 7.58H5.07A8 8 0 0 1 15.58 6.85l1.85-1.23A10 10 0 0 0 3.35 19a2 2 0 0 0 1.72 1h13.85a2 2 0 0 0 1.74-1 10 10 0 0 0-.28-10.43zM10.59 15.41a2 2 0 0 0 2.83 0l5.66-8.49-8.49 5.66a2 2 0 0 0 0 2.83z"/>
+          </svg>
+          <div>
+            <div class="auth-title">Playback Speed</div>
+            <div class="auth-subtitle">Adjust tempo & audio rate</div>
+          </div>
+        </div>
+        <button class="btn-close-modal" id="btnCloseSpeedModal" title="Close">✕</button>
+      </div>
+      <div class="timer-options-list">
+        <button class="timer-opt-btn" data-speed="0.5">0.5x (Slow)</button>
+        <button class="timer-opt-btn" data-speed="0.75">0.75x</button>
+        <button class="timer-opt-btn" data-speed="1.0">1.0x (Normal)</button>
+        <button class="timer-opt-btn" data-speed="1.25">1.25x</button>
+        <button class="timer-opt-btn" data-speed="1.5">1.5x</button>
+        <button class="timer-opt-btn" data-speed="2.0">2.0x (Fast)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import Playlist Modal matching Android ImportPlaylistScreen.kt -->
+  <div class="modal-backdrop" id="importPlaylistModal">
+    <div class="auth-dialog android-auth-card">
+      <div class="auth-dialog-header">
+        <div class="auth-brand">
+          <svg style="width: 26px; height: 26px; color: var(--musify-green);" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/>
+          </svg>
+          <div>
+            <div class="auth-title">Import Playlist</div>
+            <div class="auth-subtitle">Sync Spotify or YouTube link</div>
+          </div>
+        </div>
+        <button class="btn-close-modal" id="btnCloseImportModal" title="Close">✕</button>
+      </div>
+      <div style="padding: 10px 0;">
+        <p style="font-size: 13px; color: var(--musify-text-secondary); margin-bottom: 14px;">
+          Paste any YouTube, Spotify, or public playlist URL to instantly parse and add to your Musify Cloud Library.
+        </p>
+        <input type="text" class="form-input" id="importPlaylistUrl" placeholder="https://open.spotify.com/playlist/... or YouTube link">
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px;">
+        <button class="btn-outline" id="btnCancelImport">Cancel</button>
+        <button class="btn-primary" id="btnSubmitImport">Import to Cloud</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Alert -->
+  <div class="toast-notification" id="toastNotification"></div>
+
+  <audio id="audioElement" preload="auto"></audio>
+  <script src="app.js"></script>
+</body>
+</html>
