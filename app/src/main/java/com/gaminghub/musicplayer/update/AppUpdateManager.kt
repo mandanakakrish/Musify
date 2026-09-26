@@ -563,25 +563,6 @@ object AppUpdateManager {
         }
     }
 
-    /**
-     * Testing utility: simulates a strict update prompt on the device so the user/developer
-     * can verify the UI and strict behavior immediately.
-     */
-    fun triggerTestPrompt(context: Context) {
-        val (curVersion, curCode) = getCurrentVersion(context)
-        _updateInfo.value = AppUpdateInfo(
-            isUpdateAvailable = true,
-            isForceUpdate = true,
-            currentVersion = curVersion,
-            latestVersion = "v9.9.9",
-            currentVersionCode = curCode,
-            latestVersionCode = 999L,
-            releaseTitle = "Strict Update Required (Test Mode)",
-            changelog = "• In-app APK background downloader\n• Live download progress bar & stats\n• Direct one-click package installer\n• Permissions handling for unknown sources",
-            downloadUrl = "https://github.com/$releaseRepoOwner/$releaseRepoName/releases/download/v1.7.2/Musify.apk",
-            source = UpdateSource.TEST_MODE
-        )
-    }
 
     /**
      * Clears test update prompt state.

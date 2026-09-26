@@ -21,8 +21,7 @@ data class AppUpdateInfo(
 
 enum class UpdateSource {
     GITHUB_RELEASE,
-    GITHUB_VERSION_JSON,
-    TEST_MODE
+    GITHUB_VERSION_JSON
 }
 
 /**

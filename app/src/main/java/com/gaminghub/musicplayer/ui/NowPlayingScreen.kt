@@ -121,6 +121,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import coil.compose.AsyncImage
 import com.gaminghub.musicplayer.MusicViewModel
+import com.gaminghub.musicplayer.SettingsViewModel
 import com.gaminghub.musicplayer.TrackModel
 import com.gaminghub.musicplayer.data.PlaylistEntity
 import com.gaminghub.musicplayer.ui.theme.MusifyDarkBg
@@ -133,7 +134,11 @@ import kotlin.math.roundToInt
 @UnstableApi
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
+fun NowPlayingScreen(
+    viewModel: MusicViewModel,
+    settingsViewModel: SettingsViewModel? = null,
+    onBack: () -> Unit
+) {
     val context = LocalContext.current
     val currentTrack by viewModel.currentTrack.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
@@ -183,20 +188,45 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
     val isAdmin by authManager.isAdmin.collectAsState()
 
     val settingsPrefs = remember { context.getSharedPreferences("Musify_settings", android.content.Context.MODE_PRIVATE) }
+    val isSystemDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val isDarkModeSetting by (settingsViewModel?.isDarkMode ?: flowOf(settingsPrefs.getBoolean("is_dark_mode", false))).collectAsState(initial = settingsPrefs.getBoolean("is_dark_mode", false))
+    val useSystemThemeSetting by (settingsViewModel?.useSystemTheme ?: flowOf(settingsPrefs.getBoolean("use_system_theme", false))).collectAsState(initial = settingsPrefs.getBoolean("use_system_theme", false))
+    val isDark = if (useSystemThemeSetting) isSystemDark else isDarkModeSetting
+
     val playerBackground = remember { settingsPrefs.getString("player_background", "Default (Blurred Artwork)") ?: "Default (Blurred Artwork)" }
     val enableArtworkGestures = remember { settingsPrefs.getBoolean("artwork_gestures", true) }
     val enableVolumeGestures = remember { settingsPrefs.getBoolean("volume_gestures", false) }
     val audioManager = remember { context.getSystemService(android.content.Context.AUDIO_SERVICE) as? android.media.AudioManager }
 
-    val bgModifier = when (playerBackground) {
-        "Solid Black" -> Modifier.background(Color.Black)
-        "Subtle Gradient" -> Modifier.background(
+    val bgModifier = if (!isDark) {
+        Modifier.background(
             androidx.compose.ui.graphics.Brush.verticalGradient(
-                colors = listOf(Color(0xFF24152A), Color(0xFF12101D), Color.Black)
+                colors = listOf(
+                    Color(0xFFFFFFFF),
+                    Color(0xFFF3F7F5),
+                    Color(0xFFE2EBE5),
+                    Color(0xFFD3E2D8)
+                )
             )
         )
-        else -> Modifier.background(MusifyDarkBg)
+    } else {
+        when (playerBackground) {
+            "Solid Black" -> Modifier.background(Color.Black)
+            "Subtle Gradient" -> Modifier.background(
+                androidx.compose.ui.graphics.Brush.verticalGradient(
+                    colors = listOf(Color(0xFF24152A), Color(0xFF12101D), Color.Black)
+                )
+            )
+            else -> Modifier.background(MusifyDarkBg)
+        }
     }
+
+    val textColor = if (isDark) Color.White else Color(0xFF191C1E)
+    val textSecondaryColor = if (isDark) Color.Gray else Color(0xFF5A6065)
+    val iconTint = if (isDark) Color.White.copy(alpha = 0.85f) else Color(0xFF222628)
+    val glassSurface = if (isDark) MusifyGlassSurface else Color.White.copy(alpha = 0.75f)
+    val glassBorder = if (isDark) MusifyGlassBorder else Color(0x1F000000)
+    val sheetBg = if (isDark) Color(0xFF161622) else Color(0xFFF6FAF7)
 
     val downloadedUrls by viewModel.downloadedUrls.collectAsState()
     val activeDownloads by viewModel.activeDownloads.collectAsState()
@@ -224,16 +254,17 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
         sheetPeekHeight = 52.dp,
-        sheetContainerColor = Color(0xFF161622),
-        sheetContentColor = Color.White,
+        sheetContainerColor = sheetBg,
+        sheetContentColor = textColor,
         sheetDragHandle = null,
-        containerColor = MusifyGlassSurface,
+        containerColor = if (isDark) MusifyGlassSurface else Color.Transparent,
         sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         sheetContent = {
             UpNextPanel(
                 currentTrack = currentTrack,
                 upNextQueue = upNextQueue,
                 viewModel = viewModel,
+                isDark = isDark,
                 onTrackClick = { index -> viewModel.playFromQueue(index) },
                 onReorder = { from, to -> viewModel.reorderQueue(from, to) },
                 onRemoveTrack = { index -> viewModel.removeFromQueue(index) }
@@ -258,7 +289,7 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Default.KeyboardArrowDown, "Back", tint = Color.White, modifier = Modifier.size(32.dp))
+                    Icon(Icons.Default.KeyboardArrowDown, "Back", tint = textColor, modifier = Modifier.size(32.dp))
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { currentTrack?.let { viewModel.toggleDownload(it) } }) {
@@ -269,12 +300,12 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                                     modifier = Modifier.size(22.dp),
                                     color = MusifyGreen,
                                     strokeWidth = 2.dp,
-                                    trackColor = Color(0xFF2B2B36)
+                                    trackColor = if (isDark) Color(0xFF2B2B36) else Color(0xFFD6D6D6)
                                 )
                                 Icon(
                                     Icons.Default.Close,
                                     contentDescription = "Cancel Download",
-                                    tint = Color.White,
+                                    tint = textColor,
                                     modifier = Modifier.size(12.dp)
                                 )
                             }
@@ -282,7 +313,7 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                             Icon(
                                 if (isDownloaded) Icons.Default.CheckCircle else Icons.Default.DownloadForOffline,
                                 contentDescription = if (isDownloaded) "Downloaded" else "Download Song",
-                                tint = if (isDownloaded) Color(0xFF00E676) else Color.White.copy(alpha = 0.85f),
+                                tint = if (isDownloaded) Color(0xFF00E676) else iconTint,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -294,7 +325,7 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                         Icon(
                             Icons.AutoMirrored.Filled.QueueMusic,
                             "Lyrics",
-                            tint = if (showLyrics) MusifyGreen else Color.White.copy(alpha = 0.8f)
+                            tint = if (showLyrics) MusifyGreen else iconTint
                         )
                     }
                     IconButton(onClick = { 
@@ -304,29 +335,29 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                         Icon(
                             Icons.Default.GraphicEq,
                             "Visualizer",
-                            tint = if (showVisualizer) MusifyGreen else Color.White.copy(alpha = 0.8f)
+                            tint = if (showVisualizer) MusifyGreen else iconTint
                         )
                     }
                     IconButton(onClick = { showEqualizerDialog = true }) {
                         Icon(
                             Icons.Default.Tune,
                             "Equalizer",
-                            tint = Color.White.copy(alpha = 0.8f)
+                            tint = iconTint
                         )
                     }
                     IconButton(onClick = {
                         currentTrack?.let { com.gaminghub.musicplayer.util.LinkHelper.shareSong(context, it) }
                     }) {
-                        Icon(Icons.Default.Share, "Share", tint = Color.White.copy(alpha = 0.8f))
+                        Icon(Icons.Default.Share, "Share", tint = iconTint)
                     }
                     Box {
                         IconButton(onClick = { showMenu = true }) {
-                            Icon(Icons.Default.MoreVert, "More", tint = Color.White.copy(alpha = 0.8f))
+                            Icon(Icons.Default.MoreVert, "More", tint = iconTint)
                         }
                         DropdownMenu(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false },
-                            modifier = Modifier.background(Color(0xFF222230))
+                            modifier = Modifier.background(if (isDark) Color(0xFF222230) else Color(0xFFF7FAF8))
                         ) {
                             if (isAdmin) {
                                 DropdownMenuItem(
@@ -351,7 +382,7 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                                 )
                             }
                             DropdownMenuItem(
-                                text = { Text("Copy Song Link", color = Color.White) },
+                                text = { Text("Copy Song Link", color = textColor) },
                                 onClick = {
                                     showMenu = false
                                     currentTrack?.let { com.gaminghub.musicplayer.util.LinkHelper.copySongLink(context, it) }
@@ -359,7 +390,7 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                                 leadingIcon = { Icon(Icons.Default.ContentCopy, null, tint = MusifyGreen) }
                             )
                             DropdownMenuItem(
-                                text = { Text(if (isDownloaded) "Downloaded (Tap to delete)" else if (isDownloading) "Downloading..." else "Download Song Offline", color = Color.White) },
+                                text = { Text(if (isDownloaded) "Downloaded (Tap to delete)" else if (isDownloading) "Downloading..." else "Download Song Offline", color = textColor) },
                                 onClick = {
                                     showMenu = false
                                     currentTrack?.let { viewModel.toggleDownload(it) }
@@ -373,7 +404,7 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("Start Song Radio", color = Color.White) },
+                                text = { Text("Start Song Radio", color = textColor) },
                                 onClick = {
                                     showMenu = false
                                     currentTrack?.let { viewModel.startSongRadio(it) }
@@ -382,7 +413,7 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                             )
                             if (isAdmin) {
                                 DropdownMenuItem(
-                                    text = { Text("Link / Edit Artist", color = Color.White) },
+                                    text = { Text("Link / Edit Artist", color = textColor) },
                                     onClick = {
                                         showMenu = false
                                         showLinkArtistDialog = true
@@ -391,7 +422,7 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                                 )
                             }
                             DropdownMenuItem(
-                                text = { Text("View Artist Profile", color = Color.White) },
+                                text = { Text("View Artist Profile", color = textColor) },
                                 onClick = {
                                     showMenu = false
                                     currentTrack?.artist?.let { openArtistProfileOrChooser(it) }
@@ -399,22 +430,22 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                                 leadingIcon = { Icon(Icons.Default.Person, null, tint = MusifyGreen) }
                             )
                             DropdownMenuItem(
-                                text = { Text("Add to Playlist", color = Color.White) },
+                                text = { Text("Add to Playlist", color = textColor) },
                                 onClick = { showMenu = false; showAddToPlaylistDialog = true },
                                 leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null, tint = MusifyGreen) }
                             )
                             DropdownMenuItem(
-                                text = { Text(if (sleepTimerMillis > 0) "Sleep Timer (${sleepTimerMillis / 60000}m)" else "Sleep Timer", color = Color.White) },
+                                text = { Text(if (sleepTimerMillis > 0) "Sleep Timer (${sleepTimerMillis / 60000}m)" else "Sleep Timer", color = textColor) },
                                 onClick = { showMenu = false; showSleepTimerDialog = true },
                                 leadingIcon = { Icon(Icons.Default.Timer, null, tint = MusifyGreen) }
                             )
                             DropdownMenuItem(
-                                text = { Text("Playback Speed", color = Color.White) },
+                                text = { Text("Playback Speed", color = textColor) },
                                 onClick = { showMenu = false; showSpeedDialog = true },
                                 leadingIcon = { Icon(Icons.Default.Speed, null, tint = MusifyGreen) }
                             )
                             DropdownMenuItem(
-                                text = { Text("Watch on YouTube", color = Color.White) },
+                                text = { Text("Watch on YouTube", color = textColor) },
                                 onClick = {
                                     showMenu = false
                                     currentTrack?.audioUrl?.let { url ->
@@ -439,8 +470,8 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                         .fillMaxWidth(0.85f)
                         .aspectRatio(1f)
                         .clip(RoundedCornerShape(20.dp)),
-                    color = MusifyGlassSurface,
-                    border = BorderStroke(1.dp, MusifyGlassBorder)
+                    color = glassSurface,
+                    border = BorderStroke(1.dp, glassBorder)
                 ) {
                     if (syncedLyrics.isNotEmpty()) {
                         val lyricListState = rememberLazyListState()
@@ -466,7 +497,7 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
 
                                 Text(
                                     text = line.text,
-                                    color = if (isActive) MusifyGreen else Color.White,
+                                    color = if (isActive) MusifyGreen else textColor,
                                     fontSize = 18.sp,
                                     fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Medium,
                                     textAlign = TextAlign.Center,
@@ -493,7 +524,7 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                         ) {
                             Text(
                                 text = plainLyrics ?: "Searching for lyrics...",
-                                color = Color.White.copy(alpha = 0.9f),
+                                color = textColor.copy(alpha = 0.9f),
                                 fontSize = 16.sp,
                                 textAlign = TextAlign.Center,
                                 lineHeight = 26.sp
@@ -507,8 +538,8 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                         .fillMaxWidth(0.85f)
                         .aspectRatio(1f)
                         .clip(RoundedCornerShape(24.dp)),
-                    color = Color(0xFF141420),
-                    border = BorderStroke(1.dp, MusifyGlassBorder)
+                    color = if (isDark) Color(0xFF141420) else Color(0xFFEEF3F0),
+                    border = BorderStroke(1.dp, glassBorder)
                 ) {
                     Column(
                         modifier = Modifier
@@ -524,7 +555,7 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                         Spacer(modifier = Modifier.height(14.dp))
                         Text(
                             text = if (isPlaying) "AUDIO SPECTRUM ACTIVE" else "PAUSED",
-                            color = if (isPlaying) MusifyGreen else Color.Gray,
+                            color = if (isPlaying) MusifyGreen else textSecondaryColor,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 2.sp
@@ -540,7 +571,7 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                         .fillMaxWidth(0.85f)
                         .aspectRatio(1f)
                         .clip(RoundedCornerShape(24.dp))
-                        .background(MusifyGlassSurface)
+                        .background(glassSurface)
                         .pointerInput(enableArtworkGestures, enableVolumeGestures) {
                             if (enableArtworkGestures) {
                                 detectTapGestures(
@@ -618,14 +649,14 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                         Icon(
                             if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                             "Favorite",
-                            tint = if (isFavorite) MusifyGreen else Color.Gray,
+                            tint = if (isFavorite) MusifyGreen else textSecondaryColor,
                             modifier = Modifier.size(26.dp)
                         )
                     }
                     if (songLikes.isNotBlank()) {
                         Text(
                             text = songLikes,
-                            color = if (isFavorite) MusifyGreen else Color.Gray,
+                            color = if (isFavorite) MusifyGreen else textSecondaryColor,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -642,7 +673,7 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                     ) {
                         Text(
                             com.gaminghub.musicplayer.util.MusifyFileMetadataHelper.cleanDisplayTitle(currentTrack?.title ?: "Unknown Title"),
-                            color = Color.White,
+                            color = textColor,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center,
@@ -685,12 +716,12 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                                 modifier = Modifier.size(26.dp),
                                 color = MusifyGreen,
                                 strokeWidth = 2.5.dp,
-                                trackColor = Color(0xFF2B2B36)
+                                trackColor = if (isDark) Color(0xFF2B2B36) else Color(0xFFD6D6D6)
                             )
                             Icon(
                                 Icons.Default.Close,
                                 contentDescription = "Cancel Download",
-                                tint = Color.White,
+                                tint = textColor,
                                 modifier = Modifier.size(13.dp)
                             )
                         }
@@ -698,7 +729,7 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                         Icon(
                             if (isDownloaded) Icons.Default.CheckCircle else Icons.Default.DownloadForOffline,
                             "Download Song",
-                            tint = if (isDownloaded) Color(0xFF00E676) else Color.White,
+                            tint = if (isDownloaded) Color(0xFF00E676) else iconTint,
                             modifier = Modifier.size(28.dp)
                         )
                     }
@@ -732,7 +763,7 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                         modifier = Modifier.height(4.dp),
                         colors = SliderDefaults.colors(
                             activeTrackColor = MusifyGreen,
-                            inactiveTrackColor = Color(0x33FFFFFF)
+                            inactiveTrackColor = if (isDark) Color(0x33FFFFFF) else Color(0x22000000)
                         ),
                         thumbTrackGapSize = 0.dp,
                         drawStopIndicator = null
@@ -745,8 +776,8 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(formatTime(currentPosition), color = Color.Gray, fontSize = 12.sp)
-                Text(formatTime(duration), color = Color.Gray, fontSize = 12.sp)
+                Text(formatTime(currentPosition), color = textSecondaryColor, fontSize = 12.sp)
+                Text(formatTime(duration), color = textSecondaryColor, fontSize = 12.sp)
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -764,12 +795,12 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                     Icon(
                         Icons.Default.Shuffle,
                         "Shuffle",
-                        tint = if (isShuffleOn) MusifyGreen else Color.Gray,
+                        tint = if (isShuffleOn) MusifyGreen else textSecondaryColor,
                         modifier = Modifier.size(24.dp)
                     )
                 }
                 IconButton(onClick = { viewModel.playPrevious() }) {
-                    Icon(Icons.Default.SkipPrevious, "Previous", tint = Color.White, modifier = Modifier.size(38.dp))
+                    Icon(Icons.Default.SkipPrevious, "Previous", tint = textColor, modifier = Modifier.size(38.dp))
                 }
                 IconButton(
                     onClick = { viewModel.togglePlayPause() },
@@ -781,12 +812,12 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                     Icon(
                         if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                         "Play/Pause",
-                        tint = Color.White,
+                        tint = Color.Black,
                         modifier = Modifier.size(35.dp)
                     )
                 }
                 IconButton(onClick = { viewModel.playNext() }) {
-                    Icon(Icons.Default.SkipNext, "Next", tint = Color.White, modifier = Modifier.size(38.dp))
+                    Icon(Icons.Default.SkipNext, "Next", tint = textColor, modifier = Modifier.size(38.dp))
                 }
                 IconButton(onClick = {
                     isRepeatOn = !isRepeatOn
@@ -795,7 +826,7 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                     Icon(
                         if (isRepeatOn) Icons.Default.RepeatOne else Icons.Default.Repeat,
                         "Repeat",
-                        tint = if (isRepeatOn) MusifyGreen else Color.Gray,
+                        tint = if (isRepeatOn) MusifyGreen else textSecondaryColor,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -815,15 +846,15 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                     Icon(
                         Icons.AutoMirrored.Filled.PlaylistAdd,
                         "Add to Playlist",
-                        tint = Color.White.copy(alpha = 0.8f),
+                        tint = iconTint,
                         modifier = Modifier.size(24.dp)
                     )
                 }
 
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = if (isDownloaded) Color(0x2200E676) else MusifyGlassSurface,
-                    border = BorderStroke(1.dp, if (isDownloaded) Color(0x5500E676) else MusifyGreen.copy(alpha = 0.3f)),
+                    color = if (isDownloaded) (if (isDark) Color(0x2200E676) else Color(0x2200C853)) else glassSurface,
+                    border = BorderStroke(1.dp, if (isDownloaded) (if (isDark) Color(0x5500E676) else Color(0x6600C853)) else MusifyGreen.copy(alpha = 0.35f)),
                     modifier = Modifier.clickable { currentTrack?.let { viewModel.toggleDownload(it) } }
                 ) {
                     Row(
@@ -836,7 +867,7 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                                 modifier = Modifier.size(16.dp),
                                 color = MusifyGreen,
                                 strokeWidth = 2.dp,
-                                trackColor = Color(0xFF2B2B36)
+                                trackColor = if (isDark) Color(0xFF2B2B36) else Color(0xFFD6D6D6)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
@@ -849,13 +880,13 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                             Icon(
                                 if (isDownloaded) Icons.Default.CheckCircle else Icons.Default.DownloadForOffline,
                                 contentDescription = null,
-                                tint = if (isDownloaded) Color(0xFF00E676) else MusifyGreen,
+                                tint = if (isDownloaded) (if (isDark) Color(0xFF00E676) else Color(0xFF008938)) else MusifyGreen,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(5.dp))
                             Text(
                                 if (isDownloaded) "Downloaded" else "Download",
-                                color = if (isDownloaded) Color(0xFF00E676) else Color.White,
+                                color = if (isDownloaded) (if (isDark) Color(0xFF00E676) else Color(0xFF008938)) else textColor,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -867,20 +898,20 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                     Icon(
                         Icons.Default.Timer,
                         "Sleep Timer",
-                        tint = if (sleepTimerMillis > 0) MusifyGreen else Color.White.copy(alpha = 0.8f),
+                        tint = if (sleepTimerMillis > 0) MusifyGreen else iconTint,
                         modifier = Modifier.size(22.dp)
                     )
                 }
 
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = MusifyGlassSurface,
-                    border = BorderStroke(1.dp, Color(0x33FFFFFF)),
+                    color = glassSurface,
+                    border = BorderStroke(1.dp, glassBorder),
                     modifier = Modifier.clickable { showSpeedDialog = true }
                 ) {
                     Text(
                         text = "${String.format("%.2f", playbackSpeed).trimEnd('0').trimEnd('.')}x",
-                        color = Color.White.copy(alpha = 0.9f),
+                        color = textColor,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -891,7 +922,7 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
             if (currentDownloadProgress != null) {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = MusifyGlassSurface,
+                    color = glassSurface,
                     border = BorderStroke(1.dp, MusifyGreen.copy(alpha = 0.4f)),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -913,7 +944,7 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     "${currentDownloadProgress.downloadedFormatted} / ${currentDownloadProgress.totalFormatted}",
-                                    color = Color.White,
+                                    color = textColor,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -933,7 +964,7 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                                     .height(4.dp)
                                     .clip(RoundedCornerShape(2.dp)),
                                 color = MusifyGreen,
-                                trackColor = Color(0xFF2B2B36)
+                                trackColor = if (isDark) Color(0xFF2B2B36) else Color(0xFFD6D6D6)
                             )
                         } else {
                             LinearProgressIndicator(
@@ -943,7 +974,7 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                                     .height(4.dp)
                                     .clip(RoundedCornerShape(2.dp)),
                                 color = MusifyGreen,
-                                trackColor = Color(0xFF2B2B36)
+                                trackColor = if (isDark) Color(0xFF2B2B36) else Color(0xFFD6D6D6)
                             )
                         }
                     }
@@ -1130,6 +1161,7 @@ fun UpNextPanel(
     currentTrack: TrackModel?,
     upNextQueue: List<TrackModel>,
     viewModel: MusicViewModel,
+    isDark: Boolean = true,
     onTrackClick: (Int) -> Unit,
     onReorder: (Int, Int) -> Unit,
     onRemoveTrack: (Int) -> Unit
@@ -1152,6 +1184,10 @@ fun UpNextPanel(
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val favoriteUrls by viewModel.favoriteUrls.collectAsState()
+
+    val itemTextColor = if (isDark) Color.White else Color(0xFF191C1E)
+    val itemSecondaryColor = if (isDark) Color(0xFFB3B3B3) else Color(0xFF5A6065)
+    val itemIconTint = if (isDark) Color.White.copy(alpha = 0.8f) else Color(0xFF222628)
 
     LaunchedEffect(upNextQueue) {
         if (!isDragging) {
@@ -1177,14 +1213,14 @@ fun UpNextPanel(
                     .width(40.dp)
                     .height(4.dp)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(MusifyGlassSurface)
+                    .background(if (isDark) MusifyGlassSurface else Color(0xFFCCD3CF))
             )
         }
 
         // ── "Up Next" title ──────────────────────────────
         Text(
             "Up Next",
-            color = Color.White,
+            color = itemTextColor,
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.fillMaxWidth(),
@@ -1198,7 +1234,7 @@ fun UpNextPanel(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text("No songs in queue", color = Color.Gray, fontSize = 14.sp)
+                Text("No songs in queue", color = itemSecondaryColor, fontSize = 14.sp)
             }
         } else {
             // ── Queue list with drag-to-reorder ──────────────
@@ -1220,7 +1256,7 @@ fun UpNextPanel(
                                     .zIndex(2f)
                                     .graphicsLayer { translationY = dragOffsetY }
                                     .shadow(elevation, RoundedCornerShape(8.dp))
-                                    .background(Color(0xFF282836), RoundedCornerShape(8.dp))
+                                    .background(if (isDark) Color(0xFF282836) else Color(0xFFE2EBE5), RoundedCornerShape(8.dp))
                                 else Modifier.background(Color.Transparent)
                             )
                             .clickable(enabled = !isDragging) { onTrackClick(index) }
@@ -1238,7 +1274,7 @@ fun UpNextPanel(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 track.title,
-                                color = Color.White,
+                                color = itemTextColor,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium,
                                 maxLines = 1,
@@ -1246,7 +1282,7 @@ fun UpNextPanel(
                             )
                             Text(
                                 track.artist,
-                                color = Color(0xFFB3B3B3),
+                                color = itemSecondaryColor,
                                 fontSize = 12.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -1261,7 +1297,7 @@ fun UpNextPanel(
                             Icon(
                                 if (itemFav) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                                 "Favorite",
-                                tint = if (itemFav) Color(0xFF1DB954) else Color.White.copy(alpha = 0.8f),
+                                tint = if (itemFav) Color(0xFF1DB954) else itemIconTint,
                                 modifier = Modifier.size(22.dp)
                             )
                         }
@@ -1357,7 +1393,7 @@ fun UpNextPanel(
                             Icon(
                                 Icons.Default.DragHandle,
                                 "Reorder",
-                                tint = if (isDraggingThis) MusifyGreen else Color.White.copy(alpha = 0.8f),
+                                tint = if (isDraggingThis) MusifyGreen else itemIconTint,
                                 modifier = Modifier.size(22.dp)
                             )
                         }

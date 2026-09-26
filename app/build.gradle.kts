@@ -33,8 +33,8 @@ android {
         applicationId = "com.gaminghub.musify"
         minSdk = 26
         targetSdk = 36
-        versionCode = 4
-        versionName = "1.7.2"
+        versionCode = 5
+        versionName = "1.7.3"
     }
 
     buildTypes {

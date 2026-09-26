@@ -338,11 +338,6 @@ class MainActivity : ComponentActivity() {
         val action = intent.action
         val data = intent.data
 
-        if (action == "com.gaminghub.musify.TEST_UPDATE_PROMPT" || intent.getBooleanExtra("test_update_prompt", false)) {
-            com.gaminghub.musicplayer.update.AppUpdateManager.exitOfflineMode()
-            com.gaminghub.musicplayer.update.AppUpdateManager.triggerTestPrompt(this)
-            return
-        }
 
         when (action) {
             android.content.Intent.ACTION_VIEW -> {
@@ -455,14 +450,54 @@ fun MusifyMainScreen(
     val currentRoute = navBackStackEntry?.destination?.route
     val context = androidx.compose.ui.platform.LocalContext.current
 
+    val updateInfo by com.gaminghub.musicplayer.update.AppUpdateManager.updateInfo.collectAsState()
+    val isOfflineModeActive by com.gaminghub.musicplayer.update.AppUpdateManager.isOfflineModeActive.collectAsState()
+    val isUpdateAvailable = updateInfo?.isUpdateAvailable == true
+
     val pendingOfflineRoute by com.gaminghub.musicplayer.update.AppUpdateManager.pendingOfflineNavigationRoute.collectAsState()
     androidx.compose.runtime.LaunchedEffect(pendingOfflineRoute) {
         pendingOfflineRoute?.let { route ->
             navController.navigate(route) {
+                popUpTo(navController.graph.startDestinationId) {
+                    saveState = false
+                }
                 launchSingleTop = true
             }
             com.gaminghub.musicplayer.update.AppUpdateManager.clearPendingOfflineNavigation()
         }
+    }
+
+    // Strict offline mode guard: only downloads and my_music are accessible when update is detected
+    androidx.compose.runtime.DisposableEffect(navController, isUpdateAvailable, isOfflineModeActive) {
+        val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
+            val route = destination.route ?: ""
+            if (isUpdateAvailable && isOfflineModeActive) {
+                val isAllowed = route == "downloads" ||
+                                route == "my_music" ||
+                                route.startsWith("my_music/") ||
+                                route == "now_playing"
+                if (!isAllowed) {
+                    com.gaminghub.musicplayer.update.AppUpdateManager.exitOfflineMode()
+                    Toast.makeText(
+                        context,
+                        "Update required to access this screen. Only Downloaded and My Music are available offline.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    navController.navigate("downloads") {
+                        popUpTo("downloads") { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            }
+        }
+        navController.addOnDestinationChangedListener(listener)
+        onDispose {
+            navController.removeOnDestinationChangedListener(listener)
+        }
+    }
+
+    androidx.activity.compose.BackHandler(enabled = isUpdateAvailable && isOfflineModeActive && (currentRoute == "downloads" || currentRoute == "my_music")) {
+        (context as? android.app.Activity)?.finish()
     }
 
     val currentUser by authViewModel.currentUser.collectAsState()
@@ -637,7 +672,12 @@ fun MusifyMainScreen(
                         selected = currentRoute == "home",
                         onClick = {
                             scope.launch { drawerState.close() }
-                            navController.navigate("home") { launchSingleTop = true }
+                            if (isUpdateAvailable) {
+                                com.gaminghub.musicplayer.update.AppUpdateManager.exitOfflineMode()
+                                Toast.makeText(context, "Update required to access Home. Only Downloaded and My Music are available offline.", Toast.LENGTH_LONG).show()
+                            } else {
+                                navController.navigate("home") { launchSingleTop = true }
+                            }
                         },
                         icon = { Icon(Icons.Default.Home, contentDescription = null, tint = if (currentRoute == "home") MusifyGreen else Color.White.copy(0.7f)) },
                         modifier = Modifier,
@@ -705,7 +745,12 @@ fun MusifyMainScreen(
                     selected = currentRoute == "playlists",
                     onClick = { 
                         scope.launch { drawerState.close() }
-                        navController.navigate("playlists") { launchSingleTop = true }
+                        if (isUpdateAvailable) {
+                            com.gaminghub.musicplayer.update.AppUpdateManager.exitOfflineMode()
+                            Toast.makeText(context, "Update required to access Playlists. Only Downloaded and My Music are available offline.", Toast.LENGTH_LONG).show()
+                        } else {
+                            navController.navigate("playlists") { launchSingleTop = true }
+                        }
                     },
                     shape = RoundedCornerShape(12.dp),
                     icon = { Icon(Icons.AutoMirrored.Filled.PlaylistPlay, contentDescription = null, tint = if (currentRoute == "playlists") MusifyGreen else Color.White.copy(0.7f)) },
@@ -727,7 +772,12 @@ fun MusifyMainScreen(
                     selected = currentRoute == "settings",
                     onClick = { 
                         scope.launch { drawerState.close() }
-                        navController.navigate("settings") { launchSingleTop = true }
+                        if (isUpdateAvailable) {
+                            com.gaminghub.musicplayer.update.AppUpdateManager.exitOfflineMode()
+                            Toast.makeText(context, "Update required to access Settings. Only Downloaded and My Music are available offline.", Toast.LENGTH_LONG).show()
+                        } else {
+                            navController.navigate("settings") { launchSingleTop = true }
+                        }
                     },
                     shape = RoundedCornerShape(12.dp),
                     icon = { Icon(Icons.Default.Settings, contentDescription = null, tint = if (currentRoute == "settings") MusifyGreen else Color.White.copy(0.7f)) },
@@ -848,7 +898,7 @@ fun MusifyMainScreen(
                             }
                         }
                         MiniPlayer(viewModel = viewModel, settingsViewModel = settingsViewModel, onClick = { navController.navigate("now_playing") })
-                        MusifyBottomNavBar(navController = navController)
+                        MusifyBottomNavBar(navController = navController, isUpdateAvailable = isUpdateAvailable)
                     }
                 }
             },
@@ -893,7 +943,7 @@ fun MusifyMainScreen(
                 composable("discover_artists") { com.gaminghub.musicplayer.ui.DiscoverArtistsScreen(viewModel = viewModel, navController = navController, onBack = { navController.popBackStack() }) }
                 composable("subscriptions") { com.gaminghub.musicplayer.ui.FollowingScreen(viewModel = viewModel, navController = navController, onBack = { navController.popBackStack() }) }
                 composable("following") { com.gaminghub.musicplayer.ui.FollowingScreen(viewModel = viewModel, navController = navController, onBack = { navController.popBackStack() }) }
-                composable("now_playing") { NowPlayingScreen(viewModel = viewModel, onBack = { navController.popBackStack() }) }
+                composable("now_playing") { NowPlayingScreen(viewModel = viewModel, settingsViewModel = settingsViewModel, onBack = { navController.popBackStack() }) }
                 composable("last_session") { com.gaminghub.musicplayer.ui.LastSessionScreen(viewModel = viewModel, navController = navController) }
                 composable("favorites") { FavoritesScreen(viewModel = viewModel, navController = navController) }
                 composable(
@@ -1100,9 +1150,13 @@ fun MiniPlayer(viewModel: MusicViewModel, settingsViewModel: SettingsViewModel, 
 }
 
 @Composable
-fun MusifyBottomNavBar(navController: NavController) {
+fun MusifyBottomNavBar(
+    navController: NavController,
+    isUpdateAvailable: Boolean = false
+) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     Surface(
         modifier = Modifier
@@ -1130,10 +1184,15 @@ fun MusifyBottomNavBar(navController: NavController) {
                     icon = if (isHomeSelected) Icons.Default.Home else Icons.Outlined.Home,
                     isSelected = isHomeSelected,
                     onClick = {
-                        navController.navigate("home") {
-                            popUpTo(navController.graph.startDestinationId) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
+                        if (isUpdateAvailable) {
+                            com.gaminghub.musicplayer.update.AppUpdateManager.exitOfflineMode()
+                            Toast.makeText(context, "Update required to access Home. Only Downloaded and My Music are available offline.", Toast.LENGTH_LONG).show()
+                        } else {
+                            navController.navigate("home") {
+                                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
                         }
                     }
                 )
@@ -1146,10 +1205,15 @@ fun MusifyBottomNavBar(navController: NavController) {
                     icon = if (isChartsSelected) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Outlined.TrendingUp,
                     isSelected = isChartsSelected,
                     onClick = {
-                        navController.navigate("top_charts") {
-                            popUpTo(navController.graph.startDestinationId) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
+                        if (isUpdateAvailable) {
+                            com.gaminghub.musicplayer.update.AppUpdateManager.exitOfflineMode()
+                            Toast.makeText(context, "Update required to access Charts. Only Downloaded and My Music are available offline.", Toast.LENGTH_LONG).show()
+                        } else {
+                            navController.navigate("top_charts") {
+                                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
                         }
                     }
                 )
@@ -1162,10 +1226,15 @@ fun MusifyBottomNavBar(navController: NavController) {
                     icon = if (isExploreSelected) Icons.Default.Explore else Icons.Outlined.Explore,
                     isSelected = isExploreSelected,
                     onClick = {
-                        navController.navigate("youtube") {
-                            popUpTo(navController.graph.startDestinationId) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
+                        if (isUpdateAvailable) {
+                            com.gaminghub.musicplayer.update.AppUpdateManager.exitOfflineMode()
+                            Toast.makeText(context, "Update required to access Explore. Only Downloaded and My Music are available offline.", Toast.LENGTH_LONG).show()
+                        } else {
+                            navController.navigate("youtube") {
+                                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
                         }
                     }
                 )
@@ -1178,10 +1247,16 @@ fun MusifyBottomNavBar(navController: NavController) {
                     icon = if (isLibrarySelected) Icons.Filled.LibraryMusic else Icons.Outlined.LibraryMusic,
                     isSelected = isLibrarySelected,
                     onClick = {
-                        navController.navigate("library") {
-                            popUpTo(navController.graph.startDestinationId) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
+                        if (isUpdateAvailable) {
+                            navController.navigate("downloads") {
+                                launchSingleTop = true
+                            }
+                        } else {
+                            navController.navigate("library") {
+                                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
                         }
                     }
                 )

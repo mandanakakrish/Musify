@@ -1,9 +1,9 @@
 {
-  "versionCode": 4,
-  "versionName": "1.7.2",
-  "minVersionCode": 4,
+  "versionCode": 5,
+  "versionName": "1.7.3",
+  "minVersionCode": 5,
   "forceUpdate": true,
-  "title": "Musify v1.7.2 Update",
-  "changelog": "- Bugs Fix\n- Improvised Stability",
-  "downloadUrl": "https://github.com/mandanakakrish/Musify/releases/latest"
+  "title": "Musify v1.7.3 Update",
+  "changelog": "- Strict offline mode: Only Downloaded & My Music accessible when update is pending\n- Light gradient effect on Now Playing screen in light mode\n- High contrast controls & queue panel\n- In-app direct download & update installer",
+  "downloadUrl": "https://github.com/mandanakakrish/Musify/releases/download/v1.7.3/Musify.apk"
 }

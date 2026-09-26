@@ -4,10 +4,8 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -92,20 +90,12 @@ fun AboutSettingsScreen(navController: NavController) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onTap = {
-                            com.gaminghub.musicplayer.update.AppUpdateManager.checkForUpdates(context, force = true) { info ->
-                                if (info == null || !info.isUpdateAvailable) {
-                                    Toast.makeText(context, "You are using the latest version ($currentVersion)", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                        },
-                        onLongPress = {
-                            com.gaminghub.musicplayer.update.AppUpdateManager.triggerTestPrompt(context)
-                            Toast.makeText(context, "Testing Update Prompt", Toast.LENGTH_SHORT).show()
+                .clickable {
+                    com.gaminghub.musicplayer.update.AppUpdateManager.checkForUpdates(context, force = true) { info ->
+                        if (info == null || !info.isUpdateAvailable) {
+                            Toast.makeText(context, "You are using the latest version ($currentVersion)", Toast.LENGTH_SHORT).show()
                         }
-                    )
+                    }
                 }
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
