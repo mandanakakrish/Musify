@@ -150,7 +150,7 @@ interface MusicDao {
 
     // ── Caching ───────────────────────────────────────────────────────────────
     @Query("SELECT cachedPlayableUrl FROM tracks WHERE audioUrl = :url AND (cachedPlayableUrlExpiry IS NULL OR cachedPlayableUrlExpiry > :currentTime)")
-    fun getValidCachedUrl(url: String, currentTime: Long): String?
+    suspend fun getValidCachedUrl(url: String, currentTime: Long): String?
 
     @Query("UPDATE tracks SET cachedPlayableUrl = :playableUrl, cachedPlayableUrlExpiry = :expiry WHERE audioUrl = :url")
     suspend fun updateCachedUrl(url: String, playableUrl: String?, expiry: Long?)

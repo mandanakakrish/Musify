@@ -158,17 +158,30 @@ class EqualizerManager private constructor(context: Context) {
     private fun applyCurrentSettings() {
         val eq = equalizer ?: return
         try {
-            val numBands = eq.numberOfBands
+            val numBands = eq.numberOfBands.toInt()
             val levels = _bandLevels.value
-            // Anti-clipping headroom: calculate the peak boost across all bands
-            // and apply subtractive gain so the highest band never exceeds 0 dBFS.
-            // This preserves the exact tone curve without digital clipping or audio cracking.
+            val range = eq.bandLevelRange
+
+            // Musify's 5 logical EQ bands with standard center frequencies (in milliHz)
+            val logicalCenterFreqsMilliHz = listOf(60_000, 230_000, 910_000, 3_600_000, 14_000_000)
+
+            // Anti-clipping headroom: shift all bands down by the maximum boost
+            // so the loudest band stays at 0 dBFS and no digital clipping occurs.
             val maxBoost = maxOf(0, levels.maxOrNull() ?: 0)
-            for (i in 0 until minOf(numBands.toInt(), levels.size)) {
-                val db = levels[i]
+
+            // For each hardware band, find the closest logical band and apply its level.
+            // This works correctly on both 5-band and 8/10-band hardware EQs.
+            for (hwBand in 0 until numBands) {
+                val hwFreqMilliHz = eq.getCenterFreq(hwBand.toShort()).toInt()
+                // Find the logical band whose center frequency is closest to this hardware band
+                val closestLogicalIdx = logicalCenterFreqsMilliHz.indices.minByOrNull { i ->
+                    Math.abs(logicalCenterFreqsMilliHz[i] - hwFreqMilliHz)
+                } ?: continue
+
+                val db = if (closestLogicalIdx < levels.size) levels[closestLogicalIdx] else 0
                 val safeDb = db - maxBoost
-                val mb = (safeDb * 100).toShort().coerceIn(eq.bandLevelRange[0], eq.bandLevelRange[1])
-                eq.setBandLevel(i.toShort(), mb)
+                val mb = (safeDb * 100).coerceIn(range[0].toInt(), range[1].toInt()).toShort()
+                eq.setBandLevel(hwBand.toShort(), mb)
             }
         } catch (e: Exception) {
             Log.w(tag, "applyCurrentSettings error: ${e.message}")

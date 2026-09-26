@@ -1,10 +1,19 @@
 package com.gaminghub.musicplayer.data
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.gaminghub.musicplayer.TrackModel
 
-@Entity(tableName = "tracks")
+@Entity(
+    tableName = "tracks",
+    indices = [
+        Index(value = ["lastPlayedTimestamp"]),
+        Index(value = ["isFavorite"]),
+        Index(value = ["playCount"]),
+        Index(value = ["localPath"])
+    ]
+)
 data class TrackEntity(
     @PrimaryKey val audioUrl: String, // YouTube URL as identifier
     val title: String,

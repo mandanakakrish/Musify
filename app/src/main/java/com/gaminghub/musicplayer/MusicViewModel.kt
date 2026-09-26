@@ -1298,6 +1298,31 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         _currentQueue.value = activeQueue
         _isLoading.value = true
 
+        // Persist active queue and track position to Room for session restoration and media resumption
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val queueEntities = activeQueue.mapIndexed { idx, item ->
+                    com.gaminghub.musicplayer.data.QueueTrackEntity(
+                        queuePosition = idx,
+                        audioUrl = item.audioUrl ?: "",
+                        title = item.title,
+                        artist = item.artist,
+                        albumArtUrl = item.albumArtUrl
+                    )
+                }
+                dao.updatePersistentQueue(queueEntities)
+                val playingIndex = activeQueue.indexOfFirst { it.audioUrl == track.audioUrl }.coerceAtLeast(0)
+                dao.savePlaybackState(
+                    com.gaminghub.musicplayer.data.PlaybackStateEntity(
+                        id = 1,
+                        currentTrackIndex = playingIndex,
+                        positionMs = 0L,
+                        isPlaying = true
+                    )
+                )
+            } catch (_: Exception) {}
+        }
+
         // Proactively maintain queue depth so playback never runs out of upcoming songs
         val currentIdx = activeQueue.indexOfFirst { it.audioUrl == track.audioUrl }
         if (currentIdx >= 0) {

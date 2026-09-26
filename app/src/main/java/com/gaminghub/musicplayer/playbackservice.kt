@@ -30,6 +30,9 @@ import androidx.media3.datasource.cache.CacheKeyFactory
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.database.StandaloneDatabaseProvider
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @UnstableApi
 class MusicPlaybackService : MediaSessionService() {
@@ -225,13 +228,55 @@ class MusicPlaybackService : MediaSessionService() {
                     mediaSession: MediaSession,
                     controller: MediaSession.ControllerInfo
                 ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
-                    return Futures.immediateFuture(
-                        MediaSession.MediaItemsWithStartPosition(
-                            ImmutableList.of(),
-                            0,
-                            C.TIME_UNSET
-                        )
-                    )
+                    val settable = com.google.common.util.concurrent.SettableFuture.create<MediaSession.MediaItemsWithStartPosition>()
+                    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                        try {
+                            val dao = com.gaminghub.musicplayer.data.MusicDatabase.getInstance(this@MusicPlaybackService).dao
+                            val queueTracks = dao.getQueueTracks()
+                            val playbackState = dao.getPlaybackState()
+                            if (queueTracks.isNotEmpty()) {
+                                val mediaItems = queueTracks.map { track ->
+                                    MediaItem.Builder()
+                                        .setMediaId(track.audioUrl)
+                                        .setUri(track.audioUrl)
+                                        .setMediaMetadata(
+                                            androidx.media3.common.MediaMetadata.Builder()
+                                                .setTitle(track.title)
+                                                .setArtist(track.artist)
+                                                .setArtworkUri(track.albumArtUrl?.let { Uri.parse(it) })
+                                                .build()
+                                        )
+                                        .build()
+                                }
+                                val startIndex = playbackState?.currentTrackIndex?.coerceIn(0, mediaItems.size - 1) ?: 0
+                                val startPosition = playbackState?.positionMs ?: 0L
+                                settable.set(
+                                    MediaSession.MediaItemsWithStartPosition(
+                                        mediaItems,
+                                        startIndex,
+                                        startPosition
+                                    )
+                                )
+                            } else {
+                                settable.set(
+                                    MediaSession.MediaItemsWithStartPosition(
+                                        ImmutableList.of(),
+                                        0,
+                                        C.TIME_UNSET
+                                    )
+                                )
+                            }
+                        } catch (_: Exception) {
+                            settable.set(
+                                MediaSession.MediaItemsWithStartPosition(
+                                    ImmutableList.of(),
+                                    0,
+                                    C.TIME_UNSET
+                                )
+                            )
+                        }
+                    }
+                    return settable
                 }
             })
             .build()

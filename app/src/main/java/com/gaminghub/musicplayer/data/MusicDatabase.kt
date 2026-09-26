@@ -15,7 +15,7 @@ import androidx.room.RoomDatabase
         QueueTrackEntity::class,
         PlayEventEntity::class
     ], 
-    version = 13, 
+    version = 14, 
     exportSchema = false
 )
 abstract class MusicDatabase : RoomDatabase() {
@@ -59,6 +59,16 @@ abstract class MusicDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_13_14 = object : androidx.room.migration.Migration(13, 14) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                // Add performance indexes on hot query columns
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_tracks_lastPlayedTimestamp ON tracks(lastPlayedTimestamp)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_tracks_isFavorite ON tracks(isFavorite)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_tracks_playCount ON tracks(playCount)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_tracks_localPath ON tracks(localPath)")
+            }
+        }
+
         fun getInstance(context: Context): MusicDatabase {
             return instance ?: synchronized(this) {
                 Room.databaseBuilder(
@@ -66,7 +76,7 @@ abstract class MusicDatabase : RoomDatabase() {
                     MusicDatabase::class.java,
                     "music_player.db"
                 )
-                .addMigrations(MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
+                .addMigrations(MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
                 .fallbackToDestructiveMigration(true)
                 .build().also { instance = it }
             }
