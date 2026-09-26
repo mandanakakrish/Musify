@@ -8,6 +8,11 @@
   - Used **strictly** for publishing app releases, release notes/changelogs, and hosting APK assets (`Musify.apk`, `Musify_vX.X.X.apk`).
   - GitHub update checks in `AppUpdateManager.kt` query this repository (`mandanakakrish/Musify`) for latest releases and APK downloads.
 
+## Contact Us & Feedback Link
+- **Contact Us / Feedback URL**: `https://github.com/mandanakakrish/Musify/discussions/3`
+  - Used for any "Contact Us", user feedback, bug reports, and community support links in the app (e.g. `AboutSettingsScreen.kt`) and documentation.
+  - Kept saved for upcoming releases.
+
 ## Release Process
 1. Bump `versionCode` and `versionName` in `app/build.gradle.kts` and `version.json`.
 2. Commit and push changes to `Music-Player` (`git push origin master`).
