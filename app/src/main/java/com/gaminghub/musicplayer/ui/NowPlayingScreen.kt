@@ -142,14 +142,12 @@ fun NowPlayingScreen(
     val context = LocalContext.current
     val currentTrack by viewModel.currentTrack.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
-    val currentPosition by viewModel.currentPosition.collectAsState()
     val duration by viewModel.duration.collectAsState()
     val upNextQueue by viewModel.upNextQueue.collectAsState()
-    val syncedLyrics by viewModel.syncedLyrics.collectAsState()
-    val plainLyrics by viewModel.plainLyrics.collectAsState()
-    val currentLyricIndex by viewModel.currentLyricIndex.collectAsState()
     val playlists by viewModel.playlists.collectAsState()
     val sleepTimerMillis by viewModel.sleepTimerMillis.collectAsState()
+    // Note: currentPosition and lyrics states are isolated in NowPlayingProgressSection
+    // and NowPlayingLyricsPanel below to avoid recomposing this entire 1750-line screen 4 times/sec.
 
     val favoriteUrls by viewModel.favoriteUrls.collectAsState()
     val isFavorite = currentTrack?.audioUrl != null && favoriteUrls.contains(currentTrack?.audioUrl)
@@ -465,73 +463,12 @@ fun NowPlayingScreen(
 
             // ── Album Art or Lyrics Panel ─────────────────────────
             if (showLyrics) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth(0.85f)
-                        .aspectRatio(1f)
-                        .clip(RoundedCornerShape(20.dp)),
-                    color = glassSurface,
-                    border = BorderStroke(1.dp, glassBorder)
-                ) {
-                    if (syncedLyrics.isNotEmpty()) {
-                        val lyricListState = rememberLazyListState()
-
-                        LaunchedEffect(currentLyricIndex) {
-                            if (currentLyricIndex >= 0 && currentLyricIndex < syncedLyrics.size) {
-                                lyricListState.animateScrollToItem(
-                                    index = (currentLyricIndex - 1).coerceAtLeast(0)
-                                )
-                            }
-                        }
-
-                        LazyColumn(
-                            state = lyricListState,
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(vertical = 40.dp, horizontal = 16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            itemsIndexed(syncedLyrics) { index, line ->
-                                val isActive = index == currentLyricIndex
-                                val alpha by animateFloatAsState(if (isActive) 1f else 0.4f, label = "alpha")
-                                val scale by animateFloatAsState(if (isActive) 1.12f else 1.0f, label = "scale")
-
-                                Text(
-                                    text = line.text,
-                                    color = if (isActive) MusifyGreen else textColor,
-                                    fontSize = 18.sp,
-                                    fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Medium,
-                                    textAlign = TextAlign.Center,
-                                    lineHeight = 28.sp,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 8.dp)
-                                        .graphicsLayer {
-                                            scaleX = scale
-                                            scaleY = scale
-                                            this.alpha = alpha
-                                        }
-                                        .clickable { viewModel.seekTo(line.timeMs) }
-                                )
-                            }
-                        }
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(24.dp)
-                                .verticalScroll(rememberScrollState()),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = plainLyrics ?: "Searching for lyrics...",
-                                color = textColor.copy(alpha = 0.9f),
-                                fontSize = 16.sp,
-                                textAlign = TextAlign.Center,
-                                lineHeight = 26.sp
-                            )
-                        }
-                    }
-                }
+                NowPlayingLyricsPanel(
+                    viewModel = viewModel,
+                    glassSurface = glassSurface,
+                    glassBorder = glassBorder,
+                    textColor = textColor
+                )
             } else if (showVisualizer) {
                 Surface(
                     modifier = Modifier
@@ -738,47 +675,13 @@ fun NowPlayingScreen(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // ── Progress Slider (Circle thumb centered at track line, 12dp radius, sleek track) ─────
-            @OptIn(ExperimentalMaterial3Api::class)
-            Slider(
-                value = if (duration > 0) currentPosition.toFloat() / duration.toFloat() else 0f,
-                onValueChange = { if (duration > 0) viewModel.seekTo((it * duration).toLong()) },
-                thumb = {
-                    Box(
-                        modifier = Modifier
-                            .size(width = 12.dp, height = 16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(12.dp)
-                                .clip(CircleShape)
-                                .background(MusifyGreen)
-                        )
-                    }
-                },
-                track = { sliderState ->
-                    SliderDefaults.Track(
-                        sliderState = sliderState,
-                        modifier = Modifier.height(4.dp),
-                        colors = SliderDefaults.colors(
-                            activeTrackColor = MusifyGreen,
-                            inactiveTrackColor = if (isDark) Color(0x33FFFFFF) else Color(0x22000000)
-                        ),
-                        thumbTrackGapSize = 0.dp,
-                        drawStopIndicator = null
-                    )
-                },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
+            // ── Progress Slider & Timestamps ──────────────────────
+            NowPlayingProgressSection(
+                viewModel = viewModel,
+                duration = duration,
+                isDark = isDark,
+                textSecondaryColor = textSecondaryColor
             )
-
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(formatTime(currentPosition), color = textSecondaryColor, fontSize = 12.sp)
-                Text(formatTime(duration), color = textSecondaryColor, fontSize = 12.sp)
-            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -1735,6 +1638,138 @@ fun SpeedControlDialog(
                         Text("Apply", color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun NowPlayingProgressSection(
+    viewModel: MusicViewModel,
+    duration: Long,
+    isDark: Boolean,
+    textSecondaryColor: Color,
+    modifier: Modifier = Modifier
+) {
+    val currentPosition by viewModel.currentPosition.collectAsState()
+
+    Slider(
+        value = if (duration > 0) currentPosition.toFloat() / duration.toFloat() else 0f,
+        onValueChange = { if (duration > 0) viewModel.seekTo((it * duration).toLong()) },
+        thumb = {
+            Box(
+                modifier = Modifier.size(width = 12.dp, height = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .clip(CircleShape)
+                        .background(MusifyGreen)
+                )
+            }
+        },
+        track = { sliderState ->
+            SliderDefaults.Track(
+                sliderState = sliderState,
+                modifier = Modifier.height(4.dp),
+                colors = SliderDefaults.colors(
+                    activeTrackColor = MusifyGreen,
+                    inactiveTrackColor = if (isDark) Color(0x33FFFFFF) else Color(0x22000000)
+                ),
+                thumbTrackGapSize = 0.dp,
+                drawStopIndicator = null
+            )
+        },
+        modifier = modifier.fillMaxWidth().padding(horizontal = 4.dp)
+    )
+
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(formatTime(currentPosition), color = textSecondaryColor, fontSize = 12.sp)
+        Text(formatTime(duration), color = textSecondaryColor, fontSize = 12.sp)
+    }
+}
+
+@Composable
+private fun NowPlayingLyricsPanel(
+    viewModel: MusicViewModel,
+    glassSurface: Color,
+    glassBorder: Color,
+    textColor: Color,
+    modifier: Modifier = Modifier
+) {
+    val syncedLyrics by viewModel.syncedLyrics.collectAsState()
+    val plainLyrics by viewModel.plainLyrics.collectAsState()
+    val currentLyricIndex by viewModel.currentLyricIndex.collectAsState()
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth(0.85f)
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(20.dp)),
+        color = glassSurface,
+        border = BorderStroke(1.dp, glassBorder)
+    ) {
+        if (syncedLyrics.isNotEmpty()) {
+            val lyricListState = rememberLazyListState()
+
+            LaunchedEffect(currentLyricIndex) {
+                if (currentLyricIndex >= 0 && currentLyricIndex < syncedLyrics.size) {
+                    lyricListState.animateScrollToItem(
+                        index = (currentLyricIndex - 1).coerceAtLeast(0)
+                    )
+                }
+            }
+
+            LazyColumn(
+                state = lyricListState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(vertical = 40.dp, horizontal = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                itemsIndexed(syncedLyrics) { index, line ->
+                    val isActive = index == currentLyricIndex
+                    val alpha by animateFloatAsState(if (isActive) 1f else 0.4f, label = "alpha")
+                    val scale by animateFloatAsState(if (isActive) 1.12f else 1.0f, label = "scale")
+
+                    Text(
+                        text = line.text,
+                        color = if (isActive) MusifyGreen else textColor,
+                        fontSize = 18.sp,
+                        fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 28.sp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                            .graphicsLayer {
+                                scaleX = scale
+                                scaleY = scale
+                                this.alpha = alpha
+                            }
+                            .clickable { viewModel.seekTo(line.timeMs) }
+                    )
+                }
+            }
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp)
+                    .verticalScroll(rememberScrollState()),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = plainLyrics ?: "Searching for lyrics...",
+                    color = textColor.copy(alpha = 0.9f),
+                    fontSize = 16.sp,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 26.sp
+                )
             }
         }
     }

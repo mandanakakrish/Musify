@@ -80,86 +80,96 @@ object StreamExtractionManager {
             if (fastStart || verifyUrl(stillCached)) return stillCached
         }
 
-        var retries = 2
-        while (retries > 0) {
-            try {
-                val service = ServiceList.YouTube
-                val extractor = service.getStreamExtractor(url)
-                withContext(Dispatchers.IO) {
-                    withTimeout(12_000L) {
-                        extractor.fetchPage()
-                    }
-                }
-                
-                val audioStreams = extractor.audioStreams
-                if (!audioStreams.isNullOrEmpty()) {
-                    val targetBitrate = getTargetBitrate()
-                    val candidateStreams = if (targetBitrate <= 96_000) {
-                        audioStreams.sortedWith(
-                            compareByDescending<AudioStream> { it.format == org.schabi.newpipe.extractor.MediaFormat.M4A }
-                                .thenBy { kotlin.math.abs(it.bitrate - 96_000) }
-                        )
-                    } else if (targetBitrate >= 320_000) {
-                        audioStreams.sortedWith(
-                            compareByDescending<AudioStream> { it.format == org.schabi.newpipe.extractor.MediaFormat.M4A }
-                                .thenByDescending { it.bitrate }
-                        )
-                    } else {
-                        audioStreams.sortedWith(
-                            compareByDescending<AudioStream> { it.format == org.schabi.newpipe.extractor.MediaFormat.M4A }
-                                .thenBy { kotlin.math.abs(it.bitrate - 160_000) }
-                        )
-                    }
-                    
-                    for (candidate in candidateStreams) {
-                        val candidateUrl = candidate.url ?: continue
-                        if (candidateUrl.isNotBlank()) {
-                            streamUrlCache[url] = candidateUrl
-                            musicDao?.updateCachedUrl(
-                                url = url,
-                                playableUrl = candidateUrl,
-                                expiry = getExpirationTimestamp(candidateUrl)
-                            )
-                            Log.d(TAG, "Extracted audio stream (${candidate.format}, ${candidate.bitrate}bps) for $url")
-                            return candidateUrl
+        val currentJob = currentCoroutineContext()[Job]
+        if (currentJob != null) {
+            activeExtractions.putIfAbsent(url, currentJob)
+        }
+        try {
+            var retries = 2
+            while (retries > 0) {
+                try {
+                    val service = ServiceList.YouTube
+                    val extractor = service.getStreamExtractor(url)
+                    withContext(Dispatchers.IO) {
+                        withTimeout(12_000L) {
+                            extractor.fetchPage()
                         }
                     }
+                    
+                    val audioStreams = extractor.audioStreams
+                    if (!audioStreams.isNullOrEmpty()) {
+                        val targetBitrate = getTargetBitrate()
+                        val candidateStreams = if (targetBitrate <= 96_000) {
+                            audioStreams.sortedWith(
+                                compareByDescending<AudioStream> { it.format == org.schabi.newpipe.extractor.MediaFormat.M4A }
+                                    .thenBy { kotlin.math.abs(it.bitrate - 96_000) }
+                            )
+                        } else if (targetBitrate >= 320_000) {
+                            audioStreams.sortedWith(
+                                compareByDescending<AudioStream> { it.format == org.schabi.newpipe.extractor.MediaFormat.M4A }
+                                    .thenByDescending { it.bitrate }
+                            )
+                        } else {
+                            audioStreams.sortedWith(
+                                compareByDescending<AudioStream> { it.format == org.schabi.newpipe.extractor.MediaFormat.M4A }
+                                    .thenBy { kotlin.math.abs(it.bitrate - 160_000) }
+                            )
+                        }
+                        
+                        for (candidate in candidateStreams) {
+                            val candidateUrl = candidate.url ?: continue
+                            if (candidateUrl.isNotBlank()) {
+                                streamUrlCache[url] = candidateUrl
+                                musicDao?.updateCachedUrl(
+                                    url = url,
+                                    playableUrl = candidateUrl,
+                                    expiry = getExpirationTimestamp(candidateUrl)
+                                )
+                                Log.d(TAG, "Extracted audio stream (${candidate.format}, ${candidate.bitrate}bps) for $url")
+                                return candidateUrl
+                            }
+                        }
+                    }
+                    retries--
+                } catch (e: Exception) {
+                    Log.e(TAG, "NewPipe Extraction attempt failed for $url: ${e.message}")
+                    retries--
                 }
-                retries--
-            } catch (e: Exception) {
-                Log.e(TAG, "NewPipe Extraction attempt failed for $url: ${e.message}")
-                retries--
-            }
-        }
-
-        val videoId = extractVideoId(url)
-        if (videoId != null) {
-            val embedUrl = extractViaYouTubeEmbed(videoId)
-            if (embedUrl != null) {
-                streamUrlCache[url] = embedUrl
-                musicDao?.updateCachedUrl(
-                    url = url,
-                    playableUrl = embedUrl,
-                    expiry = getExpirationTimestamp(embedUrl)
-                )
-                return embedUrl
             }
 
-            val ytPlayerUrl = extractViaYouTubePlayerApi(videoId)
-            if (ytPlayerUrl != null) {
-                streamUrlCache[url] = ytPlayerUrl
-                musicDao?.updateCachedUrl(
-                    url = url,
-                    playableUrl = ytPlayerUrl,
-                    expiry = getExpirationTimestamp(ytPlayerUrl)
-                )
-                return ytPlayerUrl
+            val videoId = extractVideoId(url)
+            if (videoId != null) {
+                val embedUrl = extractViaYouTubeEmbed(videoId)
+                if (embedUrl != null) {
+                    streamUrlCache[url] = embedUrl
+                    musicDao?.updateCachedUrl(
+                        url = url,
+                        playableUrl = embedUrl,
+                        expiry = getExpirationTimestamp(embedUrl)
+                    )
+                    return embedUrl
+                }
+
+                val ytPlayerUrl = extractViaYouTubePlayerApi(videoId)
+                if (ytPlayerUrl != null) {
+                    streamUrlCache[url] = ytPlayerUrl
+                    musicDao?.updateCachedUrl(
+                        url = url,
+                        playableUrl = ytPlayerUrl,
+                        expiry = getExpirationTimestamp(ytPlayerUrl)
+                    )
+                    return ytPlayerUrl
+                }
+            }
+            
+            // Only return a cached URL if it hasn't expired yet. Passing 0 would return any
+            // cached URL including expired ones, causing HTTP 403 → retry loops.
+            return musicDao?.getValidCachedUrl(url, System.currentTimeMillis())
+        } finally {
+            if (currentJob != null && activeExtractions[url] === currentJob) {
+                activeExtractions.remove(url)
             }
         }
-        
-        // Only return a cached URL if it hasn't expired yet. Passing 0 would return any
-        // cached URL including expired ones, causing HTTP 403 → retry loops.
-        return musicDao?.getValidCachedUrl(url, System.currentTimeMillis())
     }
 
     private fun extractVideoId(url: String): String? {

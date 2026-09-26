@@ -139,9 +139,8 @@ object BackupRestoreHelper {
                 // Restore Playlists
                 for (pl in backup.playlists) {
                     val plEntity = PlaylistEntity(name = pl.name)
-                    dao.insertPlaylist(plEntity)
-                    val insertedPl = dao.getPlaylistsSync().find { it.name == pl.name }
-                    val plId = insertedPl?.id ?: continue
+                    val plId = dao.insertPlaylist(plEntity).toInt()
+                    if (plId <= 0) continue
                     restoredPlaylists++
 
                     for (tr in pl.tracks) {
@@ -214,10 +213,8 @@ object BackupRestoreHelper {
             if (MusifyTracks.isNotEmpty()) {
                 val playlistName = "Imported Playlist"
                 val plEntity = PlaylistEntity(name = playlistName)
-                dao.insertPlaylist(plEntity)
-                val insertedPl = dao.getPlaylistsSync().find { it.name == playlistName }
-                    ?: dao.getPlaylistsSync().lastOrNull()
-                val plId = insertedPl?.id ?: return@withContext Result.failure(Exception("Failed to create playlist"))
+                val plId = dao.insertPlaylist(plEntity).toInt()
+                if (plId <= 0) return@withContext Result.failure(Exception("Failed to create playlist"))
                 restoredPlaylists++
 
                 for (track in MusifyTracks) {
@@ -239,9 +236,8 @@ object BackupRestoreHelper {
                 val tracksArray = jsonObject.optJSONArray("tracks") ?: jsonObject.optJSONArray("songs")
                 if (tracksArray != null && tracksArray.length() > 0) {
                     val plEntity = PlaylistEntity(name = playlistName)
-                    dao.insertPlaylist(plEntity)
-                    val insertedPl = dao.getPlaylistsSync().find { it.name == playlistName }
-                    val plId = insertedPl?.id ?: return@withContext Result.failure(Exception("Failed to create playlist"))
+                    val plId = dao.insertPlaylist(plEntity).toInt()
+                    if (plId <= 0) return@withContext Result.failure(Exception("Failed to create playlist"))
                     restoredPlaylists++
 
                     for (i in 0 until tracksArray.length()) {
@@ -268,9 +264,8 @@ object BackupRestoreHelper {
 
             if (jsonArray != null && jsonArray.length() > 0) {
                 val plEntity = PlaylistEntity(name = "Imported JSON Playlist")
-                dao.insertPlaylist(plEntity)
-                val insertedPl = dao.getPlaylistsSync().find { it.name == "Imported JSON Playlist" }
-                val plId = insertedPl?.id ?: return@withContext Result.failure(Exception("Failed to create playlist"))
+                val plId = dao.insertPlaylist(plEntity).toInt()
+                if (plId <= 0) return@withContext Result.failure(Exception("Failed to create playlist"))
                 restoredPlaylists++
 
                 for (i in 0 until jsonArray.length()) {

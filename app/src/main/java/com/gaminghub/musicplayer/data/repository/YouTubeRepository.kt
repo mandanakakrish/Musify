@@ -21,12 +21,20 @@ enum class SearchSource { YOUTUBE, YT_MUSIC }
 
 class YouTubeRepository {
     private val tag = "YouTubeRepository"
-    private val httpClient by lazy {
-        OkHttpClient.Builder()
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(20, TimeUnit.SECONDS)
-            .build()
+
+    companion object {
+        private val sharedConnectionPool = okhttp3.ConnectionPool(8, 5, TimeUnit.MINUTES)
+        val sharedHttpClient: OkHttpClient by lazy {
+            OkHttpClient.Builder()
+                .connectionPool(sharedConnectionPool)
+                .connectTimeout(15, TimeUnit.SECONDS)
+                .readTimeout(20, TimeUnit.SECONDS)
+                .retryOnConnectionFailure(true)
+                .build()
+        }
     }
+
+    private val httpClient get() = sharedHttpClient
 
     /**
      * Fetches music from YouTube Music / YouTube with 100% accurate music indexing and filtering.
@@ -210,45 +218,47 @@ class YouTubeRepository {
                 .post(requestBody)
                 .build()
 
-            val response = httpClient.newCall(request).execute()
-            if (response.isSuccessful) {
-                val jsonStr = response.body.string()
-                val root = JSONObject(jsonStr)
-                parseMusicResponsiveItems(root, list)
+            httpClient.newCall(request).execute().use { response ->
+                if (response.isSuccessful) {
+                    val jsonStr = response.body.string()
+                    val root = JSONObject(jsonStr)
+                    parseMusicResponsiveItems(root, list)
 
-                // If fewer than maxItems, fetch continuation page
-                if (list.size < maxItems) {
-                    val contToken = extractContinuationToken(root)
-                    if (!contToken.isNullOrBlank()) {
-                        try {
-                            val contPayload = JSONObject().apply {
-                                put("context", JSONObject().apply {
-                                    put("client", JSONObject().apply {
-                                        put("clientName", "WEB_REMIX")
-                                        put("clientVersion", "1.20240101.01.00")
-                                        put("hl", "en")
-                                        put("gl", "IN")
+                    // If fewer than maxItems, fetch continuation page
+                    if (list.size < maxItems) {
+                        val contToken = extractContinuationToken(root)
+                        if (!contToken.isNullOrBlank()) {
+                            try {
+                                val contPayload = JSONObject().apply {
+                                    put("context", JSONObject().apply {
+                                        put("client", JSONObject().apply {
+                                            put("clientName", "WEB_REMIX")
+                                            put("clientVersion", "1.20240101.01.00")
+                                            put("hl", "en")
+                                            put("gl", "IN")
+                                        })
                                     })
-                                })
-                            }
-                            val contBody = contPayload.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
-                            val encodedToken = URLEncoder.encode(contToken, "UTF-8")
-                            val contRequest = okhttp3.Request.Builder()
-                                .url("https://music.youtube.com/youtubei/v1/search?continuation=$encodedToken")
-                                .header("User-Agent", CommonUtils.CURRENT_USER_AGENT)
-                                .header("Referer", "https://music.youtube.com/")
-                                .header("Origin", "https://music.youtube.com")
-                                .header("Content-Type", "application/json")
-                                .post(contBody)
-                                .build()
+                                }
+                                val contBody = contPayload.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+                                val encodedToken = URLEncoder.encode(contToken, "UTF-8")
+                                val contRequest = okhttp3.Request.Builder()
+                                    .url("https://music.youtube.com/youtubei/v1/search?continuation=$encodedToken")
+                                    .header("User-Agent", CommonUtils.CURRENT_USER_AGENT)
+                                    .header("Referer", "https://music.youtube.com/")
+                                    .header("Origin", "https://music.youtube.com")
+                                    .header("Content-Type", "application/json")
+                                    .post(contBody)
+                                    .build()
 
-                            val contResp = httpClient.newCall(contRequest).execute()
-                            if (contResp.isSuccessful) {
-                                val contJson = contResp.body.string()
-                                parseMusicResponsiveItems(JSONObject(contJson), list)
+                                httpClient.newCall(contRequest).execute().use { contResp ->
+                                    if (contResp.isSuccessful) {
+                                        val contJson = contResp.body.string()
+                                        parseMusicResponsiveItems(JSONObject(contJson), list)
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Log.w(tag, "Continuation paging error: ${e.message}")
                             }
-                        } catch (e: Exception) {
-                            Log.w(tag, "Continuation paging error: ${e.message}")
                         }
                     }
                 }
@@ -277,10 +287,11 @@ class YouTubeRepository {
                     .post(genBody)
                     .build()
 
-                val genResp = httpClient.newCall(genRequest).execute()
-                if (genResp.isSuccessful) {
-                    val root = JSONObject(genResp.body.string())
-                    parseMusicResponsiveItems(root, list)
+                httpClient.newCall(genRequest).execute().use { genResp ->
+                    if (genResp.isSuccessful) {
+                        val root = JSONObject(genResp.body.string())
+                        parseMusicResponsiveItems(root, list)
+                    }
                 }
             }
         } catch (e: Exception) {

@@ -115,7 +115,9 @@ fun AppAsyncImage(
     val prefs = androidx.compose.runtime.remember(context) {
         context.getSharedPreferences("Musify_settings", android.content.Context.MODE_PRIVATE)
     }
-    val useLessData = prefs.getBoolean("use_less_data", false)
+    val useLessData = androidx.compose.runtime.remember(prefs) {
+        prefs.getBoolean("use_less_data", false)
+    }
 
     val processedModel = if (useLessData && validModel is String) {
         var str = validModel

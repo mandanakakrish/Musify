@@ -38,7 +38,8 @@ import com.gaminghub.musicplayer.MusicViewModel
 import com.gaminghub.musicplayer.ui.theme.MusifyGreen
 import com.gaminghub.musicplayer.TrackModel
 
-@OptIn(ExperimentalLayoutApi::class, UnstableApi::class)
+@OptIn(ExperimentalLayoutApi::class)
+@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun SearchScreen(
     viewModel: MusicViewModel,

@@ -1,4 +1,4 @@
-﻿package com.gaminghub.musicplayer.data.repository
+package com.gaminghub.musicplayer.data.repository
 
 import android.net.Uri
 import android.util.Log
@@ -64,8 +64,9 @@ class LyricsRepository {
     }
 
     private fun fetchRawFromLrcLib(url: java.net.URL, isSearch: Boolean = false): String? {
+        var connection: HttpURLConnection? = null
         return try {
-            val connection = url.openConnection() as HttpURLConnection
+            connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "GET"
             connection.connectTimeout = 8000
             connection.readTimeout = 8000
@@ -87,6 +88,10 @@ class LyricsRepository {
         } catch (e: Exception) {
             Log.e(tag, "Network error fetching from LRCLIB: ${e.message}")
             null
+        } finally {
+            try {
+                connection?.disconnect()
+            } catch (_: Exception) {}
         }
     }
 }

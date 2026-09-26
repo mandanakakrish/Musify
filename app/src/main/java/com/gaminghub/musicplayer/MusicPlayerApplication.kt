@@ -18,7 +18,7 @@ class MusicPlayerApplication : Application() {
         DynamicColors.applyToActivitiesIfAvailable(this)
         try {
             com.google.firebase.FirebaseApp.initializeApp(this)
-            com.google.firebase.firestore.FirebaseFirestore.setLoggingEnabled(true)
+            com.google.firebase.firestore.FirebaseFirestore.setLoggingEnabled(BuildConfig.DEBUG)
         } catch (e: Exception) {
             e.printStackTrace()
         }

@@ -163,7 +163,7 @@ interface MusicDao {
     fun getPlaylistsSync(): List<PlaylistEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertPlaylist(playlist: PlaylistEntity)
+    suspend fun insertPlaylist(playlist: PlaylistEntity): Long
 
     @Query("DELETE FROM playlists WHERE id = :id")
     suspend fun deletePlaylist(id: Int)

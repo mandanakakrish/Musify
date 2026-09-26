@@ -110,10 +110,10 @@ object MusifyPlaylistParser {
             val dao = db.dao
 
             val playlistEntity = PlaylistEntity(name = playlistName)
-            dao.insertPlaylist(playlistEntity)
-            val insertedPl = dao.getPlaylistsSync().find { it.name == playlistName }
-                ?: dao.getPlaylistsSync().lastOrNull()
-                ?: return@withContext Result.failure(Exception("Failed to create playlist entity"))
+            val plId = dao.insertPlaylist(playlistEntity).toInt()
+            if (plId <= 0) {
+                return@withContext Result.failure(Exception("Failed to create playlist entity"))
+            }
 
             var count = 0
             for (track in tracks) {
@@ -121,7 +121,7 @@ object MusifyPlaylistParser {
                 dao.insertTrack(track.toEntity())
                 dao.addTrackToPlaylist(
                     PlaylistTrackEntity(
-                        playlistId = insertedPl.id,
+                        playlistId = plId,
                         audioUrl = url
                     )
                 )
