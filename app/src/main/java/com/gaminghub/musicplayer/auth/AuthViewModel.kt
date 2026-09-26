@@ -19,6 +19,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     val googlePhotoUrl: StateFlow<String?> = authManager.googlePhotoUrl
     val isLoggedIn: StateFlow<Boolean> = authManager.isLoggedIn
     val isAdmin: StateFlow<Boolean> = authManager.isAdmin
+    val lastAdminError: StateFlow<String?> = authManager.lastAdminError
 
     fun verifyAdminPasscode(passcode: String, onResult: (Boolean, String) -> Unit = { _, _ -> }) {
         _isLoading.value = true
@@ -73,35 +74,6 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 is AuthResult.Success -> {
                     _isLoading.value = false
                     _successMessage.value = "Welcome, ${result.displayName ?: result.email}!"
-                    viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                        com.gaminghub.musicplayer.data.firebase.FirestoreSyncManager.syncAll(
-                            getApplication(),
-                            authManager.getSyncUserId()
-                        )
-                    }
-                    onSuccess()
-                }
-                is AuthResult.Error -> {
-                    _isLoading.value = false
-                    _errorMessage.value = result.message
-                }
-            }
-        }
-    }
-
-    fun signInWithGoogleEmail(email: String, displayName: String? = null, onSuccess: () -> Unit = {}) {
-        val trimmed = email.trim()
-        if (trimmed.isBlank() || !trimmed.contains("@")) {
-            _errorMessage.value = "Please enter a valid Google email address"
-            return
-        }
-        viewModelScope.launch {
-            _isLoading.value = true
-            clearMessages()
-            when (val result = authManager.signInWithCustomGoogleEmail(trimmed, displayName)) {
-                is AuthResult.Success -> {
-                    _isLoading.value = false
-                    _successMessage.value = "Signed in as ${result.displayName ?: result.email}"
                     viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                         com.gaminghub.musicplayer.data.firebase.FirestoreSyncManager.syncAll(
                             getApplication(),

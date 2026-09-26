@@ -2,6 +2,7 @@ package com.gaminghub.musicplayer.ui
 
 import android.content.Intent
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -131,6 +132,7 @@ fun PlaylistsScreen(navController: NavController, viewModel: MusicViewModel) {
             items(playlists, key = { it.id }) { playlist ->
                 UserPlaylistRow(
                     playlist = playlist,
+                    viewModel = viewModel,
                     onClick = { navController.navigate("playlist_detail/${playlist.id}/${playlist.name}") },
                     onRename = { playlistToRename = playlist },
                     onDelete = { playlistToDelete = playlist },
@@ -241,8 +243,9 @@ fun FavoriteSongsRow(onClick: () -> Unit) {
         // Thumbnail with heart gradient background
         Surface(
             modifier = Modifier.size(56.dp),
-            color = Color(0xFF3D0A1E),
-            shape = RoundedCornerShape(6.dp)
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            shape = RoundedCornerShape(6.dp),
+            border = BorderStroke(1.dp, MusifyGreen.copy(alpha = 0.35f))
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
@@ -257,13 +260,13 @@ fun FavoriteSongsRow(onClick: () -> Unit) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 "Favorite Songs",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
                 "Your liked tracks",
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                 fontSize = 13.sp
             )
         }
@@ -275,6 +278,7 @@ fun FavoriteSongsRow(onClick: () -> Unit) {
 @Composable
 fun UserPlaylistRow(
     playlist: PlaylistEntity,
+    viewModel: MusicViewModel,
     onClick: () -> Unit,
     onRename: () -> Unit,
     onDelete: () -> Unit,
@@ -290,14 +294,12 @@ fun UserPlaylistRow(
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Thumbnail
-        com.gaminghub.musicplayer.ui.components.PlaylistImage(
-            model = null,
-            contentDescription = playlist.name,
-            modifier = Modifier
-                .size(56.dp)
-                .clip(androidx.compose.foundation.shape.RoundedCornerShape(6.dp)),
-            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+        // Thumbnail: shows 1 song thumbnail or 4 songs 2x2 collage
+        com.gaminghub.musicplayer.ui.components.PlaylistThumbnail(
+            playlistId = playlist.id,
+            viewModel = viewModel,
+            modifier = Modifier.size(56.dp),
+            shape = RoundedCornerShape(6.dp)
         )
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
@@ -309,7 +311,7 @@ fun UserPlaylistRow(
             )
             Text(
                 "Playlist",
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                 fontSize = 13.sp
             )
         }
@@ -319,19 +321,20 @@ fun UserPlaylistRow(
             IconButton(onClick = { menuExpanded = true }) {
                 Icon(
                     Icons.Default.MoreVert,
-                    contentDescription = "More options",
-                    tint = MaterialTheme.colorScheme.onBackground
+                    contentDescription = "Options",
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
+                    modifier = Modifier.size(20.dp)
                 )
             }
             DropdownMenu(
                 expanded = menuExpanded,
                 onDismissRequest = { menuExpanded = false },
-                modifier = Modifier.background(Color(0xFF2B2B2B))
+                modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 PlaylistMenuItem(
                     icon = Icons.Outlined.DriveFileRenameOutline,
                     label = "Rename",
-                    tint = Color.White
+                    tint = MaterialTheme.colorScheme.onSurface
                 ) {
                     menuExpanded = false
                     onRename()
@@ -387,7 +390,7 @@ fun PlaylistMenuItem(
             }
         },
         onClick = onClick,
-        modifier = Modifier.background(Color(0xFF2B2B2B))
+        modifier = Modifier.background(MaterialTheme.colorScheme.surface)
     )
 }
 
@@ -396,12 +399,12 @@ fun CreatePlaylistDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     var text by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color(0xFF2B2B2B),
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(12.dp),
         title = {
             Text(
                 "Create New Playlist",
-                color = Color(0xFF1DB954),
+                color = MusifyGreen,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -410,15 +413,15 @@ fun CreatePlaylistDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
             TextField(
                 value = text,
                 onValueChange = { text = it },
-                placeholder = { Text("Playlist name", color = Color.Gray) },
+                placeholder = { Text("Playlist name", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 modifier = Modifier.fillMaxWidth(),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    focusedIndicatorColor = Color(0xFF1DB954),
-                    unfocusedIndicatorColor = Color(0xFF1DB954)
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    focusedIndicatorColor = MusifyGreen,
+                    unfocusedIndicatorColor = MusifyGreen
                 ),
                 singleLine = true
             )
@@ -429,7 +432,7 @@ fun CreatePlaylistDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
                     onConfirm(text)
                     onDismiss()
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1DB954)),
+                colors = ButtonDefaults.buttonColors(containerColor = MusifyGreen),
                 shape = RoundedCornerShape(6.dp)
             ) {
                 Text(
@@ -441,7 +444,7 @@ fun CreatePlaylistDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel", color = Color.White)
+                Text("Cancel", color = MaterialTheme.colorScheme.onSurface)
             }
         }
     )
@@ -458,31 +461,31 @@ fun MergePlaylistsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color(0xFF2B2B2B),
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(12.dp),
         title = {
-            Text("Merge Playlists", color = Color(0xFF1DB954), fontWeight = FontWeight.Bold)
+            Text("Merge Playlists", color = MusifyGreen, fontWeight = FontWeight.Bold)
         },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 TextField(
                     value = mergedName,
                     onValueChange = { mergedName = it },
-                    label = { Text("New Playlist Name", color = Color.Gray) },
+                    label = { Text("New Playlist Name", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedIndicatorColor = Color(0xFF1DB954),
-                        unfocusedIndicatorColor = Color.Gray
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        focusedIndicatorColor = MusifyGreen,
+                        unfocusedIndicatorColor = MaterialTheme.colorScheme.outline
                     ),
                     singleLine = true
                 )
                 Text(
                     "Select at least 2 playlists to merge:",
-                    color = Color.LightGray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp,
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
@@ -501,20 +504,20 @@ fun MergePlaylistsDialog(
                             Surface(
                                 modifier = Modifier.size(36.dp),
                                 shape = RoundedCornerShape(6.dp),
-                                color = Color(0xFF1E1E1E)
+                                color = MaterialTheme.colorScheme.surfaceVariant
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
-                                    Icon(Icons.Default.MusicNote, null, tint = Color.Gray)
+                                    Icon(Icons.Default.MusicNote, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                             Spacer(modifier = Modifier.width(10.dp))
-                            Text(pl.name, color = Color.White, modifier = Modifier.weight(1f), fontSize = 14.sp)
+                            Text(pl.name, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f), fontSize = 14.sp)
                             Checkbox(
                                 checked = isChecked,
                                 onCheckedChange = { checked ->
                                     if (checked) selectedIds.add(pl.id) else selectedIds.removeAll { it == pl.id }
                                 },
-                                colors = CheckboxDefaults.colors(checkedColor = Color(0xFF1DB954))
+                                colors = CheckboxDefaults.colors(checkedColor = MusifyGreen)
                             )
                         }
                     }
@@ -528,7 +531,7 @@ fun MergePlaylistsDialog(
                     onConfirm(selected, mergedName)
                 },
                 enabled = selectedIds.size >= 2 && mergedName.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1DB954)),
+                colors = ButtonDefaults.buttonColors(containerColor = MusifyGreen),
                 shape = RoundedCornerShape(6.dp)
             ) {
                 Text("Merge", color = Color.White, fontWeight = FontWeight.Bold)
@@ -536,7 +539,7 @@ fun MergePlaylistsDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel", color = Color.White)
+                Text("Cancel", color = MaterialTheme.colorScheme.onSurface)
             }
         }
     )
@@ -552,12 +555,12 @@ fun RenamePlaylistDialog(
     var text by remember { mutableStateOf(currentName) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color(0xFF2B2B2B),
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(12.dp),
         title = {
             Text(
                 "Rename Playlist",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -570,10 +573,10 @@ fun RenamePlaylistDialog(
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    focusedIndicatorColor = Color(0xFF1DB954),
-                    unfocusedIndicatorColor = Color.Gray
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    focusedIndicatorColor = MusifyGreen,
+                    unfocusedIndicatorColor = MaterialTheme.colorScheme.outline
                 ),
                 singleLine = true
             )
@@ -581,7 +584,7 @@ fun RenamePlaylistDialog(
         confirmButton = {
             Surface(
                 onClick = { onConfirm(text) },
-                color = if (text.isNotBlank()) Color(0xFF1DB954) else Color.Gray,
+                color = if (text.isNotBlank()) MusifyGreen else MaterialTheme.colorScheme.outline,
                 shape = RoundedCornerShape(6.dp)
             ) {
                 Text(
@@ -594,7 +597,7 @@ fun RenamePlaylistDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel", color = Color.White)
+                Text("Cancel", color = MaterialTheme.colorScheme.onSurface)
             }
         }
     )

@@ -250,6 +250,9 @@ fun FollowedArtistItem(
     onClick: () -> Unit
 ) {
     val followersFormatted by viewModel.getArtistFollowersFormatted(artist.name).collectAsState(initial = "")
+    val syncedMap by com.gaminghub.musicplayer.data.repository.ArtistSyncManager.syncedArtists.collectAsState()
+    val key = remember(artist.name) { com.gaminghub.musicplayer.data.repository.ArtistSyncManager.sanitizeArtistId(artist.name) }
+    val displayImage = syncedMap[key]?.imageUrl?.ifBlank { artist.imageUrl } ?: artist.imageUrl
 
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
@@ -272,7 +275,7 @@ fun FollowedArtistItem(
                 contentAlignment = Alignment.Center
             ) {
                 com.gaminghub.musicplayer.ui.components.ArtistImage(
-                    model = artist.imageUrl,
+                    model = displayImage,
                     contentDescription = artist.name,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()

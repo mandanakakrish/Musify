@@ -20,8 +20,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.unit.dp
-import com.gaminghub.musicplayer.ui.theme.MusifyGreen
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -30,7 +30,7 @@ fun DynamicAudioVisualizer(
     isPlaying: Boolean,
     modifier: Modifier = Modifier,
     barCount: Int = 32,
-    accentColor: Color = MusifyGreen
+    accentColor: Color = Color.Unspecified
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "VisualizerTransition")
     
@@ -67,6 +67,9 @@ fun DynamicAudioVisualizer(
         label = "treblePhase"
     )
 
+    val defaultPrimary = MaterialTheme.colorScheme.primary
+    val effectiveAccent = if (accentColor != Color.Unspecified) accentColor else defaultPrimary
+
     Canvas(modifier = modifier.fillMaxWidth().height(180.dp)) {
         val width = size.width
         val height = size.height
@@ -77,7 +80,7 @@ fun DynamicAudioVisualizer(
 
         val neonGradient = Brush.verticalGradient(
             colors = listOf(
-                accentColor,
+                effectiveAccent,
                 Color(0xFF00E5FF),
                 Color(0xFF7C4DFF).copy(alpha = 0.8f),
                 Color.Transparent

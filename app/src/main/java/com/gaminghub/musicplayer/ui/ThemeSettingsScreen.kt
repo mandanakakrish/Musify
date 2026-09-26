@@ -29,6 +29,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import com.gaminghub.musicplayer.SettingsViewModel
 import com.gaminghub.musicplayer.ui.theme.MusifyGreen
+import com.gaminghub.musicplayer.ui.theme.ThemeGradientHelper
 
 @Composable
 fun ThemeSettingsScreen(navController: NavController, settingsViewModel: SettingsViewModel) {
@@ -82,14 +83,11 @@ fun ThemeSettingsScreen(navController: NavController, settingsViewModel: Setting
         )
     }
 
-    val gradientPresets = remember {
-        listOf(
-            listOf(Color(0xFF1E1E1E), Color(0xFF0D0D0D)),
-            listOf(Color(0xFF282828), Color(0xFF121212)),
-            listOf(Color(0xFF1A1A24), Color(0xFF0A0A0F)),
-            listOf(Color(0xFF1F1B24), Color(0xFF121212)),
-            listOf(Color(0xFF000000), Color(0xFF000000))
-        )
+    val isSystemDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val effectiveDark = if (useSystemTheme) isSystemDark else isDarkMode
+
+    val gradientPresets = remember(effectiveDark) {
+        ThemeGradientHelper.getPresets(effectiveDark)
     }
 
     Column(
@@ -362,7 +360,7 @@ fun ThemeSettingsScreen(navController: NavController, settingsViewModel: Setting
         Dialog(onDismissRequest = { showAccentPalette = false }) {
             Surface(
                 shape = RoundedCornerShape(20.dp),
-                color = Color(0xFF181818),
+                color = MaterialTheme.colorScheme.surface,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(8.dp)
@@ -374,7 +372,7 @@ fun ThemeSettingsScreen(navController: NavController, settingsViewModel: Setting
                 ) {
                     Text(
                         "Choose Accent Color",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(bottom = 14.dp)
@@ -435,7 +433,7 @@ fun ThemeSettingsScreen(navController: NavController, settingsViewModel: Setting
         Dialog(onDismissRequest = { showGradientDialog = false }) {
             Surface(
                 shape = RoundedCornerShape(20.dp),
-                color = Color(0xFF1E1E1E),
+                color = MaterialTheme.colorScheme.surface,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -446,12 +444,12 @@ fun ThemeSettingsScreen(navController: NavController, settingsViewModel: Setting
                     ) {
                         Text(
                             text = "Select $activeGradientTarget Gradient",
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold
                         )
                         IconButton(onClick = { showGradientDialog = false }) {
-                            Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
+                            Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurface)
                         }
                     }
 

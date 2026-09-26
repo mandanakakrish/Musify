@@ -32,10 +32,23 @@ import androidx.compose.ui.unit.sp
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
 import com.gaminghub.musicplayer.MusicViewModel
+import com.gaminghub.musicplayer.data.repository.ArtistSyncManager
+import com.gaminghub.musicplayer.data.repository.RealtimeArtist
 import com.gaminghub.musicplayer.ui.components.ArtistImage
 import com.gaminghub.musicplayer.ui.theme.MusifyGlassBorder
 import com.gaminghub.musicplayer.ui.theme.MusifyGlassSurface
 import com.gaminghub.musicplayer.ui.theme.MusifyGreen
+import kotlinx.coroutines.launch
+
+private fun formatFollowerCount(count: Long): String {
+    return when {
+        count >= 1_000_000_000 -> String.format(java.util.Locale.US, "%.1fB", count / 1_000_000_000.0)
+        count >= 1_000_000 -> String.format(java.util.Locale.US, "%.1fM", count / 1_000_000.0)
+        count >= 1_000 -> String.format(java.util.Locale.US, "%.1fK", count / 1_000.0)
+        count > 0 -> "$count"
+        else -> ""
+    }
+}
 
 data class DiscoverArtist(
     val name: String,
@@ -43,7 +56,8 @@ data class DiscoverArtist(
     val category: String, // "Bollywood", "Punjabi", "Pop", "Hip-Hop", "Indie", "South Indian"
     val imageUrl: String,
     val isFeatured: Boolean = false,
-    val tagline: String = ""
+    val tagline: String = "",
+    val followerCount: Long = 0L
 )
 
 private val CURATED_ARTISTS = listOf(
@@ -341,10 +355,59 @@ fun DiscoverArtistsScreen(
     var selectedArtistForProfile by remember { mutableStateOf<String?>(null) }
     val followedArtists by viewModel.followedArtists.collectAsState()
 
+    // Real-time synced artists from Firestore & Open Web
+    val syncedMap by ArtistSyncManager.syncedArtists.collectAsState()
+
+    // Live search state for unlisted artists
+    var liveDiscoveredArtist by remember(searchQuery) { mutableStateOf<RealtimeArtist?>(null) }
+    var isLiveSearching by remember(searchQuery) { mutableStateOf(false) }
+
+    // Merge baseline CURATED_ARTISTS with real-time synchronized Firestore metadata
+    val allArtists = remember(syncedMap) {
+        val merged = mutableListOf<DiscoverArtist>()
+        val seenKeys = mutableSetOf<String>()
+
+        for (curated in CURATED_ARTISTS) {
+            val key = ArtistSyncManager.sanitizeArtistId(curated.name)
+            seenKeys.add(key)
+            val realtime = syncedMap[key]
+            if (realtime != null) {
+                merged.add(
+                    curated.copy(
+                        imageUrl = realtime.imageUrl.ifBlank { curated.imageUrl },
+                        genre = realtime.genre.ifBlank { curated.genre },
+                        tagline = realtime.tagline.ifBlank { curated.tagline },
+                        followerCount = if (realtime.followerCount > 0L) realtime.followerCount else curated.followerCount
+                    )
+                )
+            } else {
+                merged.add(curated)
+            }
+        }
+
+        // Add any additional artists synced in Firestore that aren't in CURATED_ARTISTS
+        for ((key, realtime) in syncedMap) {
+            if (!seenKeys.contains(key) && realtime.name.isNotBlank()) {
+                merged.add(
+                    DiscoverArtist(
+                        name = realtime.name,
+                        genre = realtime.genre.ifBlank { "Music" },
+                        category = realtime.category.ifBlank { "All" },
+                        imageUrl = realtime.imageUrl,
+                        isFeatured = realtime.isFeatured,
+                        tagline = realtime.tagline,
+                        followerCount = realtime.followerCount
+                    )
+                )
+            }
+        }
+        merged
+    }
+
     // Filter artists based on category & search query
-    val filteredArtists = remember(searchQuery, selectedCategory) {
+    val filteredArtists = remember(searchQuery, selectedCategory, allArtists) {
         val query = searchQuery.trim().lowercase()
-        CURATED_ARTISTS.filter { artist ->
+        allArtists.filter { artist ->
             val matchesCategory = when (selectedCategory) {
                 "All" -> true
                 "Trending" -> artist.isFeatured
@@ -359,17 +422,35 @@ fun DiscoverArtistsScreen(
         }
     }
 
+    // Trigger live discovery if search has no local matches
+    LaunchedEffect(searchQuery, filteredArtists.size) {
+        val clean = searchQuery.trim()
+        if (clean.length >= 2 && filteredArtists.isEmpty()) {
+            isLiveSearching = true
+            try {
+                val found = ArtistSyncManager.getArtistDetails(clean)
+                if (found.name.isNotBlank() && found.imageUrl.isNotBlank()) {
+                    liveDiscoveredArtist = found
+                }
+            } catch (_: Exception) {}
+            isLiveSearching = false
+        } else {
+            liveDiscoveredArtist = null
+            isLiveSearching = false
+        }
+    }
+
     // Determine current spotlight hero artist
-    val spotlightArtist = remember(selectedCategory, searchQuery) {
+    val spotlightArtist = remember(selectedCategory, searchQuery, allArtists) {
         if (searchQuery.isNotBlank()) null
         else {
-            CURATED_ARTISTS.firstOrNull { artist ->
+            allArtists.firstOrNull { artist ->
                 when (selectedCategory) {
                     "All" -> artist.name == "Arijit Singh"
                     "Trending" -> artist.isFeatured
                     else -> artist.category.equals(selectedCategory, ignoreCase = true) && artist.isFeatured
                 }
-            } ?: CURATED_ARTISTS.firstOrNull { it.category.equals(selectedCategory, ignoreCase = true) }
+            } ?: allArtists.firstOrNull { it.category.equals(selectedCategory, ignoreCase = true) }
         }
     }
 
@@ -585,12 +666,42 @@ fun DiscoverArtistsScreen(
 
                 // Online Search Fallback if no local matches
                 if (filteredArtists.isEmpty() && searchQuery.isNotBlank()) {
-                    item(span = { GridItemSpan(2) }) {
-                        OnlineSearchFallbackCard(
-                            query = searchQuery.trim(),
-                            onExplore = { selectedArtistForProfile = searchQuery.trim() },
-                            onStartRadio = { viewModel.startArtistRadio(searchQuery.trim()) }
-                        )
+                    if (liveDiscoveredArtist != null) {
+                        item(span = { GridItemSpan(2) }) {
+                            LiveDiscoveredArtistCard(
+                                artist = liveDiscoveredArtist!!,
+                                viewModel = viewModel,
+                                onExplore = { selectedArtistForProfile = liveDiscoveredArtist!!.name },
+                                onStartRadio = { viewModel.startArtistRadio(liveDiscoveredArtist!!.name) }
+                            )
+                        }
+                    } else if (isLiveSearching) {
+                        item(span = { GridItemSpan(2) }) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    CircularProgressIndicator(
+                                        color = MusifyGreen,
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text("Searching global music database...", color = Color.Gray, fontSize = 13.sp)
+                                }
+                            }
+                        }
+                    } else {
+                        item(span = { GridItemSpan(2) }) {
+                            OnlineSearchFallbackCard(
+                                query = searchQuery.trim(),
+                                onExplore = { selectedArtistForProfile = searchQuery.trim() },
+                                onStartRadio = { viewModel.startArtistRadio(searchQuery.trim()) }
+                            )
+                        }
                     }
                 }
             }
@@ -617,6 +728,7 @@ private fun SpotlightHeroCard(
 ) {
     val isFollowed by viewModel.isArtistFollowed(artist.name).collectAsState(initial = false)
     val followersFormatted by viewModel.getArtistFollowersFormatted(artist.name).collectAsState(initial = "")
+    val displayFollowers = if (artist.followerCount > 0L) formatFollowerCount(artist.followerCount) else followersFormatted
 
     Surface(
         modifier = Modifier
@@ -697,7 +809,7 @@ private fun SpotlightHeroCard(
                         )
 
                         Text(
-                            text = if (followersFormatted.isNotBlank()) "$followersFormatted followers • ${artist.genre}" else artist.genre,
+                            text = if (displayFollowers.isNotBlank()) "$displayFollowers followers • ${artist.genre}" else artist.genre,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                             fontSize = 12.sp,
                             maxLines = 1,
@@ -786,6 +898,7 @@ private fun DiscoverArtistCard(
 ) {
     val isFollowed by viewModel.isArtistFollowed(artist.name).collectAsState(initial = false)
     val followersFormatted by viewModel.getArtistFollowersFormatted(artist.name).collectAsState(initial = "")
+    val displayFollowers = if (artist.followerCount > 0L) formatFollowerCount(artist.followerCount) else followersFormatted
 
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
@@ -844,7 +957,7 @@ private fun DiscoverArtistCard(
             // Followers
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = if (followersFormatted.isNotBlank()) "$followersFormatted followers" else "Artist",
+                text = if (displayFollowers.isNotBlank()) "$displayFollowers followers" else "Artist",
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,
@@ -964,6 +1077,154 @@ private fun OnlineSearchFallbackCard(
                     Icon(Icons.Default.Podcasts, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                     Text("Start Radio")
+                }
+            }
+        }
+    }
+}
+
+@OptIn(UnstableApi::class)
+@Composable
+private fun LiveDiscoveredArtistCard(
+    artist: RealtimeArtist,
+    viewModel: MusicViewModel,
+    onExplore: () -> Unit,
+    onStartRadio: () -> Unit
+) {
+    val isFollowed by viewModel.isArtistFollowed(artist.name).collectAsState(initial = false)
+    val displayFollowers = if (artist.followerCount > 0L) formatFollowerCount(artist.followerCount) else ""
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onExplore() },
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        border = BorderStroke(1.dp, MusifyGreen.copy(alpha = 0.6f))
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MusifyGreen.copy(alpha = 0.25f),
+                            Color.Transparent
+                        )
+                    )
+                )
+                .padding(16.dp)
+        ) {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(76.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF282834)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        ArtistImage(
+                            model = artist.imageUrl,
+                            contentDescription = artist.name,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(14.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Surface(
+                                color = MusifyGreen.copy(alpha = 0.2f),
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Text(
+                                    text = "DISCOVERED REALTIME",
+                                    color = MusifyGreen,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            if (artist.isVerified) {
+                                Icon(
+                                    Icons.Default.Verified,
+                                    contentDescription = "Verified",
+                                    tint = MusifyGreen,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Text(
+                            text = artist.name,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+
+                        Text(
+                            text = if (displayFollowers.isNotBlank()) "$displayFollowers followers • ${artist.genre}" else artist.genre,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+
+                        if (artist.tagline.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "“${artist.tagline}”",
+                                color = Color.Gray,
+                                fontSize = 11.sp,
+                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Button(
+                        onClick = onExplore,
+                        colors = ButtonDefaults.buttonColors(containerColor = MusifyGreen),
+                        shape = RoundedCornerShape(20.dp),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(vertical = 8.dp)
+                    ) {
+                        Icon(Icons.Default.Person, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("View Profile", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+
+                    OutlinedButton(
+                        onClick = onStartRadio,
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                        shape = RoundedCornerShape(20.dp),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(vertical = 8.dp)
+                    ) {
+                        Icon(Icons.Default.Podcasts, contentDescription = null, modifier = Modifier.size(15.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Start Radio", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    }
                 }
             }
         }

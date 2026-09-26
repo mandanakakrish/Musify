@@ -158,6 +158,22 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
     var showAddToPlaylistDialog by remember { mutableStateOf(false) }
     var showSleepTimerDialog by remember { mutableStateOf(false) }
     var showArtistDialog by remember { mutableStateOf(false) }
+    var selectedProfileArtist by remember { mutableStateOf<String?>(null) }
+    var showArtistChooserDialog by remember { mutableStateOf(false) }
+    var collaboratingArtists by remember { mutableStateOf<List<String>>(emptyList()) }
+
+    fun openArtistProfileOrChooser(artistString: String) {
+        val split = com.gaminghub.musicplayer.util.ArtistMatcher.splitArtists(artistString)
+        if (split.size > 1) {
+            collaboratingArtists = split
+            showArtistChooserDialog = true
+        } else if (split.size == 1) {
+            selectedProfileArtist = split[0]
+        } else if (artistString.isNotBlank()) {
+            selectedProfileArtist = artistString
+        }
+    }
+
     var showLinkArtistDialog by remember { mutableStateOf(false) }
     var isShuffleOn by remember { mutableStateOf(false) }
     var isRepeatOn by remember { mutableStateOf(false) }
@@ -364,19 +380,21 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                                 },
                                 leadingIcon = { Icon(Icons.Default.Podcasts, null, tint = MusifyGreen) }
                             )
-                            DropdownMenuItem(
-                                text = { Text("Link / Edit Artist", color = Color.White) },
-                                onClick = {
-                                    showMenu = false
-                                    showLinkArtistDialog = true
-                                },
-                                leadingIcon = { Icon(Icons.Default.PersonPin, null, tint = MusifyGreen) }
-                            )
+                            if (isAdmin) {
+                                DropdownMenuItem(
+                                    text = { Text("Link / Edit Artist", color = Color.White) },
+                                    onClick = {
+                                        showMenu = false
+                                        showLinkArtistDialog = true
+                                    },
+                                    leadingIcon = { Icon(Icons.Default.PersonPin, null, tint = MusifyGreen) }
+                                )
+                            }
                             DropdownMenuItem(
                                 text = { Text("View Artist Profile", color = Color.White) },
                                 onClick = {
                                     showMenu = false
-                                    showArtistDialog = true
+                                    currentTrack?.artist?.let { openArtistProfileOrChooser(it) }
                                 },
                                 leadingIcon = { Icon(Icons.Default.Person, null, tint = MusifyGreen) }
                             )
@@ -653,7 +671,9 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
                         textAlign = TextAlign.Center,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.clickable { showArtistDialog = true }
+                        modifier = Modifier.clickable {
+                            currentTrack?.artist?.let { openArtistProfileOrChooser(it) }
+                        }
                     )
                 }
 
@@ -975,8 +995,103 @@ fun NowPlayingScreen(viewModel: MusicViewModel, onBack: () -> Unit) {
         )
     }
 
+    // ── Artist Chooser Dialog (Multi-artist collaborations) ─────
+    if (showArtistChooserDialog && collaboratingArtists.isNotEmpty()) {
+        androidx.compose.ui.window.Dialog(onDismissRequest = { showArtistChooserDialog = false }) {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = Color(0xFF1E1E26),
+                border = BorderStroke(1.dp, MusifyGlassBorder),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text(
+                        text = "Collaborating Artists",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Select an artist to view profile & songs",
+                        color = Color.Gray,
+                        fontSize = 13.sp
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    collaboratingArtists.forEach { artistName ->
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFF282834),
+                            border = BorderStroke(0.5.dp, Color(0x33FFFFFF)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .clickable {
+                                    showArtistChooserDialog = false
+                                    selectedProfileArtist = artistName
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(MusifyGreen.copy(alpha = 0.2f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = null,
+                                        tint = MusifyGreen,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = artistName,
+                                    color = Color.White,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,
+                                    contentDescription = null,
+                                    tint = MusifyGreen,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    androidx.compose.material3.TextButton(
+                        onClick = { showArtistChooserDialog = false },
+                        modifier = Modifier.align(Alignment.End)
+                    ) {
+                        Text("Cancel", color = Color.Gray, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+        }
+    }
+
     // ── Artist Profile Dialog ─────────────────────────────────
-    if (showArtistDialog && currentTrack != null) {
+    if (selectedProfileArtist != null) {
+        ArtistProfileDialog(
+            artistName = selectedProfileArtist!!,
+            viewModel = viewModel,
+            onDismiss = { selectedProfileArtist = null }
+        )
+    } else if (showArtistDialog && currentTrack != null) {
         ArtistProfileDialog(
             artistName = currentTrack!!.artist,
             viewModel = viewModel,

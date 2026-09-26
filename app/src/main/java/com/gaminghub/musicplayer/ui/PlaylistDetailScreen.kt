@@ -440,6 +440,8 @@ fun PlaylistSongRow(
     val downloadedUrls by viewModel.downloadedUrls.collectAsState()
     val isDownloaded = track.audioUrl != null && downloadedUrls.contains(track.audioUrl)
     val context = androidx.compose.ui.platform.LocalContext.current
+    val authManager = remember { com.gaminghub.musicplayer.auth.AuthManager.getInstance(context) }
+    val isAdmin by authManager.isAdmin.collectAsState()
 
     Row(
         modifier = Modifier
@@ -510,14 +512,16 @@ fun PlaylistSongRow(
                         viewModel.removeTrackFromPlaylist(playlistId.toInt(), track.audioUrl ?: "")
                     }
                 )
-                DropdownMenuItem(
-                    text = { Text("Link / Edit Artist", color = MaterialTheme.colorScheme.onSurface) },
-                    leadingIcon = { Icon(Icons.Default.PersonPin, null, tint = MusifyGreen) },
-                    onClick = {
-                        showMenu = false
-                        showLinkArtistDialog = true
-                    }
-                )
+                if (isAdmin) {
+                    DropdownMenuItem(
+                        text = { Text("Link / Edit Artist", color = MaterialTheme.colorScheme.onSurface) },
+                        leadingIcon = { Icon(Icons.Default.PersonPin, null, tint = MusifyGreen) },
+                        onClick = {
+                            showMenu = false
+                            showLinkArtistDialog = true
+                        }
+                    )
+                }
                 DropdownMenuItem(
                     text = { Text("Copy Song Link", color = MaterialTheme.colorScheme.onSurface) },
                     leadingIcon = { Icon(Icons.Default.ContentCopy, null, tint = MusifyGreen) },

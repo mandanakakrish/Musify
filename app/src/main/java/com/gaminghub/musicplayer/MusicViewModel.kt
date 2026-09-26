@@ -28,7 +28,9 @@ import com.gaminghub.musicplayer.util.CommonUtils
 import com.gaminghub.musicplayer.util.MusifyFileMetadataHelper
 import com.gaminghub.musicplayer.util.MusifyTrackMetadata
 import com.gaminghub.musicplayer.util.toTrackEntity
+import com.gaminghub.musicplayer.util.ArtistMatcher
 import com.gaminghub.musicplayer.util.SmartRecommendationEngine
+import com.gaminghub.musicplayer.util.PersonalizedRecommendationEngine
 import com.gaminghub.musicplayer.util.StreamExtractionManager
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
@@ -538,10 +540,25 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                     val elapsed = System.currentTimeMillis() - currentTrackStartTimeMs
                     if (currentTrackAudioUrl != null && elapsed > 0) {
                         val prevUrl = currentTrackAudioUrl!!
-                        if (elapsed < 30_000L && reason != Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
+                        val prevTrack = _currentTrack.value
+                        val isSkip = elapsed < 30_000L && reason != Player.MEDIA_ITEM_TRANSITION_REASON_AUTO
+                        val isCompletion = elapsed >= 45_000L
+
+                        if (isSkip) {
                             viewModelScope.launch(Dispatchers.IO) { dao.incrementSkipCount(prevUrl) }
-                        } else if (elapsed >= 45_000L) {
+                        } else if (isCompletion) {
                             viewModelScope.launch(Dispatchers.IO) { dao.incrementCompletionCount(prevUrl) }
+                        }
+
+                        // Next-Gen Session Steering & Cloud Event Dispatch
+                        if (prevTrack != null) {
+                            PersonalizedRecommendationEngine.recordSessionPlaybackEvent(
+                                track = prevTrack,
+                                durationPlayedMs = elapsed,
+                                totalDurationMs = _duration.value.coerceAtLeast(0L),
+                                isSkip = isSkip,
+                                isCompletion = isCompletion
+                            )
                         }
                     }
                     currentTrackStartTimeMs = System.currentTimeMillis()
@@ -590,8 +607,19 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                         exoPlayerRetryCount = 0
                     }
                     if (playbackState == Player.STATE_ENDED) {
-                        currentTrackAudioUrl?.let { url ->
-                            viewModelScope.launch(Dispatchers.IO) { dao.incrementCompletionCount(url) }
+                        val finishedUrl = currentTrackAudioUrl
+                        if (finishedUrl != null) {
+                            viewModelScope.launch(Dispatchers.IO) { dao.incrementCompletionCount(finishedUrl) }
+                        }
+                        val current = _currentTrack.value
+                        if (current != null) {
+                            PersonalizedRecommendationEngine.recordSessionPlaybackEvent(
+                                track = current,
+                                durationPlayedMs = _duration.value.coerceAtLeast(0L),
+                                totalDurationMs = _duration.value.coerceAtLeast(0L),
+                                isSkip = false,
+                                isCompletion = true
+                            )
                         }
                         playNext()
                     }
@@ -2271,7 +2299,52 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     suspend fun fetchArtistTopTracks(artistName: String): List<TrackModel> = withContext(Dispatchers.IO) {
-        youtubeRepository.fetchMusic("$artistName top songs official", officialOnly = true)
+        val clean = artistName.trim()
+        if (clean.isBlank()) return@withContext emptyList()
+
+        // 1. Dedicated YouTube Music search verifying artist & collaborations
+        val onlineTracks = try {
+            youtubeRepository.fetchArtistTopSongs(clean, maxCount = 20)
+        } catch (e: Exception) {
+            emptyList()
+        }
+
+        // 2. Fetch local library tracks that feature this artist (collaborations, duets, solo)
+        val localTracks = try {
+            dao.getAllTracksSync().filter { entity ->
+                ArtistMatcher.matchesArtist(
+                    songArtist = entity.artist,
+                    songTitle = entity.title,
+                    targetArtist = clean
+                )
+            }.map { it.toModel() }
+        } catch (e: Exception) {
+            emptyList()
+        }
+
+        // 3. Deduplicate by normalized title and combine (online top hits prioritized, supplemented by local tracks)
+        val seenTitles = mutableSetOf<String>()
+        val combined = mutableListOf<TrackModel>()
+
+        fun norm(t: String): String = t.lowercase()
+            .replace(Regex("\\[.*?\\]|\\(.*?\\)"), "")
+            .replace(Regex("[^a-z0-9]"), "")
+
+        for (track in onlineTracks) {
+            val key = norm(track.title)
+            if (key.isNotBlank() && seenTitles.add(key)) {
+                combined.add(track)
+            }
+        }
+
+        for (track in localTracks) {
+            val key = norm(track.title)
+            if (key.isNotBlank() && seenTitles.add(key)) {
+                combined.add(track)
+            }
+        }
+
+        combined.take(20)
     }
 
     fun startSongRadio(seedTrack: TrackModel) {

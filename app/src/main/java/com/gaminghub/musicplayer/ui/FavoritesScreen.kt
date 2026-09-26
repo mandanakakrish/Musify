@@ -25,6 +25,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.gaminghub.musicplayer.ui.theme.MusifyGreen
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -70,7 +71,7 @@ fun FavoritesScreen(viewModel: MusicViewModel, navController: NavController) {
                 Icon(
                     Icons.Default.Favorite,
                     contentDescription = null,
-                    tint = com.gaminghub.musicplayer.MusifyGreen,
+                    tint = MusifyGreen,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))

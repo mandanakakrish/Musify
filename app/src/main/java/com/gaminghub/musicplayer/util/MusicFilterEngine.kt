@@ -141,10 +141,13 @@ object MusicFilterEngine {
             score += 250
         }
 
-        // 6. Optimal song duration: 90s (1:30) to 480s (8:00) (+150)
-        if (durationSeconds in 90..480) {
+        // 6. Optimal song duration: 50s to 600s (+150)
+        if (durationSeconds in 50..600) {
             score += 150
         }
+
+        // Base score for genuine music candidate (+100)
+        score += 100
 
         return score
     }

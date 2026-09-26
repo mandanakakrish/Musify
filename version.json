@@ -1,9 +1,9 @@
 {
-  "versionCode": 3,
-  "versionName": "1.7.1",
-  "minVersionCode": 3,
+  "versionCode": 4,
+  "versionName": "1.7.2",
+  "minVersionCode": 4,
   "forceUpdate": true,
-  "title": "Musify v1.7.1 Update",
-  "changelog": "• Full dynamic Light and Dark mode across all screens\n• App version badge shown in navigation drawer\n• Firebase-only Admin Access control\n• Updated GitHub support links",
+  "title": "Musify v1.7.2 Update",
+  "changelog": "- Bugs Fix\n- Improvised Stability",
   "downloadUrl": "https://github.com/mandanakakrish/Musify/releases/latest"
 }

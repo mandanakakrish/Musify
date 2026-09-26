@@ -60,6 +60,9 @@ class AuthManager private constructor(private val context: Context) {
     private val _isAdmin = MutableStateFlow(false)
     val isAdmin: StateFlow<Boolean> = _isAdmin.asStateFlow()
 
+    private val _lastAdminError = MutableStateFlow<String?>(null)
+    val lastAdminError: StateFlow<String?> = _lastAdminError.asStateFlow()
+
     private var adminListenerEmail: com.google.firebase.firestore.ListenerRegistration? = null
     private var adminListenerUid: com.google.firebase.firestore.ListenerRegistration? = null
 
@@ -74,6 +77,14 @@ class AuthManager private constructor(private val context: Context) {
                 _currentUser.value = firebaseAuth.currentUser
                 updateLoginState()
                 checkAdminStatus()
+            }
+            if (auth?.currentUser == null) {
+                try {
+                    auth?.signInAnonymously()?.addOnSuccessListener { res ->
+                        _currentUser.value = res.user
+                        checkAdminStatus()
+                    }
+                } catch (_: Exception) {}
             }
             // Check Google Last Signed In Account
             val lastAccount = GoogleSignIn.getLastSignedInAccount(context)
@@ -100,6 +111,19 @@ class AuthManager private constructor(private val context: Context) {
         _isLoggedIn.value = isUserLoggedIn()
     }
 
+    private fun isSnapshotActiveAdmin(snapshot: com.google.firebase.firestore.DocumentSnapshot?): Boolean {
+        if (snapshot == null || !snapshot.exists()) return false
+        val activeBool = snapshot.getBoolean("active")
+        val activeStr = snapshot.getString("active")
+        val role = snapshot.getString("role")
+        val isAdminBool = snapshot.getBoolean("isAdmin")
+        return activeBool == true ||
+                activeStr?.equals("true", ignoreCase = true) == true ||
+                role?.equals("admin", ignoreCase = true) == true ||
+                isAdminBool == true ||
+                (activeBool != false && activeStr == null)
+    }
+
     fun checkAdminStatus(onResult: ((Boolean) -> Unit)? = null) {
         adminListenerEmail?.remove()
         adminListenerEmail = null
@@ -108,6 +132,8 @@ class AuthManager private constructor(private val context: Context) {
 
         val email = (_googleEmail.value ?: _currentUser.value?.email ?: "").lowercase().trim()
         val uid = (_currentUser.value?.uid ?: "").trim()
+
+        _lastAdminError.value = null
 
         if (email.isBlank() && uid.isBlank()) {
             _isAdmin.value = false
@@ -121,25 +147,58 @@ class AuthManager private constructor(private val context: Context) {
             var checkedUid = false
 
             if (email.isNotBlank()) {
+                val sanitizedEmail = email.replace("@", "_").replace(".", "_")
                 adminListenerEmail = db.collection("admins").document(email)
                     .addSnapshotListener { snapshot, error ->
                         if (error != null) {
                             Log.w("AuthManager", "Admin email listener error: ${error.message}")
-                            if (!checkedEmail) {
-                                checkedEmail = true
-                                if (checkedUid || uid.isBlank()) onResult?.invoke(_isAdmin.value)
-                            }
+                            _lastAdminError.value = error.message
+                            db.collection("admins").document(sanitizedEmail).get()
+                                .addOnSuccessListener { sanSnap ->
+                                    if (isSnapshotActiveAdmin(sanSnap)) {
+                                        _isAdmin.value = true
+                                    }
+                                    if (!checkedEmail) {
+                                        checkedEmail = true
+                                        if (checkedUid || uid.isBlank()) onResult?.invoke(_isAdmin.value)
+                                    }
+                                }
+                                .addOnFailureListener {
+                                    if (!checkedEmail) {
+                                        checkedEmail = true
+                                        if (checkedUid || uid.isBlank()) onResult?.invoke(_isAdmin.value)
+                                    }
+                                }
                             return@addSnapshotListener
                         }
-                        val isActive = snapshot != null && snapshot.exists() && snapshot.getBoolean("active") != false
-                        if (isActive) {
+                        if (isSnapshotActiveAdmin(snapshot)) {
                             _isAdmin.value = true
-                        } else if (uid.isBlank() || !(_isAdmin.value)) {
-                            _isAdmin.value = false
-                        }
-                        if (!checkedEmail) {
-                            checkedEmail = true
-                            if (checkedUid || uid.isBlank()) onResult?.invoke(_isAdmin.value)
+                            if (!checkedEmail) {
+                                checkedEmail = true
+                                if (checkedUid || uid.isBlank()) onResult?.invoke(true)
+                            }
+                        } else {
+                            db.collection("admins").document(sanitizedEmail).get()
+                                .addOnSuccessListener { sanSnap ->
+                                    if (isSnapshotActiveAdmin(sanSnap)) {
+                                        _isAdmin.value = true
+                                    } else if (uid.isBlank() || !(_isAdmin.value)) {
+                                        _isAdmin.value = false
+                                    }
+                                    if (!checkedEmail) {
+                                        checkedEmail = true
+                                        if (checkedUid || uid.isBlank()) onResult?.invoke(_isAdmin.value)
+                                    }
+                                }
+                                .addOnFailureListener {
+                                    if (uid.isBlank() || !(_isAdmin.value)) {
+                                        _isAdmin.value = false
+                                    }
+                                    if (!checkedEmail) {
+                                        checkedEmail = true
+                                        if (checkedUid || uid.isBlank()) onResult?.invoke(_isAdmin.value)
+                                    }
+                                }
                         }
                     }
             }
@@ -155,8 +214,7 @@ class AuthManager private constructor(private val context: Context) {
                             }
                             return@addSnapshotListener
                         }
-                        val isActive = snapshot != null && snapshot.exists() && snapshot.getBoolean("active") != false
-                        if (isActive) {
+                        if (isSnapshotActiveAdmin(snapshot)) {
                             _isAdmin.value = true
                         } else if (email.isBlank() || !(_isAdmin.value)) {
                             _isAdmin.value = false
@@ -278,21 +336,6 @@ class AuthManager private constructor(private val context: Context) {
         _googleDisplayName.value = null
         _googlePhotoUrl.value = null
         updateLoginState()
-    }
-
-    fun signInWithCustomGoogleEmail(email: String, displayName: String? = null): AuthResult {
-        val cleanEmail = email.trim()
-        val name = if (!displayName.isNullOrBlank()) displayName.trim() else cleanEmail.substringBefore("@").replace(".", " ").replaceFirstChar { it.uppercase() }
-
-        prefs.edit()
-            .putString("google_email", cleanEmail)
-            .putString("google_display_name", name)
-            .apply()
-
-        _googleEmail.value = cleanEmail
-        _googleDisplayName.value = name
-        updateLoginState()
-        return AuthResult.Success(cleanEmail, name)
     }
 
     suspend fun signInWithGoogleAccount(account: GoogleSignInAccount): AuthResult = withContext(Dispatchers.IO) {

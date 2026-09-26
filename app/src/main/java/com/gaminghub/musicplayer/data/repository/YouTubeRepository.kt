@@ -2,6 +2,7 @@ package com.gaminghub.musicplayer.data.repository
  
 import android.util.Log
 import com.gaminghub.musicplayer.TrackModel
+import com.gaminghub.musicplayer.util.ArtistMatcher
 import com.gaminghub.musicplayer.util.CommonUtils
 import com.gaminghub.musicplayer.util.MusicFilterEngine
 import kotlinx.coroutines.Dispatchers
@@ -46,21 +47,21 @@ class YouTubeRepository {
             Log.w(tag, "YT Music search error: ${e.message}")
         }
 
-        // 2. Second priority: NewPipe Extractor Search if needed
-        if (candidates.size < 6) {
+        // 2. Second priority: NewPipe Extractor Search if needed (target 35+ candidates)
+        if (candidates.size < 35) {
             try {
                 val service = ServiceList.YouTube
                 val searchExtractor = service.getSearchExtractor(term)
                 searchExtractor.fetchPage()
 
-                val fetchedItems = searchExtractor.initialPage.items
+                val fetchedItems = searchExtractor.initialPage?.items
                 if (fetchedItems != null) {
                     for (infoItem in fetchedItems) {
                         if (infoItem is StreamInfoItem) {
                             val uploader = infoItem.uploaderName ?: "Unknown"
                             val title = infoItem.name ?: "Unknown"
                             val duration = infoItem.duration
-                            val rawUrl = infoItem.thumbnails.firstOrNull()?.url
+                            val rawUrl = infoItem.thumbnails?.firstOrNull()?.url
                             val highResArt = if (infoItem.url.contains("youtube.com") || infoItem.url.contains("youtu.be")) {
                                 rawUrl?.replace("hqdefault", "maxresdefault")
                             } else {
@@ -87,7 +88,7 @@ class YouTubeRepository {
         }
 
         // 3. Third priority: Official YouTube Web candidate parser fallback
-        if (candidates.size < 5) {
+        if (candidates.size < 25) {
             val webCandidates = fetchFromYouTubeWebCandidates(term)
             candidates.addAll(webCandidates)
         }
@@ -96,8 +97,8 @@ class YouTubeRepository {
         var filteredTracks = MusicFilterEngine.filterAndRankCandidates(candidates, officialOnly = officialOnly)
 
         // Refined search if still few tracks
-        if (filteredTracks.size < 4 && !term.contains("song", ignoreCase = true) && !term.contains("official", ignoreCase = true)) {
-            val refinedTerm = "$term official song"
+        if (filteredTracks.size < 15 && !term.contains("song", ignoreCase = true) && !term.contains("official", ignoreCase = true)) {
+            val refinedTerm = "$term official songs"
             val webRefinedCandidates = fetchFromYouTubeWebCandidates(refinedTerm)
             val allCandidates = candidates + webRefinedCandidates
             filteredTracks = MusicFilterEngine.filterAndRankCandidates(allCandidates, officialOnly = officialOnly)
@@ -112,9 +113,77 @@ class YouTubeRepository {
     }
 
     /**
-     * Direct YouTube Music API search via InnerTube WEB_REMIX client.
+     * Dedicated fetching of an artist's top songs (max 20),
+     * ensuring all collaborating songs and solo songs of the artist are retrieved
+     * with multi-artist relationship matching.
      */
-    private fun searchYouTubeMusicDirect(query: String): List<MusicFilterEngine.CandidateTrack> {
+    suspend fun fetchArtistTopSongs(artistName: String, maxCount: Int = 20): List<TrackModel> = withContext(Dispatchers.IO) {
+        val clean = artistName.trim()
+        if (clean.isBlank()) return@withContext emptyList()
+
+        val results = mutableListOf<TrackModel>()
+        val seenUrls = mutableSetOf<String>()
+        val seenTitles = mutableSetOf<String>()
+
+        // 1. Direct YouTube Music search with exact artist name (retrieves 30-50 top tracks)
+        val candidates1 = searchYouTubeMusicDirect(clean, maxItems = 40)
+        // 2. Also search with "$clean songs" to catch deeper collaborations
+        val candidates2 = searchYouTubeMusicDirect("$clean songs", maxItems = 30)
+
+        val combinedCandidates = candidates1 + candidates2
+
+        // Filter tracks matching many-to-many artist relationships
+        for (candidate in combinedCandidates) {
+            val cleaned = MusicFilterEngine.cleanTrack(
+                candidate.title,
+                candidate.uploader,
+                candidate.audioUrl,
+                candidate.albumArtUrl,
+                candidate.album
+            )
+
+            val url = cleaned.audioUrl ?: candidate.audioUrl
+            if (url.isBlank()) continue
+
+            val isMatch = ArtistMatcher.matchesArtist(cleaned.artist, cleaned.title, clean) ||
+                    ArtistMatcher.matchesArtist(candidate.uploader, candidate.title, clean)
+
+            if (isMatch) {
+                val titleKey = cleaned.title.lowercase().replace(Regex("[^a-z0-9]"), "")
+                if (seenUrls.add(url) && seenTitles.add(titleKey)) {
+                    results.add(cleaned)
+                    if (results.size >= maxCount) break
+                }
+            }
+        }
+
+        // If strict match yielded fewer than 10 tracks, take the top results from candidate list
+        if (results.size < 10 && combinedCandidates.isNotEmpty()) {
+            for (candidate in combinedCandidates) {
+                val cleaned = MusicFilterEngine.cleanTrack(
+                    candidate.title,
+                    candidate.uploader,
+                    candidate.audioUrl,
+                    candidate.albumArtUrl,
+                    candidate.album
+                )
+                val url = cleaned.audioUrl ?: candidate.audioUrl
+                if (url.isBlank()) continue
+                val titleKey = cleaned.title.lowercase().replace(Regex("[^a-z0-9]"), "")
+                if (seenUrls.add(url) && seenTitles.add(titleKey)) {
+                    results.add(cleaned)
+                    if (results.size >= maxCount) break
+                }
+            }
+        }
+
+        return@withContext results.take(maxCount)
+    }
+
+    /**
+     * Direct YouTube Music API search via InnerTube WEB_REMIX client with Songs tab and continuation support (fetches 30-60 songs).
+     */
+    private fun searchYouTubeMusicDirect(query: String, maxItems: Int = 50): List<MusicFilterEngine.CandidateTrack> {
         val list = ArrayList<MusicFilterEngine.CandidateTrack>()
         try {
             val jsonPayload = JSONObject().apply {
@@ -123,10 +192,12 @@ class YouTubeRepository {
                         put("clientName", "WEB_REMIX")
                         put("clientVersion", "1.20240101.01.00")
                         put("hl", "en")
-                        put("gl", "US")
+                        put("gl", "IN")
                     })
                 })
                 put("query", query)
+                // Filter for "Songs" tab directly
+                put("params", "EgWKAQIIAWoSEAoQCRADEAUQBBAOEBAQFRAR")
             }
 
             val requestBody = jsonPayload.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
@@ -144,6 +215,73 @@ class YouTubeRepository {
                 val jsonStr = response.body.string()
                 val root = JSONObject(jsonStr)
                 parseMusicResponsiveItems(root, list)
+
+                // If fewer than maxItems, fetch continuation page
+                if (list.size < maxItems) {
+                    val contToken = extractContinuationToken(root)
+                    if (!contToken.isNullOrBlank()) {
+                        try {
+                            val contPayload = JSONObject().apply {
+                                put("context", JSONObject().apply {
+                                    put("client", JSONObject().apply {
+                                        put("clientName", "WEB_REMIX")
+                                        put("clientVersion", "1.20240101.01.00")
+                                        put("hl", "en")
+                                        put("gl", "IN")
+                                    })
+                                })
+                            }
+                            val contBody = contPayload.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+                            val encodedToken = URLEncoder.encode(contToken, "UTF-8")
+                            val contRequest = okhttp3.Request.Builder()
+                                .url("https://music.youtube.com/youtubei/v1/search?continuation=$encodedToken")
+                                .header("User-Agent", CommonUtils.CURRENT_USER_AGENT)
+                                .header("Referer", "https://music.youtube.com/")
+                                .header("Origin", "https://music.youtube.com")
+                                .header("Content-Type", "application/json")
+                                .post(contBody)
+                                .build()
+
+                            val contResp = httpClient.newCall(contRequest).execute()
+                            if (contResp.isSuccessful) {
+                                val contJson = contResp.body.string()
+                                parseMusicResponsiveItems(JSONObject(contJson), list)
+                            }
+                        } catch (e: Exception) {
+                            Log.w(tag, "Continuation paging error: ${e.message}")
+                        }
+                    }
+                }
+            }
+
+            // Fallback: If Songs filter returned very few tracks, try general search without params
+            if (list.size < 6) {
+                val genPayload = JSONObject().apply {
+                    put("context", JSONObject().apply {
+                        put("client", JSONObject().apply {
+                            put("clientName", "WEB_REMIX")
+                            put("clientVersion", "1.20240101.01.00")
+                            put("hl", "en")
+                            put("gl", "IN")
+                        })
+                    })
+                    put("query", query)
+                }
+                val genBody = genPayload.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+                val genRequest = okhttp3.Request.Builder()
+                    .url("https://music.youtube.com/youtubei/v1/search")
+                    .header("User-Agent", CommonUtils.CURRENT_USER_AGENT)
+                    .header("Referer", "https://music.youtube.com/")
+                    .header("Origin", "https://music.youtube.com")
+                    .header("Content-Type", "application/json")
+                    .post(genBody)
+                    .build()
+
+                val genResp = httpClient.newCall(genRequest).execute()
+                if (genResp.isSuccessful) {
+                    val root = JSONObject(genResp.body.string())
+                    parseMusicResponsiveItems(root, list)
+                }
             }
         } catch (e: Exception) {
             Log.w(tag, "YT Music Direct Search error: ${e.message}")
@@ -151,7 +289,7 @@ class YouTubeRepository {
         return list
     }
 
-    private fun parseMusicResponsiveItems(root: JSONObject, list: MutableList<MusicFilterEngine.CandidateTrack>) {
+    private fun extractContinuationToken(root: JSONObject): String? {
         try {
             val contents = root.optJSONObject("contents")
                 ?.optJSONObject("tabbedSearchResultsRenderer")
@@ -160,20 +298,56 @@ class YouTubeRepository {
                 ?.optJSONObject("tabRenderer")
                 ?.optJSONObject("content")
                 ?.optJSONObject("sectionListRenderer")
-                ?.optJSONArray("contents") ?: return
+                ?.optJSONArray("contents") ?: return null
 
             for (i in 0 until contents.length()) {
-                val section = contents.optJSONObject(i)?.optJSONObject("musicShelfRenderer")
-                    ?: contents.optJSONObject(i)?.optJSONObject("musicCardShelfRenderer")
-                    ?: continue
+                val shelf = contents.optJSONObject(i)?.optJSONObject("musicShelfRenderer") ?: continue
+                val continuations = shelf.optJSONArray("continuations") ?: continue
+                val token = continuations.optJSONObject(0)?.optJSONObject("nextContinuationData")?.optString("continuation")
+                if (!token.isNullOrBlank()) return token
+            }
+        } catch (_: Exception) {}
+        return null
+    }
 
-                val items = section.optJSONArray("contents")
-                if (items != null) {
-                    for (j in 0 until items.length()) {
-                        val item = items.optJSONObject(j)?.optJSONObject("musicResponsiveListItemRenderer") ?: continue
-                        val candidate = parseSingleMusicItem(item)
-                        if (candidate != null) list.add(candidate)
+    private fun parseMusicResponsiveItems(root: JSONObject, list: MutableList<MusicFilterEngine.CandidateTrack>) {
+        try {
+            // Check direct tabbed results
+            val contents = root.optJSONObject("contents")
+                ?.optJSONObject("tabbedSearchResultsRenderer")
+                ?.optJSONArray("tabs")
+                ?.optJSONObject(0)
+                ?.optJSONObject("tabRenderer")
+                ?.optJSONObject("content")
+                ?.optJSONObject("sectionListRenderer")
+                ?.optJSONArray("contents")
+
+            if (contents != null) {
+                for (i in 0 until contents.length()) {
+                    val section = contents.optJSONObject(i)?.optJSONObject("musicShelfRenderer")
+                        ?: contents.optJSONObject(i)?.optJSONObject("musicCardShelfRenderer")
+                        ?: continue
+
+                    val items = section.optJSONArray("contents")
+                    if (items != null) {
+                        for (j in 0 until items.length()) {
+                            val item = items.optJSONObject(j)?.optJSONObject("musicResponsiveListItemRenderer") ?: continue
+                            val candidate = parseSingleMusicItem(item)
+                            if (candidate != null) list.add(candidate)
+                        }
                     }
+                }
+            }
+
+            // Also check continuationContents if response is from a continuation request
+            val continuationContents = root.optJSONObject("continuationContents")
+                ?.optJSONObject("musicShelfContinuation")
+                ?.optJSONArray("contents")
+            if (continuationContents != null) {
+                for (j in 0 until continuationContents.length()) {
+                    val item = continuationContents.optJSONObject(j)?.optJSONObject("musicResponsiveListItemRenderer") ?: continue
+                    val candidate = parseSingleMusicItem(item)
+                    if (candidate != null) list.add(candidate)
                 }
             }
         } catch (e: Exception) {
@@ -200,20 +374,33 @@ class YouTubeRepository {
                 val col1 = flexColumns.optJSONObject(1)?.optJSONObject("musicResponsiveListItemFlexColumnRenderer")
                 val runs = col1?.optJSONObject("text")?.optJSONArray("runs")
                 if (runs != null) {
+                    val artistTokens = mutableListOf<String>()
+                    var passedBullet = false
                     for (r in 0 until runs.length()) {
                         val rObj = runs.optJSONObject(r)
                         val text = rObj?.optString("text") ?: continue
+                        if (text == " • " || text == "•") {
+                            passedBullet = true
+                            continue
+                        }
                         val nav = rObj.optJSONObject("navigationEndpoint")
                         val pageType = nav?.optJSONObject("browseEndpoint")?.optJSONObject("browseEndpointContextSupportedConfigs")
                             ?.optJSONObject("browseEndpointContextMusicConfig")?.optString("pageType")
 
-                        if (pageType == "MUSIC_PAGE_TYPE_ARTIST" || (artist == "Unknown Artist" && text != " • " && !text.contains(":"))) {
-                            artist = text
-                        } else if (pageType == "MUSIC_PAGE_TYPE_ALBUM") {
-                            album = text
-                        } else if (text.contains(":")) {
-                            durationSec = parseDurationToSeconds(text)
+                        if (!passedBullet) {
+                            if (!text.contains(":")) {
+                                artistTokens.add(text)
+                            }
+                        } else {
+                            if (pageType == "MUSIC_PAGE_TYPE_ALBUM") {
+                                album = text
+                            } else if (text.contains(":")) {
+                                durationSec = parseDurationToSeconds(text)
+                            }
                         }
+                    }
+                    if (artistTokens.isNotEmpty()) {
+                        artist = artistTokens.joinToString("").trim()
                     }
                 }
             }
@@ -254,8 +441,9 @@ class YouTubeRepository {
             val searchUrl = "https://www.youtube.com/results?search_query=$encodedTerm"
             val request = okhttp3.Request.Builder()
                 .url(searchUrl)
-                .header("User-Agent", CommonUtils.CURRENT_USER_AGENT)
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
                 .header("Accept-Language", "en-US,en;q=0.9")
+                .header("Cookie", "SOCS=CAESEwgDEgk2NDIyNDM3MjgaAmVuIAEaBgiA_LyaBg")
                 .build()
             
             val html = httpClient.newCall(request).execute().use { it.body.string() }

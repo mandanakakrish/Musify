@@ -257,12 +257,12 @@ fun TopChartsScreen(viewModel: MusicViewModel, onMenuClick: (() -> Unit)? = null
     if (showInfoDialog) {
         AlertDialog(
             onDismissRequest = { showInfoDialog = false },
-            containerColor = Color(0xFF1E1E24),
+            containerColor = MaterialTheme.colorScheme.surface,
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, tint = MusifyGreen)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("About Top Charts", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text("About Top Charts", color = MaterialTheme.colorScheme.onSurface, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
             },
             text = {
@@ -271,7 +271,7 @@ fun TopChartsScreen(viewModel: MusicViewModel, onMenuClick: (() -> Unit)? = null
                     "Both charts are calculated globally from ALL users directly on Cloud Firestore:\n\n" +
                     "• Weekly: Live cloud leaderboard of the top songs played across ALL Musify users in the rolling past 7 days.\n\n" +
                     "• All Time: Live cloud leaderboard of the all-time most played songs across ALL Musify users.",
-                    color = Color(0xFFCCCCCC),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 13.sp,
                     lineHeight = 18.sp
                 )
@@ -306,9 +306,9 @@ fun TopChartsList(
             contentAlignment = Alignment.Center
         ) {
             Surface(
-                color = MusifyGlassSurface,
+                color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = RoundedCornerShape(20.dp),
-                border = BorderStroke(1.dp, MusifyGlassBorder),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -332,7 +332,7 @@ fun TopChartsList(
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = title,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
@@ -340,7 +340,7 @@ fun TopChartsList(
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = emptyMessage,
-                        color = Color(0xFFAAAAAA),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 13.sp,
                         textAlign = TextAlign.Center,
                         lineHeight = 18.sp
@@ -368,9 +368,9 @@ fun TopChartsList(
             // ── Hero Header Card (Exact Half Size: 60dp) ─────────────
             item {
                 Surface(
-                    color = MusifyGlassSurface,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
                     shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.dp, MusifyGlassBorder),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 4.dp)
@@ -401,7 +401,7 @@ fun TopChartsList(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
                                         text = title,
-                                        color = MaterialTheme.colorScheme.onBackground,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1,
@@ -569,7 +569,7 @@ fun TopChartTrackRow(
                 Icon(
                     Icons.Default.MoreVert,
                     contentDescription = "Options",
-                    tint = Color.White.copy(alpha = 0.8f),
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f),
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -577,7 +577,7 @@ fun TopChartTrackRow(
             DropdownMenu(
                 expanded = showMenu,
                 onDismissRequest = { showMenu = false },
-                modifier = Modifier.background(Color(0xFF242424))
+                modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 DropdownMenuItem(
                     text = { Text(if (isDownloaded) "Downloaded" else "Download Song", color = MusifyGreen) },
@@ -585,33 +585,33 @@ fun TopChartTrackRow(
                     onClick = { viewModel.toggleDownload(track); showMenu = false }
                 )
                 DropdownMenuItem(
-                    text = { Text("Favorite", color = Color.White) },
+                    text = { Text("Favorite", color = MaterialTheme.colorScheme.onSurface) },
                     leadingIcon = { Icon(Icons.Default.Favorite, null, tint = MusifyGreen) },
                     onClick = { viewModel.toggleFavorite(track); showMenu = false }
                 )
                 DropdownMenuItem(
-                    text = { Text("Play Next", color = Color.White) },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = Color.White) },
+                    text = { Text("Play Next", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                     onClick = { showMenu = false }
                 )
                 DropdownMenuItem(
-                    text = { Text("Add to Queue", color = Color.White) },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = Color.White) },
+                    text = { Text("Add to Queue", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                     onClick = { showMenu = false }
                 )
                 DropdownMenuItem(
-                    text = { Text("Add to Playlist", color = Color.White) },
-                    leadingIcon = { Icon(Icons.Default.Add, null, tint = Color.White) },
+                    text = { Text("Add to Playlist", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                     onClick = { showMenu = false }
                 )
                 DropdownMenuItem(
-                    text = { Text("View Artist (${track.artist.take(15)})", color = Color.White) },
-                    leadingIcon = { Icon(Icons.Default.Person, null, tint = Color.White) },
+                    text = { Text("View Artist (${track.artist.take(15)})", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.Default.Person, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                     onClick = { showMenu = false }
                 )
                 DropdownMenuItem(
-                    text = { Text("Play Radio", color = Color.White) },
-                    leadingIcon = { Icon(Icons.Default.Podcasts, null, tint = Color.White) },
+                    text = { Text("Play Radio", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.Default.Podcasts, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                     onClick = { showMenu = false }
                 )
             }

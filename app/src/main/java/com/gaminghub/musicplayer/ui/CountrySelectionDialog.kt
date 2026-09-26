@@ -26,6 +26,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -98,8 +99,8 @@ fun CountrySelectionDialog(
                 .fillMaxWidth()
                 .fillMaxHeight(0.8f),
             shape = RoundedCornerShape(24.dp),
-            color = MusifyDarkBg,
-            border = androidx.compose.foundation.BorderStroke(1.dp, MusifyGlassBorder)
+            color = MaterialTheme.colorScheme.surface,
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
         ) {
             Column(
                 modifier = Modifier
@@ -114,7 +115,7 @@ fun CountrySelectionDialog(
                 ) {
                     Text(
                         text = "Select Country",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -123,9 +124,9 @@ fun CountrySelectionDialog(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(MusifyGlassSurface)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
 
@@ -135,15 +136,15 @@ fun CountrySelectionDialog(
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    placeholder = { Text("Search country...", color = Color.Gray) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
+                    placeholder = { Text("Search country...", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                     singleLine = true,
                     shape = RoundedCornerShape(14.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MusifyGreen,
-                        unfocusedBorderColor = MusifyGlassBorder,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                         cursorColor = MusifyGreen
                     ),
                     modifier = Modifier.fillMaxWidth()
@@ -166,7 +167,7 @@ fun CountrySelectionDialog(
                                     onCountrySelected(country.name)
                                     onDismiss()
                                 },
-                            color = if (isSelected) MusifyGreen.copy(alpha = 0.2f) else MusifyCardBg,
+                            color = if (isSelected) MusifyGreen.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceVariant,
                             shape = RoundedCornerShape(12.dp),
                             border = if (isSelected) androidx.compose.foundation.BorderStroke(1.dp, MusifyGreen) else null
                         ) {
@@ -182,7 +183,7 @@ fun CountrySelectionDialog(
                                     Spacer(modifier = Modifier.width(14.dp))
                                     Text(
                                         text = country.name,
-                                        color = if (isSelected) MusifyGreen else Color.White,
+                                        color = if (isSelected) MusifyGreen else MaterialTheme.colorScheme.onSurface,
                                         fontSize = 16.sp,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                     )

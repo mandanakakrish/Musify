@@ -111,6 +111,14 @@ import com.gaminghub.musicplayer.ui.TopChartsScreen
 import com.gaminghub.musicplayer.ui.YouTubeScreen
 import com.gaminghub.musicplayer.ui.theme.MusifyGlassBorder
 import com.gaminghub.musicplayer.ui.theme.MusifyGreen
+import com.gaminghub.musicplayer.ui.theme.MusifyGreenDark
+import com.gaminghub.musicplayer.ui.theme.DefaultSpotifyGreen
+import com.gaminghub.musicplayer.ui.theme.LocalAppGradients
+import com.gaminghub.musicplayer.ui.theme.AppThemeGradients
+import com.gaminghub.musicplayer.ui.theme.ThemeGradientHelper
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.graphics.toArgb
+import androidx.core.view.WindowCompat
 import kotlinx.coroutines.launch
 
 @UnstableApi
@@ -163,9 +171,29 @@ class MainActivity : ComponentActivity() {
                 try {
                     Color(android.graphics.Color.parseColor(accentColorHex))
                 } catch (_: Exception) {
-                    MusifyGreen
+                    DefaultSpotifyGreen
                 }
             }
+
+            val bgGradIdx by settingsViewModel.backgroundGradient.collectAsState()
+            val cardGradIdx by settingsViewModel.cardGradient.collectAsState()
+            val sheetGradIdx by settingsViewModel.bottomSheetGradient.collectAsState()
+            val presets = ThemeGradientHelper.getPresets(effectiveDark)
+            val bgColors = if (effectiveDark && (useAmoled || canvasColor == "Black")) {
+                listOf(Color.Black, Color.Black)
+            } else {
+                presets.getOrElse(bgGradIdx) { presets[0] }
+            }
+            val cardColors = presets.getOrElse(cardGradIdx) { presets[0] }
+            val sheetColors = presets.getOrElse(sheetGradIdx) { presets[0] }
+            val appGradients = AppThemeGradients(
+                backgroundBrush = Brush.verticalGradient(bgColors),
+                cardBrush = Brush.verticalGradient(cardColors),
+                bottomSheetBrush = Brush.verticalGradient(sheetColors),
+                backgroundColor = bgColors.first(),
+                cardColor = cardColors.first()
+            )
+
 
             val bgColor = if (!effectiveDark) {
                 Color(0xFFF5F5F5)
@@ -186,31 +214,53 @@ class MainActivity : ComponentActivity() {
                 else -> Color(0xFF181818)
             }
 
-            MaterialTheme(
-                colorScheme = if (effectiveDark) {
-                    darkColorScheme(
-                         primary = accentColor,
-                         surface = surfaceColor,
-                         background = bgColor,
-                         onBackground = Color.White,
-                         onSurface = Color.White,
-                         surfaceVariant = Color(0xFF242424),
-                         onSurfaceVariant = Color(0xFFCAC4D0)
-                    )
-                } else {
-                    lightColorScheme(
-                         primary = accentColor,
-                         surface = surfaceColor,
-                         background = bgColor,
-                         onBackground = Color(0xFF191C1E),
-                         onSurface = Color(0xFF191C1E),
-                         surfaceVariant = Color(0xFFE8E8E8),
-                         onSurfaceVariant = Color(0xFF44474E)
-                    )
-                }
-            ) {
-                val authViewModel: com.gaminghub.musicplayer.auth.AuthViewModel = viewModel()
-                val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
+            CompositionLocalProvider(LocalAppGradients provides appGradients) {
+                MaterialTheme(
+                    colorScheme = if (effectiveDark) {
+                        darkColorScheme(
+                             primary = accentColor,
+                             surface = surfaceColor,
+                             background = Color.Transparent,
+                             onBackground = Color.White,
+                             onSurface = Color.White,
+                             surfaceVariant = Color(0xFF242424),
+                             onSurfaceVariant = Color(0xFFCAC4D0)
+                        )
+                    } else {
+                        lightColorScheme(
+                             primary = accentColor,
+                             surface = surfaceColor,
+                             background = Color.Transparent,
+                             onBackground = Color(0xFF191C1E),
+                             onSurface = Color(0xFF191C1E),
+                             surfaceVariant = Color(0xFFE8E8E8),
+                             onSurfaceVariant = Color(0xFF44474E)
+                        )
+                    }
+                ) {
+                    val view = androidx.compose.ui.platform.LocalView.current
+                    if (!view.isInEditMode) {
+                        androidx.compose.runtime.SideEffect {
+                            val window = (view.context as? android.app.Activity)?.window ?: this@MainActivity.window
+                            val statusBarColor = bgColors.first().toArgb()
+                            window.statusBarColor = statusBarColor
+                            window.navigationBarColor = if (!effectiveDark) {
+                                android.graphics.Color.parseColor("#FFFFFF")
+                            } else if (useAmoled) {
+                                android.graphics.Color.BLACK
+                            } else {
+                                android.graphics.Color.parseColor("#181818")
+                            }
+
+                            val insetsController = WindowCompat.getInsetsController(window, view)
+                            // When dark mode is OFF (!effectiveDark), notification bar / status bar text and icons become BLACK
+                            insetsController.isAppearanceLightStatusBars = !effectiveDark
+                            insetsController.isAppearanceLightNavigationBars = !effectiveDark
+                        }
+                    }
+
+                    val authViewModel: com.gaminghub.musicplayer.auth.AuthViewModel = viewModel()
+                    val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
                 var isSplashDone by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
 
                 val updateInfo by com.gaminghub.musicplayer.update.AppUpdateManager.updateInfo.collectAsState()
@@ -261,6 +311,7 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}
 
     override fun onResume() {
         super.onResume()
@@ -416,22 +467,20 @@ fun MusifyMainScreen(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet(
-                drawerContainerColor = if (effectiveDark) Color(0xFF121212) else MaterialTheme.colorScheme.surface,
+                drawerContainerColor = Color(0xFF121212),
                 modifier = Modifier.width(310.dp),
             ){
                 Box(
                     modifier = Modifier.fillMaxHeight()
                         .fillMaxWidth()
-                        .background(if (effectiveDark) Color(0xFF121212) else MaterialTheme.colorScheme.surface)
+                        .background(Color(0xFF121212))
                 ) {
-                    if (effectiveDark) {
-                        Image(
-                            painter = painterResource(id = R.drawable.musify_drawer_bg_perfect),
-                            contentDescription = "background",
-                            modifier=Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
+                    Image(
+                        painter = painterResource(id = R.drawable.musify_drawer_bg_perfect),
+                        contentDescription = "background",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
 
                 Column(
                     modifier = Modifier
@@ -447,7 +496,7 @@ fun MusifyMainScreen(
                     ) {
                         Text(
                             text = "Musify",
-                            color = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface,
+                            color = Color.White,
                             fontSize = 38.sp,
                             fontFamily = FontFamily(Font(R.font.montserrat_bold, FontWeight.Bold)),
                             fontWeight = FontWeight.Bold,
@@ -491,9 +540,9 @@ fun MusifyMainScreen(
                         .fillMaxWidth()
                         .padding(vertical = 6.dp)
                         .clip(RoundedCornerShape(14.dp)),
-                    color = if (effectiveDark) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    color = Color.Transparent,
                     shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.dp, if (effectiveDark) MusifyGlassBorder.copy(alpha = 0.35f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
+                    border = BorderStroke(1.dp, MusifyGlassBorder.copy(alpha = 0.35f))
                 ) {
                     Row(
                         modifier = Modifier.padding(8.dp),
@@ -524,7 +573,7 @@ fun MusifyMainScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = googleDisplayName ?: currentUser?.displayName ?: googleEmail?.substringBefore("@") ?: "Google User",
-                                color = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface,
+                                color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 15.sp,
                                 maxLines = 1,
@@ -556,16 +605,16 @@ fun MusifyMainScreen(
                 Surface(
                     color = Color.Transparent,
                     shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, if (effectiveDark) MusifyGlassBorder else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                    border = BorderStroke(1.dp, MusifyGlassBorder)
                 ) {
                 NavigationDrawerItem(
-                        label = { Text("Home", color = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface) },
+                        label = { Text("Home", color = Color.White) },
                         selected = currentRoute == "home",
                         onClick = {
                             scope.launch { drawerState.close() }
                             navController.navigate("home") { launchSingleTop = true }
                         },
-                        icon = { Icon(Icons.Default.Home, contentDescription = null, tint = if (currentRoute == "home") MusifyGreen else (if (effectiveDark) Color.White.copy(0.7f) else MaterialTheme.colorScheme.onSurface.copy(0.7f))) },
+                        icon = { Icon(Icons.Default.Home, contentDescription = null, tint = if (currentRoute == "home") MusifyGreen else Color.White.copy(0.7f)) },
                         modifier = Modifier,
                         shape = RoundedCornerShape(12.dp),
                         colors =
@@ -573,113 +622,113 @@ fun MusifyMainScreen(
                                 unselectedContainerColor = Color.Transparent, 
                                 selectedContainerColor = MusifyGreen.copy(0.2f),
                                 selectedTextColor = MusifyGreen,
-                                unselectedTextColor = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface
+                                unselectedTextColor = Color.White
                             )
                 )}
                 Spacer(modifier = Modifier.height(2.dp))
                 Surface(
                     color = Color.Transparent,
                     shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, if (effectiveDark) MusifyGlassBorder else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                    border = BorderStroke(1.dp, MusifyGlassBorder)
                 ) {
                 NavigationDrawerItem(
-                    label = { Text("My Music", color = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface) },
+                    label = { Text("My Music", color = Color.White) },
                     selected = currentRoute == "my_music",
                     onClick = { 
                         scope.launch { drawerState.close() }
                         navController.navigate("my_music") { launchSingleTop = true }
                     },
                     shape = RoundedCornerShape(12.dp),
-                    icon = { Icon(Icons.Default.Folder, contentDescription = null, tint = if (currentRoute == "my_music") MusifyGreen else (if (effectiveDark) Color.White.copy(0.7f) else MaterialTheme.colorScheme.onSurface.copy(0.7f))) },
+                    icon = { Icon(Icons.Default.Folder, contentDescription = null, tint = if (currentRoute == "my_music") MusifyGreen else Color.White.copy(0.7f)) },
                     colors = NavigationDrawerItemDefaults.colors(
                         unselectedContainerColor = Color.Transparent, 
                         selectedContainerColor = MusifyGreen.copy(0.2f),
                         selectedTextColor = MusifyGreen,
-                        unselectedTextColor = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface
+                        unselectedTextColor = Color.White
                     )
                 )}
                 Spacer(modifier = Modifier.height(2.dp))
                 Surface(
                     color = Color.Transparent,
                     shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, if (effectiveDark) MusifyGlassBorder else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                    border = BorderStroke(1.dp, MusifyGlassBorder)
                 ) {
                 NavigationDrawerItem(
-                    label = { Text("Downloads", color = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface) },
+                    label = { Text("Downloads", color = Color.White) },
                     selected = currentRoute == "downloads",
                     onClick = { 
                         scope.launch { drawerState.close() }
                         navController.navigate("downloads") { launchSingleTop = true }
                     },
                     shape = RoundedCornerShape(12.dp),
-                    icon = { Icon(Icons.Default.DownloadForOffline, contentDescription = null, tint = if (currentRoute == "downloads") MusifyGreen else (if (effectiveDark) Color.White.copy(0.7f) else MaterialTheme.colorScheme.onSurface.copy(0.7f))) },
+                    icon = { Icon(Icons.Default.DownloadForOffline, contentDescription = null, tint = if (currentRoute == "downloads") MusifyGreen else Color.White.copy(0.7f)) },
                     colors = NavigationDrawerItemDefaults.colors(
                         unselectedContainerColor = Color.Transparent, 
                         selectedContainerColor = MusifyGreen.copy(0.2f),
                         selectedTextColor = MusifyGreen,
-                        unselectedTextColor = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface
+                        unselectedTextColor = Color.White
                     )
                 )}
                 Spacer(modifier = Modifier.height(2.dp))
                 Surface(
                     color = Color.Transparent,
                     shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, if (effectiveDark) MusifyGlassBorder else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                    border = BorderStroke(1.dp, MusifyGlassBorder)
                 ) {
                 NavigationDrawerItem(
-                    label = { Text("Playlists", color = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface) },
+                    label = { Text("Playlists", color = Color.White) },
                     selected = currentRoute == "playlists",
                     onClick = { 
                         scope.launch { drawerState.close() }
                         navController.navigate("playlists") { launchSingleTop = true }
                     },
                     shape = RoundedCornerShape(12.dp),
-                    icon = { Icon(Icons.AutoMirrored.Filled.PlaylistPlay, contentDescription = null, tint = if (currentRoute == "playlists") MusifyGreen else (if (effectiveDark) Color.White.copy(0.7f) else MaterialTheme.colorScheme.onSurface.copy(0.7f))) },
+                    icon = { Icon(Icons.AutoMirrored.Filled.PlaylistPlay, contentDescription = null, tint = if (currentRoute == "playlists") MusifyGreen else Color.White.copy(0.7f)) },
                     colors = NavigationDrawerItemDefaults.colors(
                         unselectedContainerColor = Color.Transparent, 
                         selectedContainerColor = MusifyGreen.copy(0.2f),
                         selectedTextColor = MusifyGreen,
-                        unselectedTextColor = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface
+                        unselectedTextColor = Color.White
                     )
                 )}
                 Spacer(modifier = Modifier.height(2.dp))
                 Surface(
                     color = Color.Transparent,
                     shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, if (effectiveDark) MusifyGlassBorder else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                    border = BorderStroke(1.dp, MusifyGlassBorder)
                 ) {
                 NavigationDrawerItem(
-                    label = { Text("Settings", color = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface) },
+                    label = { Text("Settings", color = Color.White) },
                     selected = currentRoute == "settings",
                     onClick = { 
                         scope.launch { drawerState.close() }
                         navController.navigate("settings") { launchSingleTop = true }
                     },
                     shape = RoundedCornerShape(12.dp),
-                    icon = { Icon(Icons.Default.Settings, contentDescription = null, tint = if (currentRoute == "settings") MusifyGreen else (if (effectiveDark) Color.White.copy(0.7f) else MaterialTheme.colorScheme.onSurface.copy(0.7f))) },
+                    icon = { Icon(Icons.Default.Settings, contentDescription = null, tint = if (currentRoute == "settings") MusifyGreen else Color.White.copy(0.7f)) },
                     colors = NavigationDrawerItemDefaults.colors(
                         unselectedContainerColor = Color.Transparent, 
                         selectedContainerColor = MusifyGreen.copy(0.2f),
                         selectedTextColor = MusifyGreen,
-                        unselectedTextColor = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface
+                        unselectedTextColor = Color.White
                     )
                 )}
                 Spacer(modifier = Modifier.height(2.dp))
                 Surface(
                     color = Color.Transparent,
                     shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, if (effectiveDark) MusifyGlassBorder else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                    border = BorderStroke(1.dp, MusifyGlassBorder)
                 ) {
                 NavigationDrawerItem(
-                    label = { Text("Help us by rating", color = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface) },
+                    label = { Text("Help us by rating", color = Color.White) },
                     selected = false,
                     onClick = { scope.launch { drawerState.close() } },
-                    icon = { Icon(Icons.Default.Star, contentDescription = null, tint = if (effectiveDark) Color.White.copy(0.7f) else MaterialTheme.colorScheme.onSurface.copy(0.7f)) },
+                    icon = { Icon(Icons.Default.Star, contentDescription = null, tint = Color.White.copy(0.7f)) },
                     colors = NavigationDrawerItemDefaults.colors(
                         unselectedContainerColor = Color.Transparent, 
                         selectedContainerColor = MusifyGreen.copy(0.2f),
                         selectedTextColor = MusifyGreen,
-                        unselectedTextColor = if (effectiveDark) Color.White else MaterialTheme.colorScheme.onSurface
+                        unselectedTextColor = Color.White
                     )
                 )}
                 Spacer(modifier = Modifier.weight(1f))
@@ -688,12 +737,12 @@ fun MusifyMainScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 20.dp, top = 8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = if (effectiveDark) Color(0x30000000) else Color(0xFFFFF9E6)),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0x30000000)),
                     border = BorderStroke(1.dp, Color(0xFFD4AF37).copy(alpha = 0.6f)),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Go Premium now", color = if (effectiveDark) Color.White else Color(0xFF8D6E14), fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                        Text("Go Premium now", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("👑")
                     }
@@ -778,7 +827,8 @@ fun MusifyMainScreen(
                     }
                 }
             },
-            containerColor = MaterialTheme.colorScheme.background
+            containerColor = Color.Transparent,
+            modifier = Modifier.background(LocalAppGradients.current.backgroundBrush)
         ) { paddingValues ->
             NavHost(navController = navController, startDestination = "home", modifier = Modifier.padding(paddingValues)) {
                 composable("home") { HomeScreen(tracks = realTracks, viewModel = viewModel, settingsViewModel = settingsViewModel, navController = navController, onMenuClick = openDrawer) }
@@ -869,11 +919,16 @@ fun MiniPlayer(viewModel: MusicViewModel, settingsViewModel: SettingsViewModel, 
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = if (useDenseMiniplayer) 2.dp else 4.dp),
             onClick = onClick,
-            color = MaterialTheme.colorScheme.surface,
+            color = Color.Transparent,
             shape = RoundedCornerShape(16.dp),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
         ) {
-            Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(LocalAppGradients.current.cardBrush, shape = RoundedCornerShape(16.dp))
+            ) {
+                Column {
                 // Top Mini Progress Strip
                 Box(
                     modifier = Modifier
@@ -1017,9 +1072,7 @@ fun MiniPlayer(viewModel: MusicViewModel, settingsViewModel: SettingsViewModel, 
         }
     }
 }
-
-val MusifyGreen = Color(0xFF1DB954)
-val MusifyGreenDark = Color(0xFF1ED760)
+}
 
 @Composable
 fun MusifyBottomNavBar(navController: NavController) {
@@ -1030,78 +1083,84 @@ fun MusifyBottomNavBar(navController: NavController) {
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding(),
-        color = MaterialTheme.colorScheme.surface,
+        color = Color.Transparent,
         border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
     ) {
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .background(LocalAppGradients.current.bottomSheetBrush)
         ) {
-            // ── 1. Home Tab ───────────────────────────────────
-            val isHomeSelected = currentRoute == "home" || currentRoute == null
-            BottomNavItem(
-                modifier = Modifier.weight(1f),
-                title = "Home",
-                icon = if (isHomeSelected) Icons.Default.Home else Icons.Outlined.Home,
-                isSelected = isHomeSelected,
-                onClick = {
-                    navController.navigate("home") {
-                        popUpTo(navController.graph.startDestinationId) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // ── 1. Home Tab ───────────────────────────────────
+                val isHomeSelected = currentRoute == "home" || currentRoute == null
+                BottomNavItem(
+                    modifier = Modifier.weight(1f),
+                    title = "Home",
+                    icon = if (isHomeSelected) Icons.Default.Home else Icons.Outlined.Home,
+                    isSelected = isHomeSelected,
+                    onClick = {
+                        navController.navigate("home") {
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     }
-                }
-            )
+                )
 
-            // ── 2. Top Charts Tab ─────────────────────────────
-            val isChartsSelected = currentRoute == "top_charts"
-            BottomNavItem(
-                modifier = Modifier.weight(1f),
-                title = "Charts",
-                icon = if (isChartsSelected) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Outlined.TrendingUp,
-                isSelected = isChartsSelected,
-                onClick = {
-                    navController.navigate("top_charts") {
-                        popUpTo(navController.graph.startDestinationId) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
+                // ── 2. Top Charts Tab ─────────────────────────────
+                val isChartsSelected = currentRoute == "top_charts"
+                BottomNavItem(
+                    modifier = Modifier.weight(1f),
+                    title = "Charts",
+                    icon = if (isChartsSelected) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Outlined.TrendingUp,
+                    isSelected = isChartsSelected,
+                    onClick = {
+                        navController.navigate("top_charts") {
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     }
-                }
-            )
+                )
 
-            // ── 3. Explore (YouTube) Tab ──────────────────────
-            val isExploreSelected = currentRoute == "youtube"
-            BottomNavItem(
-                modifier = Modifier.weight(1f),
-                title = "Explore",
-                icon = if (isExploreSelected) Icons.Default.Explore else Icons.Outlined.Explore,
-                isSelected = isExploreSelected,
-                onClick = {
-                    navController.navigate("youtube") {
-                        popUpTo(navController.graph.startDestinationId) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
+                // ── 3. Explore (YouTube) Tab ──────────────────────
+                val isExploreSelected = currentRoute == "youtube"
+                BottomNavItem(
+                    modifier = Modifier.weight(1f),
+                    title = "Explore",
+                    icon = if (isExploreSelected) Icons.Default.Explore else Icons.Outlined.Explore,
+                    isSelected = isExploreSelected,
+                    onClick = {
+                        navController.navigate("youtube") {
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     }
-                }
-            )
+                )
 
-            // ── 4. Library Tab ────────────────────────────────
-            val isLibrarySelected = currentRoute == "library" || currentRoute?.startsWith("my_music") == true || currentRoute == "playlists" || currentRoute == "downloads"
-            BottomNavItem(
-                modifier = Modifier.weight(1f),
-                title = "Library",
-                icon = if (isLibrarySelected) Icons.Filled.LibraryMusic else Icons.Outlined.LibraryMusic,
-                isSelected = isLibrarySelected,
-                onClick = {
-                    navController.navigate("library") {
-                        popUpTo(navController.graph.startDestinationId) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
+                // ── 4. Library Tab ────────────────────────────────
+                val isLibrarySelected = currentRoute == "library" || currentRoute?.startsWith("my_music") == true || currentRoute == "playlists" || currentRoute == "downloads"
+                BottomNavItem(
+                    modifier = Modifier.weight(1f),
+                    title = "Library",
+                    icon = if (isLibrarySelected) Icons.Filled.LibraryMusic else Icons.Outlined.LibraryMusic,
+                    isSelected = isLibrarySelected,
+                    onClick = {
+                        navController.navigate("library") {
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     }
-                }
-            )
+                )
+            }
         }
     }
 }

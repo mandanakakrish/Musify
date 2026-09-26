@@ -5,6 +5,7 @@ import androidx.annotation.OptIn
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -81,6 +82,7 @@ import com.gaminghub.musicplayer.R.drawable.song
 import com.gaminghub.musicplayer.SettingsViewModel
 import com.gaminghub.musicplayer.TrackModel
 import com.gaminghub.musicplayer.ui.theme.MusifyGreen
+import com.gaminghub.musicplayer.ui.theme.LocalAppGradients
 import kotlinx.coroutines.flow.flowOf
 
 data class CuratedCardData(
@@ -129,86 +131,86 @@ fun HomeScreen(
 
     val featuredPlaylists = remember {
         listOf(
-            CuratedCardData("Top Weekly Videos Tamil", "Tamil Hits", "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&q=80", "Top Tamil Songs"),
-            CuratedCardData("Top Weekly Videos Telugu", "Telugu Hits", "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=500&q=80", "Top Telugu Songs"),
-            CuratedCardData("Top Weekly Videos Hindi", "Hindi Hits", "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=500&q=80", "Top Hindi Songs"),
-            CuratedCardData("Top Weekly Videos Punjabi", "Punjabi Fire", "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=500&q=80", "Top Punjabi Songs"),
-            CuratedCardData("Daily Top Videos Global", "Global Chart", "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=500&q=80", "Global Top Hits")
+            CuratedCardData("Top Weekly Videos Tamil", "Tamil Hits", "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&q=80", "Top Tamil Hit Songs"),
+            CuratedCardData("Top Weekly Videos Telugu", "Telugu Hits", "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=500&q=80", "Top Telugu Hit Songs"),
+            CuratedCardData("Top Weekly Videos Hindi", "Hindi Hits", "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=500&q=80", "Top Hindi Bollywood Hit Songs"),
+            CuratedCardData("Top Weekly Videos Punjabi", "Punjabi Fire", "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=500&q=80", "Top Punjabi Hit Songs"),
+            CuratedCardData("Daily Top Videos Global", "Global Chart", "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=500&q=80", "Global Top Billboard Hits Songs")
         )
     }
 
     val communityPlaylists = remember {
         listOf(
-            CuratedCardData("90s Super Hit Songs", "Kumar Sanu, Udit Narayan", "https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=500&q=80", "90s super hit hindi songs"),
-            CuratedCardData("Heartbreak Melodies", "Sad & Soulful Melodies", "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80", "Arijit Singh Sad Songs"),
-            CuratedCardData("Tamil 90s Melodies", "Ilaiyaraaja, AR Rahman", "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500&q=80", "tamil 90s Melodies"),
-            CuratedCardData("Bollywood Romance", "Bollywood Favorites", "https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=500&q=80", "Bollywood Love Songs"),
-            CuratedCardData("Old is Gold", "Evergreen Classics", "https://images.unsplash.com/photo-1485579149621-3123dd979885?w=500&q=80", "Old Hindi Songs Kishore Kumar")
+            CuratedCardData("90s Super Hit Songs", "Kumar Sanu, Udit Narayan", "https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=500&q=80", "90s Bollywood Evergreen Superhit Songs"),
+            CuratedCardData("Heartbreak Melodies", "Sad & Soulful Melodies", "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80", "Bollywood Sad Heartbreak Songs Melodies"),
+            CuratedCardData("Tamil 90s Melodies", "Ilaiyaraaja, AR Rahman", "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500&q=80", "90s Tamil Evergreen Melodies Songs"),
+            CuratedCardData("Bollywood Romance", "Bollywood Favorites", "https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=500&q=80", "Bollywood Romantic Love Songs Hits"),
+            CuratedCardData("Old is Gold", "Evergreen Classics", "https://images.unsplash.com/photo-1485579149621-3123dd979885?w=500&q=80", "Old Hindi Evergreen Classics Kishore Kumar")
         )
     }
 
     val dancingOnYourOwn = remember {
         listOf(
-            CuratedCardData("90s Bollywood Dance", "High Energy", "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=500&q=80", "90s Bollywood Dance Songs"),
-            CuratedCardData("Bollywood Fire", "Party Hits", "https://images.unsplash.com/photo-1546707012-c46675f12716?w=500&q=80", "Bollywood Party Songs"),
-            CuratedCardData("Punjabi Party", "Bhangra Beats", "https://images.unsplash.com/photo-1571266028243-3716f02d2d2e?w=500&q=80", "Punjabi Party Songs"),
-            CuratedCardData("Haryanvi Party", "Desi Beats", "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=500&q=80", "Haryanvi Party Songs"),
-            CuratedCardData("00s Bollywood Dance", "Throwback Hits", "https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=500&q=80", "2000s Bollywood Dance"),
-            CuratedCardData("Bhangra Bangers", "Dhol Vibes", "https://images.unsplash.com/photo-1511192336575-5a79af67a629?w=500&q=80", "Bhangra Bangers")
+            CuratedCardData("90s Bollywood Dance", "High Energy", "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=500&q=80", "90s Bollywood Dance Songs Hits"),
+            CuratedCardData("Bollywood Fire", "Party Hits", "https://images.unsplash.com/photo-1546707012-c46675f12716?w=500&q=80", "Bollywood Party Dance Songs Club Hits"),
+            CuratedCardData("Punjabi Party", "Bhangra Beats", "https://images.unsplash.com/photo-1571266028243-3716f02d2d2e?w=500&q=80", "Punjabi Party Songs Bhangra Hits"),
+            CuratedCardData("Haryanvi Party", "Desi Beats", "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=500&q=80", "Haryanvi Dance Songs Party Hits"),
+            CuratedCardData("00s Bollywood Dance", "Throwback Hits", "https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=500&q=80", "2000s Bollywood Dance Songs Hits"),
+            CuratedCardData("Bhangra Bangers", "Dhol Vibes", "https://images.unsplash.com/photo-1511192336575-5a79af67a629?w=500&q=80", "Punjabi Bhangra Bangers Songs")
         )
     }
 
     val indiaBiggestHits = remember {
         listOf(
-            CuratedCardData("Bollywood Hitlist", "Chartbusters", "https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=500&q=80", "Bollywood Hitlist"),
-            CuratedCardData("Punjab Fire", "Trending North", "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=500&q=80", "Karan Aujla AP Dhillon"),
-            CuratedCardData("Hits of 2026", "Fresh Releases", "https://images.unsplash.com/photo-1520523839898-507127040409?w=500&q=80", "Latest Hindi Songs 2026"),
-            CuratedCardData("Kollywood Hitlist", "Anirudh Vibes", "https://images.unsplash.com/photo-1518972559570-7cc1309f3229?w=500&q=80", "Kollywood Hitlist"),
-            CuratedCardData("Sub Condiment", "Indie South Asia", "https://images.unsplash.com/photo-1511735111819-9a3f7709049c?w=500&q=80", "Indian Indie Songs"),
-            CuratedCardData("I-Pop Hits!", "Pop Sensations", "https://images.unsplash.com/photo-1526478806334-5fd488fcaabc?w=500&q=80", "I-Pop Hits")
+            CuratedCardData("Bollywood Hitlist", "Chartbusters", "https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=500&q=80", "Bollywood Hitlist Top Songs"),
+            CuratedCardData("Punjab Fire", "Trending North", "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=500&q=80", "Punjabi Hits Karan Aujla AP Dhillon Shubh"),
+            CuratedCardData("Hits of 2026", "Fresh Releases", "https://images.unsplash.com/photo-1520523839898-507127040409?w=500&q=80", "Latest Bollywood Hindi Songs"),
+            CuratedCardData("Kollywood Hitlist", "Anirudh Vibes", "https://images.unsplash.com/photo-1518972559570-7cc1309f3229?w=500&q=80", "Kollywood Tamil Hits Anirudh Ravichander"),
+            CuratedCardData("Sub Condiment", "Indie South Asia", "https://images.unsplash.com/photo-1511735111819-9a3f7709049c?w=500&q=80", "Indian Indie Pop Songs Prateek Kuhad"),
+            CuratedCardData("I-Pop Hits!", "Pop Sensations", "https://images.unsplash.com/photo-1526478806334-5fd488fcaabc?w=500&q=80", "Indian Pop Hits Darshan Raval Armaan Malik")
         )
     }
 
     val nostalgicHits = remember {
         listOf(
-            CuratedCardData("00s Bollywood Romance", "KK, Shreya Ghoshal", "https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=500&q=80", "2000s Bollywood Romantic Songs"),
-            CuratedCardData("90s Bollywood Romance", "Alka Yagnik, Kumar Sanu", "https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=500&q=80", "90s Bollywood Romance"),
-            CuratedCardData("Chai, Baarish aur 90s", "Rainy Nostalgia", "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=500&q=80", "Monsoon Hindi Songs"),
-            CuratedCardData("90s Bollywood Sad Songs", "Heartfelt Classics", "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80", "90s Sad Songs Bollywood"),
-            CuratedCardData("10s Tollywood Dance Hits", "Allu Arjun, DSP", "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=500&q=80", "Telugu 2010s Dance Hits")
+            CuratedCardData("00s Bollywood Romance", "KK, Shreya Ghoshal", "https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=500&q=80", "2000s Bollywood Romantic Songs KK Shreya Ghoshal"),
+            CuratedCardData("90s Bollywood Romance", "Alka Yagnik, Kumar Sanu", "https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=500&q=80", "90s Bollywood Romantic Songs Alka Yagnik Kumar Sanu"),
+            CuratedCardData("Chai, Baarish aur 90s", "Rainy Nostalgia", "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=500&q=80", "Bollywood Monsoon Rainy Songs 90s"),
+            CuratedCardData("90s Bollywood Sad Songs", "Heartfelt Classics", "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80", "90s Bollywood Sad Songs Heartfelt"),
+            CuratedCardData("10s Tollywood Dance Hits", "Allu Arjun, DSP", "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=500&q=80", "Telugu 2010s Dance Songs Allu Arjun DSP")
         )
     }
 
     val newReleases = remember {
         listOf(
-            CuratedCardData("Om Namah Shivay", "Single", "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=500&q=80", "Om Namah Shivay"),
-            CuratedCardData("Shiv Stotras", "EP", "https://images.unsplash.com/photo-1519744346361-7a46d19cd819?w=500&q=80", "Shiv Stotras"),
-            CuratedCardData("RELEASED", "Rashmeet Kaur", "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=500&q=80", "Rashmeet Kaur Toxic"),
-            CuratedCardData("New Release Mix", "Mix", "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=500&q=80", "New Release Mix")
+            CuratedCardData("Om Namah Shivay", "Devotional & Chants", "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=500&q=80", "Shiv Bhajans Mahadev Devotional Songs"),
+            CuratedCardData("Shiv Stotras", "Sacred Chants", "https://images.unsplash.com/photo-1519744346361-7a46d19cd819?w=500&q=80", "Lord Shiva Stotras Sacred Chants"),
+            CuratedCardData("Trending Fresh", "Top New Tracks", "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=500&q=80", "Latest Hindi Bollywood Songs 2025"),
+            CuratedCardData("New Release Mix", "Fresh Mix", "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=500&q=80", "New Bollywood Hit Songs Mix")
         )
     }
 
     val albumsAndSingles = remember {
         listOf(
-            CuratedCardData("Majboor (Female Version)", "Single", "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80", "Majboor Female Version"),
-            CuratedCardData("Mahine Mahine Mujhko", "Single", "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=500&q=80", "Mahine Mahine"),
-            CuratedCardData("Bhole Ki Beat", "Single", "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=500&q=80", "Bhole Ki Beat"),
-            CuratedCardData("Chori Chori Dil Tera", "Single", "https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=500&q=80", "Chori Chori Dil Tera")
+            CuratedCardData("Acoustic & Unplugged", "Soft & Acoustic", "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80", "Bollywood Acoustic Unplugged Songs"),
+            CuratedCardData("Late Night Lo-Fi", "Calm & Relaxing", "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=500&q=80", "Hindi Lo-Fi Chill Beats Songs"),
+            CuratedCardData("Sufi Soul", "Mystical & Soulful", "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=500&q=80", "Bollywood Sufi Songs Kailash Kher"),
+            CuratedCardData("Retro Ghazals", "Poetic & Melodic", "https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=500&q=80", "Best Hindi Ghazals Jagjit Singh")
         )
     }
 
     val chaiAndChill = remember {
         listOf(
-            CuratedCardData("90s Chill: Bollywood", "Kumar Sanu, Alka Yagnik...", "https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=500&q=80", "90s Chill Bollywood"),
-            CuratedCardData("00s Chill: Telugu", "K.S. Chithra, Sumangali, ...", "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=500&q=80", "00s Chill Telugu")
+            CuratedCardData("90s Chill: Bollywood", "Kumar Sanu, Alka Yagnik...", "https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=500&q=80", "90s Chill Soft Bollywood Songs"),
+            CuratedCardData("00s Chill: Telugu", "K.S. Chithra, Sumangali, ...", "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=500&q=80", "2000s Telugu Soft Melodies Chill Songs")
         )
     }
 
     val musicVideos = remember {
         listOf(
-            CuratedCardData("Ishq Tamasha", "Adnan Sami", "https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=500&q=80", "Ishq Tamasha Adnan Sami"),
-            CuratedCardData("Kaafi Hai Na", "2 min 55 sec", "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500&q=80", "Kaafi Hai Na"),
-            CuratedCardData("Slay To The Rhythm", "Nora Fatehi", "https://images.unsplash.com/photo-1504609773096-104ff2c73ba4?w=500&q=80", "Nora Fatehi Slay To The Rhythm")
+            CuratedCardData("Top Bollywood Music Videos", "Visual Spectacle", "https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=500&q=80", "Top Bollywood Music Videos Songs"),
+            CuratedCardData("Party Music Videos", "Club Beats", "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500&q=80", "Bollywood Party Music Video Songs"),
+            CuratedCardData("Punjabi Visuals", "Dhol & Glamour", "https://images.unsplash.com/photo-1504609773096-104ff2c73ba4?w=500&q=80", "Top Punjabi Music Videos Songs")
         )
     }
 
@@ -327,16 +329,45 @@ fun HomeScreen(
                     ) {
                         if (favoriteTracks.isNotEmpty()) {
                             item {
-                                CuratedSquareCard(
-                                    card = CuratedCardData("Favorite Songs", "${favoriteTracks.size} Songs", favoriteTracks.firstOrNull()?.albumArtUrl ?: drawable.cover, ""),
-                                    onClick = { navController.navigate("favorites") }
-                                )
+                                val favArtUrls = remember(favoriteTracks) {
+                                    favoriteTracks.mapNotNull { it.albumArtUrl }.filter { it.isNotBlank() }
+                                }
+                                Column(
+                                    modifier = Modifier
+                                        .width(140.dp)
+                                        .clickable { navController.navigate("favorites") }
+                                ) {
+                                    com.gaminghub.musicplayer.ui.components.PlaylistCollageThumbnail(
+                                        artUrls = favArtUrls,
+                                        modifier = Modifier.size(140.dp),
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = "Favorite Songs",
+                                        color = MaterialTheme.colorScheme.onBackground,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 2,
+                                        lineHeight = 16.sp,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = "${favoriteTracks.size} Songs",
+                                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
+                                        fontSize = 11.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                             }
                         }
                         if (playlists.isNotEmpty()) {
                             items(playlists) { playlist ->
-                                CuratedSquareCard(
-                                    card = CuratedCardData(playlist.name, "Playlist", ""),
+                                UserPlaylistSquareCard(
+                                    playlist = playlist,
+                                    viewModel = viewModel,
                                     onClick = { navController.navigate("playlist_detail/${playlist.id}/${playlist.name}") }
                                 )
                             }
@@ -366,10 +397,16 @@ fun HomeScreen(
                     )
                     Card(
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)),
+                        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 6.dp)
+                            .background(LocalAppGradients.current.cardBrush, RoundedCornerShape(16.dp))
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                                RoundedCornerShape(16.dp)
+                            )
                             .clickable {
                                 viewModel.playTrack(supermix.first(), supermix)
                             }
@@ -703,10 +740,10 @@ fun HomeScreen(
                 }
             }
 
-            // ── 11. Albums & Singles ──────────────────────────────────
+            // ── 11. Acoustic & Soulful ──────────────────────────────────
             item {
                 Column {
-                    SectionHeader(title = "Albums & singles", showPlayAll = false)
+                    SectionHeader(title = "Acoustic & Soulful", showPlayAll = false)
                     LazyRow(
                         contentPadding = PaddingValues(horizontal = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(14.dp)
@@ -804,7 +841,8 @@ fun CuratedSquareCard(
             contentDescription = null,
             modifier = Modifier
                 .size(140.dp)
-                .clip(RoundedCornerShape(12.dp)),
+                .clip(RoundedCornerShape(12.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(12.dp)),
             contentScale = ContentScale.Crop
         )
         Spacer(modifier = Modifier.height(6.dp))
@@ -831,6 +869,45 @@ fun CuratedSquareCard(
 }
 
 @Composable
+fun UserPlaylistSquareCard(
+    playlist: com.gaminghub.musicplayer.data.PlaylistEntity,
+    viewModel: MusicViewModel,
+    onClick: () -> Unit
+) {
+    val tracks by viewModel.getTracksForPlaylist(playlist.id).collectAsState(initial = emptyList())
+    Column(
+        modifier = Modifier
+            .width(140.dp)
+            .clickable(onClick = onClick)
+    ) {
+        com.gaminghub.musicplayer.ui.components.PlaylistThumbnail(
+            playlistId = playlist.id,
+            viewModel = viewModel,
+            modifier = Modifier.size(140.dp),
+            shape = RoundedCornerShape(12.dp)
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = playlist.name,
+            color = MaterialTheme.colorScheme.onBackground,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 2,
+            lineHeight = 16.sp,
+            overflow = TextOverflow.Ellipsis
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = "${tracks.size} Songs",
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
+            fontSize = 11.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
 fun CategoryFilterChipsRow(
     categories: List<String>,
     selectedCategory: String,
@@ -843,18 +920,18 @@ fun CategoryFilterChipsRow(
         items(categories) { category ->
             val isSelected = category.equals(selectedCategory, ignoreCase = true)
             val backgroundColor by animateColorAsState(
-                targetValue = if (isSelected) MusifyGreen else Color(0xFF242424),
+                targetValue = if (isSelected) MusifyGreen else MaterialTheme.colorScheme.surfaceVariant,
                 label = "chipBg"
             )
             val textColor by animateColorAsState(
-                targetValue = if (isSelected) Color.Black else Color.LightGray,
+                targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                 label = "chipText"
             )
 
             Surface(
                 shape = RoundedCornerShape(20.dp),
                 color = backgroundColor,
-                border = BorderStroke(1.dp, if (isSelected) MusifyGreen else Color(0x33FFFFFF)),
+                border = BorderStroke(1.dp, if (isSelected) MusifyGreen else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)),
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
                     .clickable { onCategorySelected(category) }
@@ -867,7 +944,7 @@ fun CategoryFilterChipsRow(
                         Icon(
                             Icons.AutoMirrored.Filled.TrendingUp,
                             contentDescription = null,
-                            tint = Color.Black,
+                            tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))

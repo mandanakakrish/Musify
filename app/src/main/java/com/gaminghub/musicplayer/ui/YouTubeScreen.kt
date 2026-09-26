@@ -176,25 +176,25 @@ fun YouTubeScreen(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(24.dp))
                                 .clickable { showCountryDialog = true },
-                            color = Color(0xFF242424),
-                            border = BorderStroke(1.dp, Color(0x33FFFFFF)),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
                             shape = RoundedCornerShape(24.dp)
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
                                     text = selectedCountry,
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Icon(
                                     Icons.Default.ArrowDropDown,
                                     contentDescription = null,
-                                    tint = Color.White,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -238,9 +238,9 @@ fun YouTubeScreen(
                                         .width(135.dp)
                                         .clip(RoundedCornerShape(14.dp))
                                         .clickable { viewModel.playTrack(track, displayTrending) },
-                                    color = Color(0xFF1E1E28),
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
                                     shape = RoundedCornerShape(14.dp),
-                                    border = BorderStroke(1.dp, Color(0x33FFFFFF))
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
                                 ) {
                                     Column(modifier = Modifier.padding(10.dp)) {
                                         Box(

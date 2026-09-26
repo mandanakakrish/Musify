@@ -51,7 +51,7 @@ fun LastSessionScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.background)
-                .padding(horizontal = 8.dp, vertical = 12.dp),
+                .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -113,7 +113,7 @@ fun LastSessionScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -152,7 +152,7 @@ fun LastSessionScreen(
 
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 140.dp)
+                    contentPadding = PaddingValues(bottom = if (currentTrack != null) 90.dp else 24.dp, top = 2.dp)
                 ) {
                     itemsIndexed(recentTracks, key = { index, track -> "${track.audioUrl ?: track.title}_$index" }) { index, track ->
                         HistorySongRow(
@@ -204,6 +204,8 @@ private fun HistorySongRow(
     onPlay: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val authManager = remember { com.gaminghub.musicplayer.auth.AuthManager.getInstance(context) }
+    val isAdmin by authManager.isAdmin.collectAsState()
     var showMenu by remember { mutableStateOf(false) }
     var showLinkArtistDialog by remember { mutableStateOf(false) }
     var showArtistDialog by remember { mutableStateOf(false) }
@@ -329,14 +331,16 @@ private fun HistorySongRow(
                         showArtistDialog = true
                     }
                 )
-                DropdownMenuItem(
-                    text = { Text("Link / Change Artist", color = MaterialTheme.colorScheme.onSurface) },
-                    leadingIcon = { Icon(Icons.Default.PersonPin, null, tint = MusifyGreen) },
-                    onClick = {
-                        showMenu = false
-                        showLinkArtistDialog = true
-                    }
-                )
+                if (isAdmin) {
+                    DropdownMenuItem(
+                        text = { Text("Link / Change Artist", color = MaterialTheme.colorScheme.onSurface) },
+                        leadingIcon = { Icon(Icons.Default.PersonPin, null, tint = MusifyGreen) },
+                        onClick = {
+                            showMenu = false
+                            showLinkArtistDialog = true
+                        }
+                    )
+                }
                 DropdownMenuItem(
                     text = { Text("Download", color = MusifyGreen) },
                     leadingIcon = { Icon(Icons.Default.DownloadForOffline, null, tint = MusifyGreen) },

@@ -8,6 +8,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.gaminghub.musicplayer.R
@@ -56,14 +63,35 @@ fun PlaylistImage(
     contentScale: ContentScale = ContentScale.Crop,
     alignment: Alignment = Alignment.Center
 ) {
-    AppAsyncImage(
-        model = model,
-        defaultRes = R.drawable.cover,
-        contentDescription = contentDescription,
-        modifier = modifier,
-        contentScale = contentScale,
-        alignment = alignment
-    )
+    val validModel = when (model) {
+        null -> null
+        is String -> if (model.isBlank()) null else model
+        is Int -> if (model == R.drawable.cover) null else model
+        else -> model
+    }
+
+    if (validModel == null) {
+        Box(
+            modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.MusicNote,
+                contentDescription = contentDescription,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.fillMaxSize(0.42f)
+            )
+        }
+    } else {
+        AppAsyncImage(
+            model = validModel,
+            defaultRes = R.drawable.cover,
+            contentDescription = contentDescription,
+            modifier = modifier,
+            contentScale = contentScale,
+            alignment = alignment
+        )
+    }
 }
 
 @Composable
