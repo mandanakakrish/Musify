@@ -4,21 +4,31 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInfo
 import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
+import androidx.core.content.FileProvider
 import androidx.core.content.pm.PackageInfoCompat
 import com.gaminghub.musicplayer.BuildConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.concurrent.TimeUnit
 
 object AppUpdateManager {
     private const val TAG = "AppUpdateManager"
@@ -36,6 +46,11 @@ object AppUpdateManager {
 
     private val _isChecking = MutableStateFlow(false)
     val isChecking: StateFlow<Boolean> = _isChecking.asStateFlow()
+
+    private val _downloadState = MutableStateFlow<UpdateDownloadState>(UpdateDownloadState.Idle)
+    val downloadState: StateFlow<UpdateDownloadState> = _downloadState.asStateFlow()
+
+    private var downloadJob: Job? = null
 
     private var lastCheckedEpochMs: Long = 0L
     private const val MIN_CHECK_INTERVAL_MS = 60_000L // 1 minute throttle unless force = true
@@ -276,6 +291,229 @@ object AppUpdateManager {
     }
 
     /**
+     * Resolves direct APK download URL from GitHub release assets if a generic URL was provided.
+     */
+    private fun resolveDirectApkUrl(owner: String, repo: String, fallbackUrl: String): String {
+        try {
+            val urlString = "https://api.github.com/repos/$owner/$repo/releases/latest"
+            val connection = (URL(urlString).openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = 5000
+                readTimeout = 5000
+                setRequestProperty("User-Agent", "MusifyApp-UpdateChecker")
+                setRequestProperty("Accept", "application/vnd.github.v3+json")
+            }
+
+            if (connection.responseCode == 200) {
+                val body = connection.inputStream.bufferedReader().use { it.readText() }
+                val json = JSONObject(body)
+                val assets = json.optJSONArray("assets")
+                if (assets != null) {
+                    for (i in 0 until assets.length()) {
+                        val asset = assets.getJSONObject(i)
+                        val name = asset.optString("name", "")
+                        if (name.endsWith(".apk", ignoreCase = true)) {
+                            val apkUrl = asset.optString("browser_download_url", "")
+                            if (apkUrl.isNotBlank()) return apkUrl
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to resolve direct APK URL from GitHub API: ${e.message}")
+        }
+        return fallbackUrl
+    }
+
+    /**
+     * Starts in-app downloading of update APK with progress tracking,
+     * and triggers system PackageInstaller upon completion.
+     */
+    fun startInAppDownloadAndInstall(context: Context, rawDownloadUrl: String) {
+        if (_downloadState.value is UpdateDownloadState.Downloading) {
+            Log.d(TAG, "Download already in progress")
+            return
+        }
+
+        downloadJob?.cancel()
+        downloadJob = CoroutineScope(Dispatchers.IO).launch {
+            try {
+                _downloadState.value = UpdateDownloadState.Downloading(
+                    progressPercent = 0,
+                    downloadedBytes = 0L,
+                    totalBytes = -1L
+                )
+
+                val effectiveUrl = if (rawDownloadUrl.endsWith(".apk", ignoreCase = true)) {
+                    rawDownloadUrl
+                } else {
+                    resolveDirectApkUrl(releaseRepoOwner, releaseRepoName, rawDownloadUrl)
+                }
+
+                Log.d(TAG, "Starting APK download from: $effectiveUrl")
+
+                if (!effectiveUrl.endsWith(".apk", ignoreCase = true) && !effectiveUrl.contains("/download/")) {
+                    // Fallback to browser if direct APK asset not found
+                    withContext(Dispatchers.Main) {
+                        _downloadState.value = UpdateDownloadState.Failed("Direct APK not found. Opening browser...")
+                        openDownloadUrl(context, effectiveUrl)
+                    }
+                    return@launch
+                }
+
+                val client = OkHttpClient.Builder()
+                    .followRedirects(true)
+                    .followSslRedirects(true)
+                    .connectTimeout(15, TimeUnit.SECONDS)
+                    .readTimeout(60, TimeUnit.SECONDS)
+                    .build()
+
+                val request = Request.Builder()
+                    .url(effectiveUrl)
+                    .header("User-Agent", "MusifyApp-Updater")
+                    .build()
+
+                val response = client.newCall(request).execute()
+                if (!response.isSuccessful) {
+                    throw IOException("HTTP error: ${response.code} ${response.message}")
+                }
+
+                val body = response.body ?: throw IOException("Empty response body")
+                val contentLength = body.contentLength()
+
+                val updatesDir = File(context.cacheDir, "updates").apply { mkdirs() }
+                val apkFile = File(updatesDir, "Musify_update.apk")
+                if (apkFile.exists()) {
+                    apkFile.delete()
+                }
+
+                body.byteStream().use { input ->
+                    FileOutputStream(apkFile).use { output ->
+                        val buffer = ByteArray(16 * 1024)
+                        var bytesCopied = 0L
+                        var read: Int
+                        var lastProgressTime = 0L
+
+                        while (input.read(buffer).also { read = it } != -1) {
+                            output.write(buffer, 0, read)
+                            bytesCopied += read
+                            val now = System.currentTimeMillis()
+                            if (now - lastProgressTime >= 100 || bytesCopied == contentLength) {
+                                lastProgressTime = now
+                                val percent = if (contentLength > 0) {
+                                    ((bytesCopied * 100) / contentLength).toInt().coerceIn(0, 100)
+                                } else 0
+                                _downloadState.value = UpdateDownloadState.Downloading(
+                                    progressPercent = percent,
+                                    downloadedBytes = bytesCopied,
+                                    totalBytes = contentLength
+                                )
+                            }
+                        }
+                        output.flush()
+                    }
+                }
+
+                if (!apkFile.exists() || apkFile.length() == 0L) {
+                    throw IOException("Downloaded file is empty or missing")
+                }
+
+                apkFile.setReadable(true, false)
+
+                withContext(Dispatchers.Main) {
+                    _downloadState.value = UpdateDownloadState.Downloaded(apkFile)
+                    promptInstallApk(context, apkFile)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "In-app download failed: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    _downloadState.value = UpdateDownloadState.Failed(e.message ?: "Download failed")
+                }
+            }
+        }
+    }
+
+    /**
+     * Prompts the system to install the downloaded APK file.
+     * Handles Unknown App Sources permission for Android 8.0+.
+     */
+    fun promptInstallApk(context: Context, apkFile: File) {
+        try {
+            if (!apkFile.exists()) {
+                _downloadState.value = UpdateDownloadState.Failed("APK file not found. Please re-download.")
+                return
+            }
+
+            // Android 8.0+ Unknown App Sources Permission Check
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (!context.packageManager.canRequestPackageInstalls()) {
+                    Log.w(TAG, "REQUEST_INSTALL_PACKAGES not granted. Prompting user to allow in Settings.")
+                    _downloadState.value = UpdateDownloadState.PermissionRequired(apkFile)
+                    requestInstallPermission(context)
+                    return
+                }
+            }
+
+            _downloadState.value = UpdateDownloadState.Installing(apkFile)
+
+            val apkUri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.provider",
+                apkFile
+            )
+
+            val installIntent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(apkUri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(installIntent)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to launch package installer: ${e.message}", e)
+            _downloadState.value = UpdateDownloadState.Failed("Installation failed: ${e.message}")
+        }
+    }
+
+    /**
+     * Opens system Settings screen for "Install unknown apps" for Musify.
+     */
+    fun requestInstallPermission(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                Log.e(TAG, "Cannot open install permission settings: ${e.message}", e)
+            }
+        }
+    }
+
+    /**
+     * Automatically resumes install if permission was pending and user returned after granting.
+     */
+    fun checkAndResumePendingInstall(context: Context) {
+        val state = _downloadState.value
+        if (state is UpdateDownloadState.PermissionRequired) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || context.packageManager.canRequestPackageInstalls()) {
+                Log.d(TAG, "Install permission now granted, resuming APK installation.")
+                promptInstallApk(context, state.apkFile)
+            }
+        }
+    }
+
+    /**
+     * Resets download state to Idle and cancels any ongoing download job.
+     */
+    fun cancelOrResetDownload() {
+        downloadJob?.cancel()
+        downloadJob = null
+        _downloadState.value = UpdateDownloadState.Idle
+    }
+
+    /**
      * Opens the download URL in user's browser or download manager.
      */
     fun openDownloadUrl(context: Context, url: String) {
@@ -313,8 +551,8 @@ object AppUpdateManager {
             currentVersionCode = curCode,
             latestVersionCode = 999L,
             releaseTitle = "Strict Update Required (Test Mode)",
-            changelog = "• Fixed audio cracking & improved sound quality\n• Fixed Up Next queue recommendation\n• Real-time settings verification\n• Strict mandatory GitHub update prompt active",
-            downloadUrl = "https://github.com/$releaseRepoOwner/$releaseRepoName/releases/latest",
+            changelog = "• In-app APK background downloader\n• Live download progress bar & stats\n• Direct one-click package installer\n• Permissions handling for unknown sources",
+            downloadUrl = "https://github.com/$releaseRepoOwner/$releaseRepoName/releases/download/v1.7.2/Musify.apk",
             source = UpdateSource.TEST_MODE
         )
     }
@@ -323,6 +561,8 @@ object AppUpdateManager {
      * Clears test update prompt state.
      */
     fun clearUpdateInfo() {
+        cancelOrResetDownload()
         _updateInfo.value = null
     }
 }
+

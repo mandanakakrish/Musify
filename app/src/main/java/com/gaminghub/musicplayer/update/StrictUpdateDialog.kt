@@ -19,21 +19,30 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.OpenInBrowser
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -44,25 +53,29 @@ import com.gaminghub.musicplayer.ui.theme.MusifyGreen
 
 /**
  * A strict, non-dismissible modal update dialog that prompts the user to update the app.
- * User cannot dismiss by tapping outside or pressing the back button.
+ * Provides in-app downloading with live progress tracking and automatic package installation.
  */
 @Composable
 fun StrictUpdateDialog(
     updateInfo: AppUpdateInfo,
-    onUpdateClick: (String) -> Unit,
+    onUpdateClick: ((String) -> Unit)? = null,
     onExitClick: () -> Unit,
     onDismissClick: (() -> Unit)? = null
 ) {
+    val context = LocalContext.current
+    val downloadState by AppUpdateManager.downloadState.collectAsState()
+    val isDownloading = downloadState is UpdateDownloadState.Downloading
+
     Dialog(
         onDismissRequest = {
-            // Non-dismissible if forceUpdate is true
-            if (!updateInfo.isForceUpdate) {
+            // Non-dismissible if forceUpdate is true or while downloading
+            if (!updateInfo.isForceUpdate && !isDownloading) {
                 onDismissClick?.invoke()
             }
         },
         properties = DialogProperties(
-            dismissOnBackPress = !updateInfo.isForceUpdate,
-            dismissOnClickOutside = !updateInfo.isForceUpdate,
+            dismissOnBackPress = !updateInfo.isForceUpdate && !isDownloading,
+            dismissOnClickOutside = !updateInfo.isForceUpdate && !isDownloading,
             usePlatformDefaultWidth = false
         )
     ) {
@@ -207,29 +220,300 @@ fun StrictUpdateDialog(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // ── Action Buttons ─────────────────────────────────────
-                Button(
-                    onClick = { onUpdateClick(updateInfo.downloadUrl) },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MusifyGreen,
-                        contentColor = Color.Black
-                    ),
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Download,
-                        contentDescription = "Download",
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Update Now",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                // ── In-App Download / Install Actions ────────────────────
+                when (val state = downloadState) {
+                    is UpdateDownloadState.Idle -> {
+                        Button(
+                            onClick = {
+                                if (onUpdateClick != null) {
+                                    onUpdateClick(updateInfo.downloadUrl)
+                                } else {
+                                    AppUpdateManager.startInAppDownloadAndInstall(context, updateInfo.downloadUrl)
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MusifyGreen,
+                                contentColor = Color.Black
+                            ),
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Download,
+                                contentDescription = "Download",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Update Now (Download & Install)",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    is UpdateDownloadState.Downloading -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(Color(0xFF1E1E2C))
+                                .border(1.dp, Color(0xFF2C2C3E), RoundedCornerShape(14.dp))
+                                .padding(14.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Downloading APK...",
+                                    color = Color.White,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = "${state.progressPercent}%",
+                                    color = MusifyGreen,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            LinearProgressIndicator(
+                                progress = {
+                                    if (state.totalBytes > 0) state.progressPercent / 100f else 0.5f
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(8.dp)
+                                    .clip(RoundedCornerShape(4.dp)),
+                                color = MusifyGreen,
+                                trackColor = Color(0xFF2C2C3E)
+                            )
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "${state.downloadedMb} MB / ${state.totalMb}",
+                                    color = Color.Gray,
+                                    fontSize = 11.sp
+                                )
+                                TextButton(
+                                    onClick = { AppUpdateManager.cancelOrResetDownload() },
+                                    modifier = Modifier.height(26.dp)
+                                ) {
+                                    Text("Cancel", color = Color(0xFFFF5252), fontSize = 12.sp)
+                                }
+                            }
+                        }
+                    }
+
+                    is UpdateDownloadState.Downloaded -> {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(bottom = 12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = "Downloaded",
+                                    tint = MusifyGreen,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Download complete! Ready to install.",
+                                    color = MusifyGreen,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+
+                            Button(
+                                onClick = { AppUpdateManager.promptInstallApk(context, state.apkFile) },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MusifyGreen,
+                                    contentColor = Color.Black
+                                ),
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.SystemUpdate,
+                                    contentDescription = "Install",
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Install Update Now",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+
+                    is UpdateDownloadState.Installing -> {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(bottom = 12.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    color = MusifyGreen,
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Launching system installer...",
+                                    color = Color.White,
+                                    fontSize = 13.sp
+                                )
+                            }
+
+                            Button(
+                                onClick = { AppUpdateManager.promptInstallApk(context, state.apkFile) },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MusifyGreen,
+                                    contentColor = Color.Black
+                                ),
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp)
+                            ) {
+                                Text(
+                                    text = "Tap to Reopen Installer",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+
+                    is UpdateDownloadState.PermissionRequired -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(Color(0xFF2C1E1E))
+                                .border(1.dp, Color(0xFFE53935).copy(alpha = 0.5f), RoundedCornerShape(14.dp))
+                                .padding(14.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Security,
+                                    contentDescription = "Permission",
+                                    tint = Color(0xFFFF7043),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Permission Required",
+                                    color = Color(0xFFFF7043),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "To install updates, enable 'Allow from this source' for Musify in Settings.",
+                                color = Color(0xFFE0E0E0),
+                                fontSize = 12.sp,
+                                textAlign = TextAlign.Center,
+                                lineHeight = 16.sp
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Button(
+                                onClick = { AppUpdateManager.requestInstallPermission(context) },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFFF7043),
+                                    contentColor = Color.Black
+                                ),
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(44.dp)
+                            ) {
+                                Text("Open Settings to Grant", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            TextButton(
+                                onClick = { AppUpdateManager.promptInstallApk(context, state.apkFile) },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("I've Granted It - Install Now", color = MusifyGreen, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+
+                    is UpdateDownloadState.Failed -> {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Download Error: ${state.error}",
+                                color = Color(0xFFFF5252),
+                                fontSize = 12.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(bottom = 12.dp)
+                            )
+
+                            Button(
+                                onClick = {
+                                    AppUpdateManager.startInAppDownloadAndInstall(context, updateInfo.downloadUrl)
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MusifyGreen,
+                                    contentColor = Color.Black
+                                ),
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp)
+                            ) {
+                                Icon(Icons.Default.Refresh, contentDescription = "Retry", modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Retry In-App Download", fontWeight = FontWeight.Bold)
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            OutlinedButton(
+                                onClick = { AppUpdateManager.openDownloadUrl(context, updateInfo.downloadUrl) },
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(44.dp)
+                            ) {
+                                Icon(Icons.Default.OpenInBrowser, contentDescription = "Browser", modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Download in Browser", color = Color.White, fontSize = 13.sp)
+                            }
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))

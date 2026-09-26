@@ -298,7 +298,7 @@ class MainActivity : ComponentActivity() {
                     com.gaminghub.musicplayer.update.StrictUpdateDialog(
                         updateInfo = updateInfo!!,
                         onUpdateClick = { url ->
-                            com.gaminghub.musicplayer.update.AppUpdateManager.openDownloadUrl(this@MainActivity, url)
+                            com.gaminghub.musicplayer.update.AppUpdateManager.startInAppDownloadAndInstall(this@MainActivity, url)
                         },
                         onExitClick = {
                             finishAffinity()
@@ -316,6 +316,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         com.gaminghub.musicplayer.update.AppUpdateManager.checkForUpdates(this)
+        com.gaminghub.musicplayer.update.AppUpdateManager.checkAndResumePendingInstall(this)
     }
 
     override fun onNewIntent(intent: android.content.Intent) {
