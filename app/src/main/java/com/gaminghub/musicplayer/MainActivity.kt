@@ -293,12 +293,20 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                // Strictly prompt for updating the app whenever an update is detected from GitHub
-                if (isSplashDone && updateInfo != null && updateInfo?.isUpdateAvailable == true) {
+                val isOfflineModeActive by com.gaminghub.musicplayer.update.AppUpdateManager.isOfflineModeActive.collectAsState()
+
+                // Strictly prompt for updating the app whenever an update is detected from GitHub, unless offline mode is chosen
+                if (isSplashDone && updateInfo != null && updateInfo?.isUpdateAvailable == true && !isOfflineModeActive) {
                     com.gaminghub.musicplayer.update.StrictUpdateDialog(
                         updateInfo = updateInfo!!,
                         onUpdateClick = { url ->
                             com.gaminghub.musicplayer.update.AppUpdateManager.startInAppDownloadAndInstall(this@MainActivity, url)
+                        },
+                        onPlayDownloadedClick = {
+                            com.gaminghub.musicplayer.update.AppUpdateManager.enterOfflineModeAndNavigate("downloads")
+                        },
+                        onPlayMyMusicClick = {
+                            com.gaminghub.musicplayer.update.AppUpdateManager.enterOfflineModeAndNavigate("my_music")
                         },
                         onExitClick = {
                             finishAffinity()
@@ -329,6 +337,12 @@ class MainActivity : ComponentActivity() {
         if (intent == null) return
         val action = intent.action
         val data = intent.data
+
+        if (action == "com.gaminghub.musify.TEST_UPDATE_PROMPT" || intent.getBooleanExtra("test_update_prompt", false)) {
+            com.gaminghub.musicplayer.update.AppUpdateManager.exitOfflineMode()
+            com.gaminghub.musicplayer.update.AppUpdateManager.triggerTestPrompt(this)
+            return
+        }
 
         when (action) {
             android.content.Intent.ACTION_VIEW -> {
@@ -440,6 +454,16 @@ fun MusifyMainScreen(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val context = androidx.compose.ui.platform.LocalContext.current
+
+    val pendingOfflineRoute by com.gaminghub.musicplayer.update.AppUpdateManager.pendingOfflineNavigationRoute.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(pendingOfflineRoute) {
+        pendingOfflineRoute?.let { route ->
+            navController.navigate(route) {
+                launchSingleTop = true
+            }
+            com.gaminghub.musicplayer.update.AppUpdateManager.clearPendingOfflineNavigation()
+        }
+    }
 
     val currentUser by authViewModel.currentUser.collectAsState()
     val googleEmail by authViewModel.googleEmail.collectAsState()

@@ -50,10 +50,29 @@ object AppUpdateManager {
     private val _downloadState = MutableStateFlow<UpdateDownloadState>(UpdateDownloadState.Idle)
     val downloadState: StateFlow<UpdateDownloadState> = _downloadState.asStateFlow()
 
+    private val _isOfflineModeActive = MutableStateFlow(false)
+    val isOfflineModeActive: StateFlow<Boolean> = _isOfflineModeActive.asStateFlow()
+
+    private val _pendingOfflineNavigationRoute = MutableStateFlow<String?>(null)
+    val pendingOfflineNavigationRoute: StateFlow<String?> = _pendingOfflineNavigationRoute.asStateFlow()
+
     private var downloadJob: Job? = null
 
     private var lastCheckedEpochMs: Long = 0L
     private const val MIN_CHECK_INTERVAL_MS = 60_000L // 1 minute throttle unless force = true
+
+    fun enterOfflineModeAndNavigate(route: String) {
+        _isOfflineModeActive.value = true
+        _pendingOfflineNavigationRoute.value = route
+    }
+
+    fun clearPendingOfflineNavigation() {
+        _pendingOfflineNavigationRoute.value = null
+    }
+
+    fun exitOfflineMode() {
+        _isOfflineModeActive.value = false
+    }
 
     /**
      * Retrieves current installed app's versionName and versionCode.
@@ -79,6 +98,13 @@ object AppUpdateManager {
         onComplete: ((AppUpdateInfo?) -> Unit)? = null
     ) {
         val now = System.currentTimeMillis()
+        val isOnline = com.gaminghub.musicplayer.util.NetworkMonitor.getInstance(context).isOnline.value
+        if (!isOnline) {
+            Log.d(TAG, "Device is offline. Skipping update check to allow offline music.")
+            onComplete?.invoke(null)
+            return
+        }
+
         if (!force && (now - lastCheckedEpochMs) < MIN_CHECK_INTERVAL_MS && _updateInfo.value != null) {
             onComplete?.invoke(_updateInfo.value)
             return

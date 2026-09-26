@@ -1,5 +1,7 @@
 package com.gaminghub.musicplayer.update
 
+import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -21,7 +23,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.DownloadForOffline
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Security
@@ -38,6 +44,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,21 +57,28 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.gaminghub.musicplayer.ui.theme.MusifyGreen
+import com.gaminghub.musicplayer.util.NetworkMonitor
 
 /**
- * A strict, non-dismissible modal update dialog that prompts the user to update the app.
+ * A modal update dialog that prompts the user to update the app.
  * Provides in-app downloading with live progress tracking and automatic package installation.
+ * Also allows users to continue playing offline music from Downloaded and My Music without blocking.
  */
 @Composable
 fun StrictUpdateDialog(
     updateInfo: AppUpdateInfo,
     onUpdateClick: ((String) -> Unit)? = null,
+    onPlayDownloadedClick: (() -> Unit)? = null,
+    onPlayMyMusicClick: (() -> Unit)? = null,
     onExitClick: () -> Unit,
     onDismissClick: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val downloadState by AppUpdateManager.downloadState.collectAsState()
     val isDownloading = downloadState is UpdateDownloadState.Downloading
+
+    val networkMonitor = remember { NetworkMonitor.getInstance(context) }
+    val isOnline by networkMonitor.isOnline.collectAsState()
 
     Dialog(
         onDismissRequest = {
@@ -101,9 +115,9 @@ fun StrictUpdateDialog(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.SystemUpdate,
+                        imageVector = if (!isOnline) Icons.Default.CloudOff else Icons.Default.SystemUpdate,
                         contentDescription = "Update Available",
-                        tint = MusifyGreen,
+                        tint = if (!isOnline) Color(0xFFFFB74D) else MusifyGreen,
                         modifier = Modifier.size(34.dp)
                     )
                 }
@@ -115,14 +129,19 @@ fun StrictUpdateDialog(
                     modifier = Modifier
                         .clip(RoundedCornerShape(50.dp))
                         .background(
-                            if (updateInfo.isForceUpdate) Color(0xFFE53935).copy(alpha = 0.2f)
+                            if (!isOnline) Color(0xFFFF9800).copy(alpha = 0.2f)
+                            else if (updateInfo.isForceUpdate) Color(0xFFE53935).copy(alpha = 0.2f)
                             else MusifyGreen.copy(alpha = 0.2f)
                         )
                         .padding(horizontal = 12.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = if (updateInfo.isForceUpdate) "MANDATORY UPDATE REQUIRED" else "NEW VERSION AVAILABLE",
-                        color = if (updateInfo.isForceUpdate) Color(0xFFFF5252) else MusifyGreen,
+                        text = if (!isOnline) "OFFLINE MODE AVAILABLE"
+                        else if (updateInfo.isForceUpdate) "MANDATORY UPDATE REQUIRED"
+                        else "NEW VERSION AVAILABLE",
+                        color = if (!isOnline) Color(0xFFFFB74D)
+                        else if (updateInfo.isForceUpdate) Color(0xFFFF5252)
+                        else MusifyGreen,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = 0.5.sp
@@ -133,7 +152,7 @@ fun StrictUpdateDialog(
 
                 // ── Title ──────────────────────────────────────────────
                 Text(
-                    text = updateInfo.releaseTitle.ifBlank { "Update Musify to Continue" },
+                    text = if (!isOnline) "Offline? Play Your Music" else updateInfo.releaseTitle.ifBlank { "Update Musify to Continue" },
                     color = Color.White,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
@@ -179,7 +198,7 @@ fun StrictUpdateDialog(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 160.dp)
+                            .heightIn(max = 140.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .background(Color(0xFF1E1E2C))
                             .border(1.dp, Color(0xFF2C2C3E), RoundedCornerShape(12.dp))
@@ -204,36 +223,128 @@ fun StrictUpdateDialog(
                     Spacer(modifier = Modifier.height(14.dp))
                 }
 
-                // ── Notice message ─────────────────────────────────────
-                Text(
-                    text = if (updateInfo.isForceUpdate) {
-                        "This version contains critical updates and fixes. You must install the update to continue using the app."
-                    } else {
-                        "A new version is available on GitHub. Update now for the best experience."
-                    },
-                    color = Color(0xFF9090A0),
-                    fontSize = 12.sp,
-                    textAlign = TextAlign.Center,
-                    lineHeight = 17.sp,
-                    modifier = Modifier.padding(horizontal = 4.dp)
-                )
+                // ── Offline Music Section (Always Available) ───────────
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(if (!isOnline) Color(0xFF182A20) else Color(0xFF1B1B26))
+                        .border(
+                            1.dp,
+                            if (!isOnline) MusifyGreen.copy(alpha = 0.6f) else Color(0xFF2C2C3E),
+                            RoundedCornerShape(16.dp)
+                        )
+                        .padding(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = if (!isOnline) Icons.Default.CloudOff else Icons.Default.MusicNote,
+                            contentDescription = "Offline Music",
+                            tint = if (!isOnline) Color(0xFFFFB74D) else MusifyGreen,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (!isOnline) "Offline Mode • Play Offline Songs" else "Play Offline Music Without Updating",
+                            color = if (!isOnline) Color(0xFFFFB74D) else MusifyGreen,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = if (!isOnline) {
+                            "You are currently offline. You can freely play songs from 'Downloaded' and 'My Music'."
+                        } else {
+                            "Want to listen right now? Play your downloaded songs or local 'My Music' files."
+                        },
+                        color = Color(0xFFB0B0C0),
+                        fontSize = 11.sp,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 15.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                onPlayDownloadedClick?.invoke() ?: AppUpdateManager.enterOfflineModeAndNavigate("downloads")
+                            },
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MusifyGreen
+                            ),
+                            border = BorderStroke(1.dp, MusifyGreen.copy(alpha = 0.6f)),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DownloadForOffline,
+                                contentDescription = "Downloaded",
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Downloaded", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                onPlayMyMusicClick?.invoke() ?: AppUpdateManager.enterOfflineModeAndNavigate("my_music")
+                            },
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MusifyGreen
+                            ),
+                            border = BorderStroke(1.dp, MusifyGreen.copy(alpha = 0.6f)),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Folder,
+                                contentDescription = "My Music",
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("My Music", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // ── In-App Download / Install Actions ────────────────────
                 when (val state = downloadState) {
                     is UpdateDownloadState.Idle -> {
                         Button(
                             onClick = {
-                                if (onUpdateClick != null) {
+                                if (!isOnline) {
+                                    Toast.makeText(
+                                        context,
+                                        "Cannot update while offline. Please connect to internet, or play offline songs above.",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                } else if (onUpdateClick != null) {
                                     onUpdateClick(updateInfo.downloadUrl)
                                 } else {
                                     AppUpdateManager.startInAppDownloadAndInstall(context, updateInfo.downloadUrl)
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = MusifyGreen,
-                                contentColor = Color.Black
+                                containerColor = if (isOnline) MusifyGreen else Color(0xFF2C2C3E),
+                                contentColor = if (isOnline) Color.Black else Color.LightGray
                             ),
                             shape = RoundedCornerShape(14.dp),
                             modifier = Modifier
@@ -241,13 +352,13 @@ fun StrictUpdateDialog(
                                 .height(50.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Download,
+                                imageVector = if (isOnline) Icons.Default.Download else Icons.Default.CloudOff,
                                 contentDescription = "Download",
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Update Now (Download & Install)",
+                                text = if (isOnline) "Update Now (Download & Install)" else "Connect to Internet to Update",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
                             )
