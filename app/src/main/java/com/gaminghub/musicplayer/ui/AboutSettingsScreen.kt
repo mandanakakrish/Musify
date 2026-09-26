@@ -167,7 +167,7 @@ fun AboutSettingsScreen(navController: NavController) {
             )
         }
 
-        // ── 3. Contact Us → Musify GitHub ───────────────────────
+        // ── 3. Contact Us → Musify GitHub Discussions ───────────────────────
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -175,11 +175,11 @@ fun AboutSettingsScreen(navController: NavController) {
                     try {
                         val browserIntent = Intent(
                             Intent.ACTION_VIEW,
-                            "https://github.com/mandanakakrish/Musify".toUri()
+                            "https://github.com/mandanakakrish/Musify/discussions/3".toUri()
                         )
                         context.startActivity(browserIntent)
                     } catch (_: Exception) {
-                        Toast.makeText(context, "github.com/mandanakakrish/Musify", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "github.com/mandanakakrish/Musify/discussions/3", Toast.LENGTH_SHORT).show()
                     }
                 }
                 .padding(horizontal = 16.dp, vertical = 14.dp)
@@ -192,7 +192,7 @@ fun AboutSettingsScreen(navController: NavController) {
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                "github.com/mandanakakrish/Musify",
+                "github.com/mandanakakrish/Musify/discussions/3",
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                 fontSize = 13.sp
             )

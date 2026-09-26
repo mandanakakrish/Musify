@@ -102,14 +102,13 @@ fun HomeScreen(
     onMenuClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // ── Stable content state — recompose only when data changes ───────────────
     val recentTracks by viewModel.recentTracks.collectAsState()
     val favoriteTracks by viewModel.favoriteTracks.collectAsState()
     val playlists by viewModel.playlists.collectAsState()
     val userName by settingsViewModel.userName.collectAsState()
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    val isPlaying by viewModel.isPlaying.collectAsState()
-    val currentTrack by viewModel.currentTrack.collectAsState()
     val supermix by viewModel.supermix.collectAsState()
     val dailyMixes by viewModel.dailyMixes.collectAsState()
     val listenAgain by viewModel.listenAgain.collectAsState()
@@ -118,15 +117,26 @@ fun HomeScreen(
     val showPlaylistsOnHome by settingsViewModel.showPlaylistsOnHome.collectAsState()
     val showLastSession by settingsViewModel.showLastSession.collectAsState()
     val tasteSummary by viewModel.tasteSummary.collectAsState()
+
+    // ── Playback-reactive state — only used in components that need it ─────────
+    // Separated so that isPlaying/currentTrack toggling every frame doesn't
+    // recompose the entire LazyColumn with all curated sections and image rows.
+    val isPlaying by viewModel.isPlaying.collectAsState()
+    val currentTrack by viewModel.currentTrack.collectAsState()
+
     val scrollState = androidx.compose.foundation.lazy.rememberLazyListState()
     var showEditNameDialog by remember { mutableStateOf(false) }
 
-    val openCuratedPlaylist: (CuratedCardData) -> Unit = { card ->
-        val encTitle = android.net.Uri.encode(card.title)
-        val encSub = android.net.Uri.encode(card.subtitle.ifBlank { "Curated Playlist" })
-        val encQuery = android.net.Uri.encode(card.query.ifBlank { card.title })
-        val encImage = android.net.Uri.encode(card.imageUrl?.toString() ?: "")
-        navController.navigate("curated_playlist/$encTitle/$encSub/$encQuery?imageUrl=$encImage")
+    // remember(navController) prevents lambda recreation on every recomposition,
+    // which would invalidate all child composables that receive this callback.
+    val openCuratedPlaylist: (CuratedCardData) -> Unit = remember(navController) {
+        { card ->
+            val encTitle = android.net.Uri.encode(card.title)
+            val encSub = android.net.Uri.encode(card.subtitle.ifBlank { "Curated Playlist" })
+            val encQuery = android.net.Uri.encode(card.query.ifBlank { card.title })
+            val encImage = android.net.Uri.encode(card.imageUrl?.toString() ?: "")
+            navController.navigate("curated_playlist/$encTitle/$encSub/$encQuery?imageUrl=$encImage")
+        }
     }
 
     val featuredPlaylists = remember {

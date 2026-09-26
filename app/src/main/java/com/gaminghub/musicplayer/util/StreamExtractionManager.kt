@@ -157,7 +157,9 @@ object StreamExtractionManager {
             }
         }
         
-        return musicDao?.getValidCachedUrl(url, 0)
+        // Only return a cached URL if it hasn't expired yet. Passing 0 would return any
+        // cached URL including expired ones, causing HTTP 403 → retry loops.
+        return musicDao?.getValidCachedUrl(url, System.currentTimeMillis())
     }
 
     private fun extractVideoId(url: String): String? {
@@ -312,8 +314,11 @@ object StreamExtractionManager {
                     .header("User-Agent", CommonUtils.CURRENT_USER_AGENT)
                     .header("Referer", "https://www.youtube.com/")
                     .header("Origin", "https://www.youtube.com")
+                    // Range request: only fetch first 1 KB instead of the entire audio stream.
+                    // Returns HTTP 206 Partial Content on success (valid URL) or 403/410 on expiry.
+                    .header("Range", "bytes=0-1023")
                     .build()
-                
+
                 client.newCall(request).execute().use { response ->
                     Log.d(TAG, "Stream verification response code: ${response.code} for $streamUrl")
                     return@withContext response.code != 403 && response.code != 410

@@ -70,6 +70,22 @@ import androidx.core.content.ContextCompat
 @UnstableApi
 class MusicViewModel(application: Application) : AndroidViewModel(application) {
 
+    companion object {
+        /**
+         * Weak reference to the active MusicViewModel instance.
+         *
+         * Used by MusicPlaybackService to dispatch next/prev queue commands when
+         * the foreground service is alive but the Activity (and its broadcast receiver)
+         * has been destroyed. This fixes lockscreen and Bluetooth headset controls
+         * failing after the app is backgrounded and memory-trimmed.
+         *
+         * Set to the live instance in init{}, cleared in onCleared().
+         */
+        @Volatile
+        var instance: java.lang.ref.WeakReference<MusicViewModel>? = null
+            private set
+    }
+
     private val tag = "MusicViewModel"
 
     private val _trendingTracks = MutableStateFlow<List<TrackModel>>(emptyList())
@@ -406,6 +422,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     init {
+        instance = java.lang.ref.WeakReference(this)
         StreamExtractionManager.setContext(getApplication())
         _trendingTracks.value = emptyList()
         _topCharts.value = emptyList()
@@ -2410,6 +2427,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
 
     override fun onCleared() {
         super.onCleared()
+        instance = null
         try {
             getApplication<Application>().unregisterReceiver(playbackReceiver)
         } catch (_: Exception) {}

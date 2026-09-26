@@ -72,8 +72,11 @@ object MusifyFileMetadataHelper {
     private const val TAG = "MusifyFileMeta"
 
     // 16-byte fixed magic tags for fast seeking
+    // NOTE: MAGIC_FOOTER was fixed from 15→16 bytes in v1.7.4 to match the 16-byte read offset.
+    // MAGIC_FOOTER_LEGACY is kept for reading files written before the fix (backward compat).
     private const val MAGIC_HEADER = "MUSIFY_META_V01\n"
-    private const val MAGIC_FOOTER = "MUSIFY_TAG_V01\n"
+    private const val MAGIC_FOOTER = "MUSIFY_TAIL_V01\n"           // exactly 16 bytes
+    private const val MAGIC_FOOTER_LEGACY = "MUSIFY_TAG_V01\n"     // 15 bytes — legacy read only
 
     /**
      * Appends Musify metadata to the end of an audio file without corrupting its playback.
@@ -122,15 +125,23 @@ object MusifyFileMetadataHelper {
 
     /**
      * Quick check whether a file has a Musify EOF metadata trailer.
+     * Supports both the current 16-byte footer and the legacy 15-byte footer.
      */
     fun hasMusifyMetadata(file: File): Boolean {
         if (!file.exists() || !file.isFile || file.length() < 38L) return false
         return try {
             RandomAccessFile(file, "r").use { raf ->
+                // Check current 16-byte footer
                 raf.seek(file.length() - 16L)
                 val footerBytes = ByteArray(16)
                 raf.readFully(footerBytes)
-                String(footerBytes, Charsets.UTF_8) == MAGIC_FOOTER
+                val footerStr = String(footerBytes, Charsets.UTF_8)
+                if (footerStr == MAGIC_FOOTER) return true
+                // Check legacy 15-byte footer (files written before v1.7.4 fix)
+                raf.seek(file.length() - 15L)
+                val legacyFooterBytes = ByteArray(15)
+                raf.readFully(legacyFooterBytes)
+                String(legacyFooterBytes, Charsets.UTF_8) == MAGIC_FOOTER_LEGACY
             }
         } catch (_: Exception) {
             false
@@ -178,17 +189,26 @@ object MusifyFileMetadataHelper {
     private fun readFromChannel(channel: java.nio.channels.FileChannel, fileLength: Long, debugName: String): MusifyTrackMetadata? {
         if (fileLength < 38L) return null
         return try {
-            // 1. Read footer (last 16 bytes)
+            // Determine footer size: try current 16-byte footer first, fall back to legacy 15-byte
+            val footerSize: Int
             channel.position(fileLength - 16L)
-            val footerBuffer = java.nio.ByteBuffer.allocate(16)
-            channel.read(footerBuffer)
-            val footerStr = String(footerBuffer.array(), Charsets.UTF_8)
-            if (footerStr != MAGIC_FOOTER) {
-                return null
+            val footerBuffer16 = java.nio.ByteBuffer.allocate(16)
+            channel.read(footerBuffer16)
+            val footer16Str = String(footerBuffer16.array(), Charsets.UTF_8)
+            footerSize = when {
+                footer16Str == MAGIC_FOOTER -> 16
+                else -> {
+                    // Check legacy 15-byte footer
+                    channel.position(fileLength - 15L)
+                    val footerBuffer15 = java.nio.ByteBuffer.allocate(15)
+                    channel.read(footerBuffer15)
+                    val footer15Str = String(footerBuffer15.array(), Charsets.UTF_8)
+                    if (footer15Str == MAGIC_FOOTER_LEGACY) 15 else return null
+                }
             }
 
             // 2. Read 4-byte payload length preceding footer
-            channel.position(fileLength - 20L)
+            channel.position(fileLength - footerSize - 4L)
             val lengthBuffer = java.nio.ByteBuffer.allocate(4)
             channel.read(lengthBuffer)
             lengthBuffer.flip()
@@ -199,7 +219,7 @@ object MusifyFileMetadataHelper {
             }
 
             // 3. Verify magic header
-            val headerOffset = fileLength - 20L - jsonLength - 16L
+            val headerOffset = fileLength - footerSize - 4L - jsonLength - 16L
             if (headerOffset < 0) return null
             channel.position(headerOffset)
             val headerBuffer = java.nio.ByteBuffer.allocate(16)

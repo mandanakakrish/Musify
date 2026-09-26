@@ -81,7 +81,6 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data android:scheme="musify" />
-                <data android:scheme="youtify" />
             </intent-filter>
 
             <!-- Play URL deep link -->
@@ -93,7 +92,6 @@
 
                 <data android:scheme="app" />
                 <data android:host="musify" />
-                <data android:host="youtify" />
                 <data android:pathPrefix="/play" />
             </intent-filter>
 

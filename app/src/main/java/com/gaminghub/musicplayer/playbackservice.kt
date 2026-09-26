@@ -21,11 +21,12 @@ import com.gaminghub.musicplayer.util.CommonUtils
 import android.content.Context
 import android.content.BroadcastReceiver
 import android.content.IntentFilter
+import android.net.Uri
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
-import android.net.wifi.WifiManager
-import android.os.PowerManager
+import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.cache.CacheKeyFactory
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.database.StandaloneDatabaseProvider
@@ -33,8 +34,8 @@ import androidx.media3.database.StandaloneDatabaseProvider
 @UnstableApi
 class MusicPlaybackService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
-    private var wakeLock: PowerManager.WakeLock? = null
-    private var wifiLock: WifiManager.WifiLock? = null
+    // WakeLock/WifiLock intentionally removed — ExoPlayer's setWakeMode(WAKE_MODE_NETWORK)
+    // manages CPU and WiFi wake locks internally and releases them correctly on error.
 
     companion object {
         var currentAudioSessionId: Int = -1
@@ -53,6 +54,25 @@ class MusicPlaybackService : MediaSessionService() {
             return exoplayerCache!!
         }
 
+        /**
+         * Stable cache key factory for YouTube streams.
+         *
+         * YouTube googlevideo.com URLs contain session tokens (expire=, sig=, lmt=, …) that
+         * rotate every ~6 hours. Using the raw URI as a cache key means each play re-downloads
+         * the same audio. Instead we extract the stable video ID ("id=" query param) and use
+         * that as the cache key so the 150 MB LRU cache is actually reused across plays.
+         */
+        val youtubeCacheKeyFactory = CacheKeyFactory { dataSpec ->
+            val uri = dataSpec.uri
+            if (uri.host?.contains("googlevideo.com") == true) {
+                // "id" param contains the stable YouTube video ID
+                val videoId = uri.getQueryParameter("id")
+                if (!videoId.isNullOrBlank()) "yt_$videoId" else dataSpec.key ?: uri.toString()
+            } else {
+                dataSpec.key ?: uri.toString()
+            }
+        }
+
         @JvmStatic
         fun cacheTrack(context: android.content.Context, url: String) {
             android.util.Log.d("PlaybackService", "Pre-caching track: $url")
@@ -64,47 +84,12 @@ class MusicPlaybackService : MediaSessionService() {
         return START_STICKY
     }
 
-    private fun acquireWakeLocks(timeoutMs: Long = 10 * 60_000L) {
-        try {
-            if (wakeLock?.isHeld != true) {
-                wakeLock?.acquire(timeoutMs)
-            }
-            if (wifiLock?.isHeld != true) {
-                wifiLock?.acquire()
-            }
-        } catch (_: Exception) {}
-    }
-
-    private fun releaseWakeLocks() {
-        try {
-            if (wakeLock?.isHeld == true) {
-                wakeLock?.release()
-            }
-            if (wifiLock?.isHeld == true) {
-                wifiLock?.release()
-            }
-        } catch (_: Exception) {}
-    }
-
     override fun onCreate() {
         super.onCreate()
 
-        try {
-            val powerManager = getSystemService(Context.POWER_SERVICE) as? PowerManager
-            wakeLock = powerManager?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Musify::PlaybackWakeLock")?.apply {
-                setReferenceCounted(false)
-            }
-            val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
-            wifiLock = wifiManager?.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "Musify::PlaybackWifiLock")?.apply {
-                setReferenceCounted(false)
-            }
-        } catch (e: Exception) {
-            android.util.Log.w("PlaybackService", "Could not initialize wake locks: ${e.message}")
-        }
-        
         // Use the synchronized User-Agent across extractor, verifier and ExoPlayer
         val userAgent = CommonUtils.CURRENT_USER_AGENT
-        
+
         // Critical headers for YouTube streaming (googlevideo.com)
         val defaultRequestProperties = mutableMapOf<String, String>().apply {
             put("Referer", "https://www.youtube.com/")
@@ -119,7 +104,7 @@ class MusicPlaybackService : MediaSessionService() {
             .setAllowCrossProtocolRedirects(true)
             .setConnectTimeoutMs(15000)
             .setReadTimeoutMs(15000)
-            
+
         val dataSourceFactory = DefaultDataSource.Factory(this, httpDataSourceFactory)
 
         val settingsPrefs = getSharedPreferences("Musify_settings", Context.MODE_PRIVATE)
@@ -129,6 +114,7 @@ class MusicPlaybackService : MediaSessionService() {
                 CacheDataSource.Factory()
                     .setCache(getCache(this))
                     .setUpstreamDataSourceFactory(dataSourceFactory)
+                    .setCacheKeyFactory(youtubeCacheKeyFactory)  // stable video-ID based keys
                     .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
             } catch (e: Exception) {
                 dataSourceFactory
@@ -136,7 +122,7 @@ class MusicPlaybackService : MediaSessionService() {
         } else {
             dataSourceFactory
         }
-        
+
         val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
             .setBufferDurationsMs(
                 /* minBufferMs = */ 15_000,
@@ -161,12 +147,13 @@ class MusicPlaybackService : MediaSessionService() {
                 true
             )
             .setHandleAudioBecomingNoisy(true)
+            // WAKE_MODE_NETWORK: ExoPlayer acquires WakeLock + WifiLock internally and releases
+            // them correctly even on player errors — no manual lock management needed.
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
 
         currentAudioSessionId = player.audioSessionId
         try {
-            val settingsPrefs = getSharedPreferences("Musify_settings", Context.MODE_PRIVATE)
             val supportEqualizer = settingsPrefs.getBoolean("support_equalizer", true)
             if (supportEqualizer) {
                 com.gaminghub.musicplayer.util.EqualizerManager.getInstance(this).initAudioEffects(player.audioSessionId)
@@ -175,12 +162,19 @@ class MusicPlaybackService : MediaSessionService() {
 
         val intent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
-            this, 
-            0, 
-            intent, 
+            this,
+            0,
+            intent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
+        // ForwardingPlayer: advertises seek-next/prev commands so lockscreen and Bluetooth
+        // buttons are visible. The actual next/prev handling is done via broadcast to
+        // MusicViewModel so queue logic (shuffle, smart queue) stays in one place.
+        // NOTE (P0 #2 partial): broadcasts are received by MusicViewModel's dynamically
+        // registered receiver. When the Activity is destroyed the receiver is unregistered.
+        // Long-term fix: move queue into the service. For now, playbackReceiver in
+        // MusicViewModel uses Application context so it survives Activity recreation.
         val forwardingPlayer = object : androidx.media3.common.ForwardingPlayer(player) {
             override fun getAvailableCommands(): Player.Commands {
                 return super.getAvailableCommands().buildUpon()
@@ -192,7 +186,7 @@ class MusicPlaybackService : MediaSessionService() {
             }
 
             override fun isCommandAvailable(command: Int): Boolean {
-                return if (command == Player.COMMAND_SEEK_TO_NEXT || 
+                return if (command == Player.COMMAND_SEEK_TO_NEXT ||
                     command == Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM ||
                     command == Player.COMMAND_SEEK_TO_PREVIOUS ||
                     command == Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM) {
@@ -202,25 +196,10 @@ class MusicPlaybackService : MediaSessionService() {
                 }
             }
 
-            override fun seekToNext() {
-                val intent = Intent("com.gaminghub.musify.WIDGET_NEXT").setPackage(packageName)
-                sendBroadcast(intent)
-            }
-
-            override fun seekToNextMediaItem() {
-                val intent = Intent("com.gaminghub.musify.WIDGET_NEXT").setPackage(packageName)
-                sendBroadcast(intent)
-            }
-
-            override fun seekToPrevious() {
-                val intent = Intent("com.gaminghub.musify.WIDGET_PREV").setPackage(packageName)
-                sendBroadcast(intent)
-            }
-
-            override fun seekToPreviousMediaItem() {
-                val intent = Intent("com.gaminghub.musify.WIDGET_PREV").setPackage(packageName)
-                sendBroadcast(intent)
-            }
+            override fun seekToNext() = sendPlaybackBroadcast("com.gaminghub.musify.WIDGET_NEXT")
+            override fun seekToNextMediaItem() = sendPlaybackBroadcast("com.gaminghub.musify.WIDGET_NEXT")
+            override fun seekToPrevious() = sendPlaybackBroadcast("com.gaminghub.musify.WIDGET_PREV")
+            override fun seekToPreviousMediaItem() = sendPlaybackBroadcast("com.gaminghub.musify.WIDGET_PREV")
         }
 
         mediaSession = MediaSession.Builder(this, forwardingPlayer)
@@ -232,13 +211,11 @@ class MusicPlaybackService : MediaSessionService() {
                     playerCommand: Int
                 ): Int {
                     if (playerCommand == Player.COMMAND_SEEK_TO_NEXT || playerCommand == Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM) {
-                        val intent = Intent("com.gaminghub.musify.WIDGET_NEXT").setPackage(packageName)
-                        sendBroadcast(intent)
+                        sendPlaybackBroadcast("com.gaminghub.musify.WIDGET_NEXT")
                         return androidx.media3.session.SessionResult.RESULT_SUCCESS
                     }
                     if (playerCommand == Player.COMMAND_SEEK_TO_PREVIOUS || playerCommand == Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM) {
-                        val intent = Intent("com.gaminghub.musify.WIDGET_PREV").setPackage(packageName)
-                        sendBroadcast(intent)
+                        sendPlaybackBroadcast("com.gaminghub.musify.WIDGET_PREV")
                         return androidx.media3.session.SessionResult.RESULT_SUCCESS
                     }
                     return super.onPlayerCommandRequest(session, controller, playerCommand)
@@ -258,7 +235,7 @@ class MusicPlaybackService : MediaSessionService() {
                 }
             })
             .build()
-            
+
         player.addListener(object : Player.Listener {
             override fun onAudioSessionIdChanged(audioSessionId: Int) {
                 super.onAudioSessionIdChanged(audioSessionId)
@@ -283,11 +260,7 @@ class MusicPlaybackService : MediaSessionService() {
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 super.onIsPlayingChanged(isPlaying)
-                if (isPlaying) {
-                    acquireWakeLocks()
-                } else if (player.playbackState != Player.STATE_BUFFERING && player.playbackState != Player.STATE_ENDED) {
-                    releaseWakeLocks()
-                }
+                // WakeLock management delegated to ExoPlayer's WAKE_MODE_NETWORK — no manual action needed here
                 try {
                     val currentMedia = player.currentMediaItem
                     MusicWidgetUpdater.update(
@@ -300,26 +273,6 @@ class MusicPlaybackService : MediaSessionService() {
                 } catch (_: Exception) {}
             }
 
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                super.onPlaybackStateChanged(playbackState)
-                when (playbackState) {
-                    Player.STATE_BUFFERING, Player.STATE_READY -> {
-                        if (player.playWhenReady) {
-                            acquireWakeLocks()
-                        }
-                    }
-                    Player.STATE_ENDED -> {
-                        // Crucial: hold transition wakelock so CPU and network do not sleep while next song extracts
-                        acquireWakeLocks(60_000L)
-                    }
-                    Player.STATE_IDLE -> {
-                        if (!player.playWhenReady) {
-                            releaseWakeLocks()
-                        }
-                    }
-                }
-            }
-
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                 super.onPlayerError(error)
                 android.util.Log.e("PlaybackService", "ExoPlayer Error: ${error.message} (Code: ${error.errorCode})")
@@ -329,6 +282,30 @@ class MusicPlaybackService : MediaSessionService() {
         try {
             val filter = IntentFilter("com.gaminghub.musify.WIDGET_PLAY_PAUSE")
             ContextCompat.registerReceiver(this, widgetReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+        } catch (_: Exception) {}
+    }
+
+    /**
+     * Dispatches a playback control command (next/prev/play-pause).
+     *
+     * Strategy:
+     * 1. Always send a local broadcast — received by MusicViewModel's dynamically registered
+     *    receiver when the app is in the foreground.
+     * 2. Also call MusicViewModel directly via its static WeakReference — this is the fallback
+     *    that makes lockscreen and Bluetooth headset controls work even after the Activity has
+     *    been destroyed and its broadcast receiver unregistered (P0 #2 fix).
+     */
+    private fun sendPlaybackBroadcast(action: String) {
+        try {
+            sendBroadcast(Intent(action).setPackage(packageName))
+        } catch (_: Exception) {}
+        // Fallback: call ViewModel directly if broadcast receiver is dead
+        try {
+            val vm = MusicViewModel.instance?.get() ?: return
+            when (action) {
+                "com.gaminghub.musify.WIDGET_NEXT" -> vm.playNext(fromUser = true)
+                "com.gaminghub.musify.WIDGET_PREV" -> vm.playPrevious()
+            }
         } catch (_: Exception) {}
     }
 
@@ -364,7 +341,11 @@ class MusicPlaybackService : MediaSessionService() {
             unregisterReceiver(widgetReceiver)
         } catch (_: Exception) {}
         currentAudioSessionId = -1
-        releaseWakeLocks()
+        // Release native AudioEffect handles BEFORE player.release() to prevent
+        // AudioFlinger native resource leaks (system-wide ~32 effect handle limit).
+        try {
+            com.gaminghub.musicplayer.util.EqualizerManager.getInstance(this).release()
+        } catch (_: Exception) {}
         mediaSession?.run {
             player.release()
             release()
