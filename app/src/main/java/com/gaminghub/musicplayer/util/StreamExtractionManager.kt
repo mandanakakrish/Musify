@@ -73,14 +73,23 @@ object StreamExtractionManager {
              }
         }
         
-        activeExtractions[url]?.join()
+        val currentJob = currentCoroutineContext()[Job]
+        val existingJob = activeExtractions[url]
+        if (existingJob != null && existingJob !== currentJob) {
+            try {
+                withTimeout(12_000L) {
+                    existingJob.join()
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Wait for extraction of $url ended: ${e.message}")
+            }
+        }
         
         val stillCached = streamUrlCache[url]
         if (stillCached != null && !isUrlExpired(stillCached)) {
             if (fastStart || verifyUrl(stillCached)) return stillCached
         }
 
-        val currentJob = currentCoroutineContext()[Job]
         if (currentJob != null) {
             activeExtractions.putIfAbsent(url, currentJob)
         }
@@ -364,6 +373,8 @@ object StreamExtractionManager {
         val job = extractionScope.launch {
             try {
                 extractPlayableUrl(url, fastStart = false)
+            } catch (e: Exception) {
+                Log.w(TAG, "preExtract failed for $url: ${e.message}")
             } finally {
                 activeExtractions.remove(url)
             }

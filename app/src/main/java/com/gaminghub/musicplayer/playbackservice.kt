@@ -319,6 +319,13 @@ class MusicPlaybackService : MediaSessionService() {
                 } catch (_: Exception) {}
             }
 
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                super.onPlaybackStateChanged(playbackState)
+                if (playbackState == Player.STATE_ENDED) {
+                    sendPlaybackBroadcast("com.gaminghub.musify.WIDGET_NEXT", fromUser = false)
+                }
+            }
+
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                 super.onPlayerError(error)
                 android.util.Log.e("PlaybackService", "ExoPlayer Error: ${error.message} (Code: ${error.errorCode})")
@@ -336,13 +343,13 @@ class MusicPlaybackService : MediaSessionService() {
      *    that makes lockscreen and Bluetooth headset controls work even after the Activity has
      *    been destroyed and its broadcast receiver unregistered (P0 #2 fix).
      */
-    private fun sendPlaybackBroadcast(action: String) {
+    private fun sendPlaybackBroadcast(action: String, fromUser: Boolean = true) {
         var directHandled = false
         try {
             val vm = MusicViewModel.instance?.get()
             if (vm != null) {
                 when (action) {
-                    "com.gaminghub.musify.WIDGET_NEXT" -> vm.playNext(fromUser = true)
+                    "com.gaminghub.musify.WIDGET_NEXT" -> vm.playNext(fromUser = fromUser)
                     "com.gaminghub.musify.WIDGET_PREV" -> vm.playPrevious()
                 }
                 directHandled = true

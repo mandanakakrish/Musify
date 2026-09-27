@@ -408,6 +408,8 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     private var isNavigatingHistory = false
     private var lastPreviousClickTimeMs: Long = 0L
     private var lastNextClickTimeMs: Long = 0L
+    private var lastAutoAdvanceTimeMs: Long = 0L
+    private var playTrackJob: kotlinx.coroutines.Job? = null
 
     private var mediaControllerFuture: ListenableFuture<MediaController>? = null
     private val mediaController: MediaController?
@@ -644,7 +646,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                                 isCompletion = true
                             )
                         }
-                        playNext()
+                        playNext(fromUser = false)
                     }
                 }
                 
@@ -667,18 +669,18 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                 }
             })
             if (settingsPrefs.getBoolean("load_last_session", true)) {
-                viewModelScope.launch(Dispatchers.IO) {
+                viewModelScope.launch(Dispatchers.Main) {
                     try {
-                        if (controller.currentMediaItem == null && _currentTrack.value == null) {
-                            val history = dao.getRecentHistory().first()
+                        // MediaController MUST be accessed from the main thread
+                        val hasActiveMedia = controller.currentMediaItem != null
+                        if (!hasActiveMedia && _currentTrack.value == null) {
+                            val history = withContext(Dispatchers.IO) { dao.getRecentHistory().first() }
                             if (history.isNotEmpty()) {
                                 val lastTrack = history.first().toModel()
                                 val models = history.take(25).map { it.toModel() }
-                                withContext(Dispatchers.Main) {
-                                    if (_currentTrack.value == null) {
-                                        _currentTrack.value = lastTrack
-                                        _currentQueue.value = models
-                                    }
+                                if (_currentTrack.value == null) {
+                                    _currentTrack.value = lastTrack
+                                    _currentQueue.value = models
                                 }
                             }
                         }
@@ -1370,7 +1372,8 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
             populateSmartNextQueue(track)
         }
 
-        viewModelScope.launch {
+        playTrackJob?.cancel()
+        playTrackJob = viewModelScope.launch {
             // Ensure MediaController is connected
             var controller = mediaController
             if (controller == null) {
@@ -1416,12 +1419,19 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
 
+                if (!isActive || _currentTrack.value?.audioUrl != track.audioUrl) {
+                    Log.d(tag, "Playback superseded or cancelled for '${track.title}'")
+                    return@withContext
+                }
+
                 if (playUri != null) {
                     withContext(Dispatchers.Main) {
-                        val mediaItem = MediaItem.Builder()
+                        if (!isActive || _currentTrack.value?.audioUrl != track.audioUrl) {
+                            return@withContext
+                        }
+                        val mediaItemBuilder = MediaItem.Builder()
                             .setUri(playUri)
                             .setMediaId(url)
-                            .setCustomCacheKey(url)
                             .setMediaMetadata(
                                 androidx.media3.common.MediaMetadata.Builder()
                                     .setTitle(track.title)
@@ -1430,7 +1440,10 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                                     .setExtras(android.os.Bundle().apply { putString("original_url", url) })
                                     .build()
                             )
-                            .build()
+                        if (url.startsWith("http://") || url.startsWith("https://")) {
+                            mediaItemBuilder.setCustomCacheKey(url)
+                        }
+                        val mediaItem = mediaItemBuilder.build()
                             
                         controller.setMediaItem(mediaItem, /* resetPosition = */ true)
                         controller.setPlaybackParameters(
@@ -1454,10 +1467,11 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                 } else {
                     Log.e(tag, "Failed to resolve playable audio source for '${track.title}' ($url)")
                     withContext(Dispatchers.Main) {
+                        if (!isActive || _currentTrack.value?.audioUrl != track.audioUrl) return@withContext
                         _isLoading.value = false
                         // Automatically advance to the next song instead of halting playback
                         Log.w(tag, "Advancing to next track due to extraction failure for '${track.title}'")
-                        playNext()
+                        playNext(fromUser = false)
                     }
                 }
             }
@@ -2047,6 +2061,12 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         val now = System.currentTimeMillis()
         if (fromUser && (now - lastNextClickTimeMs) < 350L) {
             return
+        }
+        if (!fromUser && (now - lastAutoAdvanceTimeMs) < 1000L) {
+            return
+        }
+        if (!fromUser) {
+            lastAutoAdvanceTimeMs = now
         }
         lastNextClickTimeMs = now
 
