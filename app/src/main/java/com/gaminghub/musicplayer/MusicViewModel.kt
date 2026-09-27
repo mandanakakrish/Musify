@@ -869,6 +869,16 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
             }
+            // Validate existing downloaded tracks: if local file was deleted externally, clear localPath in DB
+            val currentDownloaded = dao.getDownloadedTracksSync()
+            for (downloaded in currentDownloaded) {
+                val path = downloaded.localPath
+                if (path != null && !java.io.File(path).exists()) {
+                    dao.updateLocalPath(downloaded.audioUrl, null)
+                    Log.d(tag, "Cleaned up missing download path for track: ${downloaded.title} ($path)")
+                }
+            }
+
             if (restoredCount > 0) {
                 Log.d(tag, "restoreMusifyDownloads finished. Restored/updated $restoredCount tracks.")
             }
@@ -1117,6 +1127,8 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         fetchMusic(query, _trendingTracks)
     }
 
+    private var searchJob: Job? = null
+
     fun searchMusic(query: String) {
         val trimmed = query.trim()
         if (trimmed.isEmpty()) return
@@ -1126,12 +1138,14 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         val cacheKey = trimmed.lowercase()
         val cached = searchCache.get(cacheKey)
         if (!cached.isNullOrEmpty()) {
+            searchJob?.cancel()
             _searchTracks.value = cached
             _isLoading.value = false
             return
         }
 
-        viewModelScope.launch(Dispatchers.IO) {
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch(Dispatchers.IO) {
             try {
                 _isLoading.value = true
                 val results = youtubeRepository.fetchMusic(trimmed, SearchSource.YT_MUSIC)
@@ -1432,7 +1446,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _activeDownloads = MutableStateFlow<Map<String, DownloadProgress>>(emptyMap())
     val activeDownloads: StateFlow<Map<String, DownloadProgress>> = _activeDownloads.asStateFlow()
-    private val downloadJobs = mutableMapOf<String, Job>()
+    private val downloadJobs = java.util.concurrent.ConcurrentHashMap<String, Job>()
 
     fun isTrackDownloaded(audioUrl: String?): Boolean {
         if (audioUrl == null) return false
@@ -1659,6 +1673,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
         downloadJobs[url] = job
+        job.invokeOnCompletion { downloadJobs.remove(url) }
     }
 
     fun deleteDownload(track: TrackModel) {
@@ -2458,7 +2473,11 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         } catch (_: Exception) {}
         sleepTimerJob?.cancel()
         lyricsJob?.cancel()
+        searchJob?.cancel()
+        personalizedJob?.cancel()
+        recommendationJob?.cancel()
         downloadJobs.values.forEach { it.cancel() }
+        downloadJobs.clear()
         mediaControllerFuture?.let {
             MediaController.releaseFuture(it)
         }

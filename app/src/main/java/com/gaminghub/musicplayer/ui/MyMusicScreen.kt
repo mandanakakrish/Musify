@@ -127,24 +127,24 @@ fun MyMusicScreen(viewModel: MusicViewModel, navController: NavController, playl
                         DropdownMenu(
                             expanded = showSortMenu,
                             onDismissRequest = { showSortMenu = false },
-                            modifier = Modifier.background(Color(0xFF2B2B2B))
+                            modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
                         ) {
                             listOf("Display Name", "Date Added", "Album", "Artist").forEach { option ->
                                 DropdownMenuItem(
-                                    text = { Text(option, color = Color.White) },
+                                    text = { Text(option, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                                     onClick = { sortOption = option; showSortMenu = false },
                                     trailingIcon = {
-                                        if (sortOption == option) Icon(Icons.Default.Check, contentDescription = null, tint = Color.White)
+                                        if (sortOption == option) Icon(Icons.Default.Check, contentDescription = null, tint = MusifyGreen)
                                     }
                                 )
                             }
-                            HorizontalDivider(color = Color.Gray, thickness = 0.5.dp)
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), thickness = 0.5.dp)
                             listOf("Increasing", "Decreasing").forEach { order ->
                                 DropdownMenuItem(
-                                    text = { Text(order, color = Color.White) },
+                                    text = { Text(order, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                                     onClick = { sortOrder = order; showSortMenu = false },
                                     trailingIcon = {
-                                        if (sortOrder == order) Icon(Icons.Default.Check, contentDescription = null, tint = Color.White)
+                                        if (sortOrder == order) Icon(Icons.Default.Check, contentDescription = null, tint = MusifyGreen)
                                     }
                                 )
                             }
@@ -243,7 +243,7 @@ fun MyMusicScreen(viewModel: MusicViewModel, navController: NavController, playl
                                     val isSelected = selectedArtistTag == artistName
                                     Surface(
                                         shape = RoundedCornerShape(20.dp),
-                                        color = if (isSelected) Color.White else Color(0xFF2B2B2B),
+                                        color = if (isSelected) MusifyGreen else MaterialTheme.colorScheme.surfaceVariant,
                                         modifier = Modifier.clickable {
                                             selectedArtistTag = if (isSelected) null else artistName
                                         }
@@ -255,13 +255,13 @@ fun MyMusicScreen(viewModel: MusicViewModel, navController: NavController, playl
                                             Icon(
                                                 Icons.Default.Person,
                                                 contentDescription = null,
-                                                tint = if (isSelected) Color.Black else Color.Gray,
+                                                tint = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.size(16.dp)
                                             )
                                             Spacer(modifier = Modifier.width(4.dp))
                                             Text(
                                                 artistName,
-                                                color = if (isSelected) Color.Black else Color.White,
+                                                color = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant,
                                                 fontSize = 13.sp,
                                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                             )
@@ -269,7 +269,7 @@ fun MyMusicScreen(viewModel: MusicViewModel, navController: NavController, playl
                                     }
                                 }
                             }
-                            HorizontalDivider(color = Color(0xFF2B2B2B), thickness = 0.5.dp)
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), thickness = 0.5.dp)
                             // List: filtered or all
                             val filteredArtists = if (selectedArtistTag != null)
                                 artists.filter { it.key == selectedArtistTag }
@@ -308,14 +308,14 @@ fun MyMusicScreen(viewModel: MusicViewModel, navController: NavController, playl
                                     val isSelected = selectedGenreTag == genreName
                                     Surface(
                                         shape = RoundedCornerShape(20.dp),
-                                        color = if (isSelected) Color(0xFF1DB954) else Color(0xFF2B2B2B),
+                                        color = if (isSelected) MusifyGreen else MaterialTheme.colorScheme.surfaceVariant,
                                         modifier = Modifier.clickable {
                                             selectedGenreTag = if (isSelected) null else genreName
                                         }
                                     ) {
                                         Text(
                                             genreName,
-                                            color = Color.White,
+                                            color = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant,
                                             fontSize = 13.sp,
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
@@ -323,7 +323,7 @@ fun MyMusicScreen(viewModel: MusicViewModel, navController: NavController, playl
                                     }
                                 }
                             }
-                            HorizontalDivider(color = Color(0xFF2B2B2B), thickness = 0.5.dp)
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), thickness = 0.5.dp)
                             // List: filtered or all
                             val filteredGenres = if (selectedGenreTag != null)
                                 genres.filter { it.key == selectedGenreTag }
@@ -382,11 +382,11 @@ fun MyMusicScreen(viewModel: MusicViewModel, navController: NavController, playl
                                 }
                                 if (list.isNotEmpty()) viewModel.playTrack(list.shuffled().first(), list)
                             },
-                        color = Color(0xFF1A1A1A),
+                        color = MusifyGreen,
                         shadowElevation = 8.dp
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.Shuffle, contentDescription = "Shuffle", tint = Color.White, modifier = Modifier.size(24.dp))
+                            Icon(Icons.Default.Shuffle, contentDescription = "Shuffle", tint = Color.Black, modifier = Modifier.size(24.dp))
                         }
                     }
                 }
@@ -424,7 +424,7 @@ fun SpotifyEmptyState(actionText: String = "Download Something") {
             Spacer(modifier = Modifier.height(20.dp))
             Text(
                 text = "Nothing to Show Here",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
