@@ -327,17 +327,22 @@ class MusicPlaybackService : MediaSessionService() {
      *    been destroyed and its broadcast receiver unregistered (P0 #2 fix).
      */
     private fun sendPlaybackBroadcast(action: String) {
+        var directHandled = false
         try {
-            sendBroadcast(Intent(action).setPackage(packageName))
-        } catch (_: Exception) {}
-        // Fallback: call ViewModel directly if broadcast receiver is dead
-        try {
-            val vm = MusicViewModel.instance?.get() ?: return
-            when (action) {
-                "com.gaminghub.musify.WIDGET_NEXT" -> vm.playNext(fromUser = true)
-                "com.gaminghub.musify.WIDGET_PREV" -> vm.playPrevious()
+            val vm = MusicViewModel.instance?.get()
+            if (vm != null) {
+                when (action) {
+                    "com.gaminghub.musify.WIDGET_NEXT" -> vm.playNext(fromUser = true)
+                    "com.gaminghub.musify.WIDGET_PREV" -> vm.playPrevious()
+                }
+                directHandled = true
             }
         } catch (_: Exception) {}
+        if (!directHandled) {
+            try {
+                sendBroadcast(Intent(action).setPackage(packageName))
+            } catch (_: Exception) {}
+        }
     }
 
     private val widgetReceiver = object : BroadcastReceiver() {

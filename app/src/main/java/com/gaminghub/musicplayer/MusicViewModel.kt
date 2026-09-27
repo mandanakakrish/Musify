@@ -403,6 +403,12 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     private var currentTrackStartTimeMs: Long = 0L
     private var currentTrackAudioUrl: String? = null
 
+    // Session history of played tracks for reliable "Previous" navigation across searches, radios & autoplays
+    private val playedHistoryStack = java.util.ArrayDeque<TrackModel>()
+    private var isNavigatingHistory = false
+    private var lastPreviousClickTimeMs: Long = 0L
+    private var lastNextClickTimeMs: Long = 0L
+
     private var mediaControllerFuture: ListenableFuture<MediaController>? = null
     private val mediaController: MediaController?
         get() = if (mediaControllerFuture?.isDone == true) try { mediaControllerFuture?.get() } catch (_: Exception) { null } else null
@@ -1301,12 +1307,24 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         if (!isRetry) {
             exoPlayerRetryCount = 0
         }
+        val previousTrack = _currentTrack.value
+        if (!isRetry && !isNavigatingHistory && previousTrack != null && previousTrack.audioUrl != track.audioUrl) {
+            if (playedHistoryStack.isEmpty() || playedHistoryStack.peekLast()?.audioUrl != previousTrack.audioUrl) {
+                if (playedHistoryStack.size >= 50) {
+                    playedHistoryStack.removeFirst()
+                }
+                playedHistoryStack.addLast(previousTrack)
+            }
+        }
+        isNavigatingHistory = false
+
         _currentTrack.value = track
         currentTrackStartTimeMs = System.currentTimeMillis()
         currentTrackAudioUrl = track.audioUrl
         val activeQueue = when {
             queue.isNotEmpty() -> queue
-            _currentQueue.value.isNotEmpty() -> _currentQueue.value
+            _currentQueue.value.any { it.audioUrl == track.audioUrl } -> _currentQueue.value
+            _currentQueue.value.isNotEmpty() -> listOf(track) + _currentQueue.value
             else -> listOf(track)
         }
         _currentQueue.value = activeQueue
@@ -1414,11 +1432,13 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                             )
                             .build()
                             
-                        controller.setMediaItem(mediaItem)
+                        controller.setMediaItem(mediaItem, /* resetPosition = */ true)
+                        controller.seekTo(0, 0L)
                         controller.setPlaybackParameters(
                             androidx.media3.common.PlaybackParameters(_playbackSpeed.value)
                         )
                         controller.prepare()
+                        controller.playWhenReady = true
                         controller.play()
                         _isPlaying.value = true
                         _isLoading.value = false
@@ -2025,12 +2045,19 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun playNext(fromUser: Boolean = false) {
+        val now = System.currentTimeMillis()
+        if (fromUser && (now - lastNextClickTimeMs) < 350L) {
+            return
+        }
+        lastNextClickTimeMs = now
+
         val current = _currentTrack.value
         val queue = _currentQueue.value
 
         // Handle Repeat One: if triggered automatically (not explicit user action), loop current song
         if (_repeatMode.value == Player.REPEAT_MODE_ONE && !fromUser && current != null) {
             seekTo(0)
+            mediaController?.playWhenReady = true
             mediaController?.play()
             return
         }
@@ -2078,28 +2105,56 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun playPrevious() {
+        val now = System.currentTimeMillis()
+        val isRapidClick = (now - lastPreviousClickTimeMs) < 2500L
+        lastPreviousClickTimeMs = now
+
         val settingsPrefs = getApplication<Application>().getSharedPreferences("Musify_settings", Context.MODE_PRIVATE)
         val replayOnSkip = settingsPrefs.getBoolean("replay_skip_previous", false)
         val currentPos = _currentPosition.value
 
-        if (replayOnSkip || currentPos > 3000L) {
+        // If played for more than 3s and this is not a rapid re-click to go to the previous song: seek to beginning
+        if (!isRapidClick && (replayOnSkip || currentPos > 3000L)) {
             seekTo(0)
+            _currentPosition.value = 0L
             return
         }
 
         val current = _currentTrack.value
         val queue = _currentQueue.value
+
+        // 1. First priority: Check session playback history stack (tracks played across search, autoplay, radios)
+        while (playedHistoryStack.isNotEmpty()) {
+            val candidate = playedHistoryStack.removeLast()
+            if (candidate.audioUrl != null && candidate.audioUrl != current?.audioUrl) {
+                isNavigatingHistory = true
+                val activeQueue = if (queue.any { it.audioUrl == candidate.audioUrl }) {
+                    queue
+                } else {
+                    listOf(candidate) + queue
+                }
+                playTrack(candidate, activeQueue)
+                return
+            }
+        }
+
+        // 2. Second priority: If no history stack, use linear queue index
         if (queue.isNotEmpty() && current != null) {
             val idx = queue.indexOfFirst { it.audioUrl == current.audioUrl }
             if (idx > 0) {
+                isNavigatingHistory = true
                 playTrack(queue[idx - 1], queue)
                 return
             } else if (_repeatMode.value == Player.REPEAT_MODE_ALL) {
+                isNavigatingHistory = true
                 playTrack(queue.last(), queue)
                 return
             }
         }
+
+        // 3. Fallback: seek to beginning
         seekTo(0)
+        _currentPosition.value = 0L
     }
 
     fun setSpeedLock(enabled: Boolean) {
