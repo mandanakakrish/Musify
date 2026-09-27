@@ -23,3 +23,6 @@ np_dump.xml
 nowplaying_dump.xml
 app/release/
 feature_backups/
+
+# Local secrets - never push tokens/keys
+.secrets/
