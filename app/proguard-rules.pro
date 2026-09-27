@@ -27,9 +27,13 @@
 -keep class com.gaminghub.musicplayer.TrackModel { *; }
 -keep class com.gaminghub.musicplayer.MusicModels** { *; }
 
-# NewPipe Extractor — reflection-heavy, keep all
+# NewPipe Extractor & Mozilla Rhino (JS engine) — reflection-heavy, keep all
 -keep class org.schabi.newpipe.extractor.** { *; }
 -dontwarn org.schabi.newpipe.extractor.**
+-keep class org.mozilla.javascript.** { *; }
+-dontwarn org.mozilla.javascript.**
+-dontwarn java.beans.**
+-dontwarn javax.script.**
 
 # OkHttp / Retrofit
 -dontwarn okhttp3.**
