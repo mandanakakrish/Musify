@@ -1,9 +1,9 @@
 {
-  "versionCode": 5,
-  "versionName": "1.7.3",
+  "versionCode": 6,
+  "versionName": "1.7.4",
   "minVersionCode": 5,
-  "forceUpdate": true,
-  "title": "Musify v1.7.3 Update",
-  "changelog": "- Strict offline mode: Only Downloaded & My Music accessible when update is pending\n- Light gradient effect on Now Playing screen in light mode\n- High contrast controls & queue panel\n- In-app direct download & update installer",
-  "downloadUrl": "https://github.com/mandanakakrish/Musify/releases/download/v1.7.3/Musify.apk"
+  "forceUpdate": false,
+  "title": "Musify v1.7.4 Update",
+  "changelog": "- Song auto-advance fixed: next song plays automatically when one ends\n- Widget controls working: Play/Pause, Next, Prev on home screen widget\n- No more double-skip: debounce prevents skipping two songs at once\n- Background playback: auto-advance works with screen off or app in background\n- Session restore fixed: no more crash-risk on app startup\n- Stream extraction: fixed potential hang in URL extraction",
+  "downloadUrl": "https://github.com/mandanakakrish/Musify/releases/download/v1.7.4/Musify.apk"
 }
