@@ -24,9 +24,7 @@ import android.content.IntentFilter
 import android.net.Uri
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
-import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.cache.CacheDataSource
-import androidx.media3.datasource.cache.CacheKeyFactory
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.database.StandaloneDatabaseProvider
@@ -49,31 +47,20 @@ class MusicPlaybackService : MediaSessionService() {
         @Synchronized
         fun getCache(context: Context): SimpleCache {
             if (exoplayerCache == null) {
-                val cacheDir = java.io.File(context.cacheDir, "exoplayer_cache")
+                // Purge legacy cache folder that may contain corrupted collisions
+                try {
+                    val oldCacheDir = java.io.File(context.cacheDir, "exoplayer_cache")
+                    if (oldCacheDir.exists()) {
+                        oldCacheDir.deleteRecursively()
+                    }
+                } catch (_: Exception) {}
+
+                val cacheDir = java.io.File(context.cacheDir, "exoplayer_cache_v2")
                 val evictor = LeastRecentlyUsedCacheEvictor(150 * 1024 * 1024L)
                 val databaseProvider = StandaloneDatabaseProvider(context)
                 exoplayerCache = SimpleCache(cacheDir, evictor, databaseProvider)
             }
             return exoplayerCache!!
-        }
-
-        /**
-         * Stable cache key factory for YouTube streams.
-         *
-         * YouTube googlevideo.com URLs contain session tokens (expire=, sig=, lmt=, …) that
-         * rotate every ~6 hours. Using the raw URI as a cache key means each play re-downloads
-         * the same audio. Instead we extract the stable video ID ("id=" query param) and use
-         * that as the cache key so the 150 MB LRU cache is actually reused across plays.
-         */
-        val youtubeCacheKeyFactory = CacheKeyFactory { dataSpec ->
-            val uri = dataSpec.uri
-            if (uri.host?.contains("googlevideo.com") == true) {
-                // "id" param contains the stable YouTube video ID
-                val videoId = uri.getQueryParameter("id")
-                if (!videoId.isNullOrBlank()) "yt_$videoId" else dataSpec.key ?: uri.toString()
-            } else {
-                dataSpec.key ?: uri.toString()
-            }
         }
 
         @JvmStatic
@@ -117,7 +104,6 @@ class MusicPlaybackService : MediaSessionService() {
                 CacheDataSource.Factory()
                     .setCache(getCache(this))
                     .setUpstreamDataSourceFactory(dataSourceFactory)
-                    .setCacheKeyFactory(youtubeCacheKeyFactory)  // stable video-ID based keys
                     .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
             } catch (e: Exception) {
                 dataSourceFactory

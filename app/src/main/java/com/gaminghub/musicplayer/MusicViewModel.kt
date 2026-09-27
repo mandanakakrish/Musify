@@ -1403,6 +1403,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                         val mediaItem = MediaItem.Builder()
                             .setUri(playUri)
                             .setMediaId(url)
+                            .setCustomCacheKey(url)
                             .setMediaMetadata(
                                 androidx.media3.common.MediaMetadata.Builder()
                                     .setTitle(track.title)
