@@ -1433,7 +1433,6 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                             .build()
                             
                         controller.setMediaItem(mediaItem, /* resetPosition = */ true)
-                        controller.seekTo(0, 0L)
                         controller.setPlaybackParameters(
                             androidx.media3.common.PlaybackParameters(_playbackSpeed.value)
                         )

@@ -17,14 +17,10 @@ import kotlinx.coroutines.withContext
 import java.net.URL
 
 /**
- * Musify home-screen widget.
+ * Musify home-screen widget provider.
  *
- * Displays the currently playing track (album art, title, artist) and
- * provides Prev / Play-Pause / Next controls that forward commands to
- * MainActivity → MusicViewModel via broadcast.
- *
- * The widget is refreshed whenever MusicViewModel calls
- * [MusicWidgetUpdater.update] (called from MainActivity on track/state changes).
+ * Displays current track (title, artist, album art) and provides Prev / Play-Pause / Next
+ * controls with direct ViewModel and Service dispatching to eliminate broadcast recursion.
  */
 class Player : AppWidgetProvider() {
 
@@ -33,8 +29,33 @@ class Player : AppWidgetProvider() {
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray
     ) {
+        val vm = MusicViewModel.instance?.get()
+        val track = vm?.currentTrack?.value
+        val isPlaying = vm?.isPlaying?.value ?: false
+        val title = track?.title
+        val artist = track?.artist
+        val artUrl = track?.albumArtUrl
+
         for (appWidgetId in appWidgetIds) {
-            updateWidget(context, appWidgetManager, appWidgetId, null, null, false)
+            updateWidget(context, appWidgetManager, appWidgetId, title, artist, isPlaying, null)
+        }
+
+        if (!artUrl.isNullOrBlank()) {
+            val pendingResult = goAsync()
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val bitmap = tryLoadBitmap(context, artUrl)
+                    if (bitmap != null) {
+                        withContext(Dispatchers.Main) {
+                            for (id in appWidgetIds) {
+                                updateWidget(context, appWidgetManager, id, title, artist, isPlaying, bitmap)
+                            }
+                        }
+                    }
+                } finally {
+                    pendingResult.finish()
+                }
+            }
         }
     }
 
@@ -42,14 +63,22 @@ class Player : AppWidgetProvider() {
         super.onReceive(context, intent)
 
         when (intent.action) {
-            ACTION_CLICK_PLAY_PAUSE, ACTION_PLAY_PAUSE -> {
-                context.sendBroadcast(Intent(ACTION_PLAY_PAUSE).setPackage(context.packageName))
+            ACTION_CLICK_PLAY_PAUSE -> {
+                val vm = MusicViewModel.instance?.get()
+                if (vm != null) {
+                    vm.togglePlayPause()
+                } else {
+                    val svcIntent = Intent(context, MusicPlaybackService::class.java).apply {
+                        action = ACTION_PLAY_PAUSE
+                    }
+                    try { context.startService(svcIntent) } catch (_: Exception) {}
+                }
             }
-            ACTION_CLICK_NEXT, ACTION_NEXT -> {
-                context.sendBroadcast(Intent(ACTION_NEXT).setPackage(context.packageName))
+            ACTION_CLICK_NEXT -> {
+                MusicViewModel.instance?.get()?.playNext(fromUser = true)
             }
-            ACTION_CLICK_PREV, ACTION_PREV -> {
-                context.sendBroadcast(Intent(ACTION_PREV).setPackage(context.packageName))
+            ACTION_CLICK_PREV -> {
+                MusicViewModel.instance?.get()?.playPrevious()
             }
             ACTION_UPDATE_WIDGET -> {
                 val title = intent.getStringExtra(EXTRA_TITLE)
@@ -62,12 +91,28 @@ class Player : AppWidgetProvider() {
                     ComponentName(context, Player::class.java)
                 )
                 if (ids.isNotEmpty()) {
-                    // Load album art in background then update all widget instances
-                    CoroutineScope(Dispatchers.IO).launch {
-                        val bitmap = tryLoadBitmap(context, artUrl)
-                        withContext(Dispatchers.Main) {
-                            for (id in ids) {
-                                updateWidget(context, manager, id, title, artist, isPlaying, bitmap)
+                    // Update text & play/pause icon immediately so the widget is snappy
+                    for (id in ids) {
+                        updateWidget(context, manager, id, title, artist, isPlaying, null)
+                    }
+
+                    // Asynchronously load album art with goAsync() so Android does not kill the receiver
+                    if (!artUrl.isNullOrBlank()) {
+                        val pendingResult = goAsync()
+                        CoroutineScope(Dispatchers.IO).launch {
+                            try {
+                                val bitmap = tryLoadBitmap(context, artUrl)
+                                if (bitmap != null) {
+                                    withContext(Dispatchers.Main) {
+                                        for (id in ids) {
+                                            updateWidget(context, manager, id, title, artist, isPlaying, bitmap)
+                                        }
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Log.w("MusicWidget", "Album art update failed: ${e.message}")
+                            } finally {
+                                pendingResult.finish()
                             }
                         }
                     }
@@ -96,8 +141,8 @@ class Player : AppWidgetProvider() {
             if (url.isNullOrBlank()) return null
             return try {
                 val connection = URL(url).openConnection().apply {
-                    connectTimeout = 4000
-                    readTimeout    = 4000
+                    connectTimeout = 3000
+                    readTimeout    = 3000
                 }
                 connection.getInputStream().use { stream ->
                     val opts = BitmapFactory.Options().apply { inSampleSize = 2 }
@@ -163,15 +208,16 @@ private fun updateWidget(
         views.setImageViewResource(R.id.widget_album_art, R.drawable.ic_launcher_circle)
     }
 
-    appWidgetManager.updateAppWidget(appWidgetId, views)
+    try {
+        appWidgetManager.updateAppWidget(appWidgetId, views)
+    } catch (e: Exception) {
+        Log.w("MusicWidget", "Failed updating appWidget: ${e.message}")
+    }
 }
 
 /**
  * Call this from MainActivity (or MusicViewModel) whenever the current
  * track or playback state changes to push an update to all widget instances.
- *
- * Example:
- *   MusicWidgetUpdater.update(context, track?.title, track?.artist, track?.albumArtUrl, isPlaying)
  */
 object MusicWidgetUpdater {
     fun update(
@@ -181,13 +227,17 @@ object MusicWidgetUpdater {
         artUrl: String?,
         isPlaying: Boolean
     ) {
-        val intent = Intent(context, Player::class.java).apply {
-            action = Player.ACTION_UPDATE_WIDGET
-            putExtra(Player.EXTRA_TITLE,      title)
-            putExtra(Player.EXTRA_ARTIST,     artist)
-            putExtra(Player.EXTRA_ART_URL,    artUrl)
-            putExtra(Player.EXTRA_IS_PLAYING, isPlaying)
+        try {
+            val intent = Intent(context, Player::class.java).apply {
+                action = Player.ACTION_UPDATE_WIDGET
+                putExtra(Player.EXTRA_TITLE,      title)
+                putExtra(Player.EXTRA_ARTIST,     artist)
+                putExtra(Player.EXTRA_ART_URL,    artUrl)
+                putExtra(Player.EXTRA_IS_PLAYING, isPlaying)
+            }
+            context.sendBroadcast(intent)
+        } catch (e: Exception) {
+            Log.w("MusicWidgetUpdater", "Failed sending widget broadcast: ${e.message}")
         }
-        context.sendBroadcast(intent)
     }
 }

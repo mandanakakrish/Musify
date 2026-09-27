@@ -253,6 +253,9 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="com.gaminghub.musify.WIDGET_UPDATE" />
+                <action android:name="com.gaminghub.musify.WIDGET_CLICK_PLAY_PAUSE" />
+                <action android:name="com.gaminghub.musify.WIDGET_CLICK_NEXT" />
+                <action android:name="com.gaminghub.musify.WIDGET_CLICK_PREV" />
             </intent-filter>
 
             <meta-data

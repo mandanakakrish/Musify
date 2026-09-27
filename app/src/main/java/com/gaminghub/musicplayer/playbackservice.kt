@@ -71,6 +71,21 @@ class MusicPlaybackService : MediaSessionService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
+        if (intent?.action == "com.gaminghub.musify.WIDGET_PLAY_PAUSE") {
+            val vm = MusicViewModel.instance?.get()
+            if (vm != null) {
+                vm.togglePlayPause()
+            } else {
+                val p = mediaSession?.player
+                if (p != null) {
+                    if (p.isPlaying) {
+                        p.pause()
+                    } else if (p.playbackState != Player.STATE_IDLE) {
+                        p.play()
+                    }
+                }
+            }
+        }
         return START_STICKY
     }
 
@@ -309,11 +324,6 @@ class MusicPlaybackService : MediaSessionService() {
                 android.util.Log.e("PlaybackService", "ExoPlayer Error: ${error.message} (Code: ${error.errorCode})")
             }
         })
-
-        try {
-            val filter = IntentFilter("com.gaminghub.musify.WIDGET_PLAY_PAUSE")
-            ContextCompat.registerReceiver(this, widgetReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
-        } catch (_: Exception) {}
     }
 
     /**
@@ -345,19 +355,6 @@ class MusicPlaybackService : MediaSessionService() {
         }
     }
 
-    private val widgetReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == "com.gaminghub.musify.WIDGET_PLAY_PAUSE") {
-                val p = mediaSession?.player ?: return
-                if (p.isPlaying) {
-                    p.pause()
-                } else if (p.playbackState != Player.STATE_IDLE) {
-                    p.play()
-                }
-            }
-        }
-    }
-
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
         return mediaSession
     }
@@ -373,9 +370,6 @@ class MusicPlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
-        try {
-            unregisterReceiver(widgetReceiver)
-        } catch (_: Exception) {}
         currentAudioSessionId = -1
         // Release native AudioEffect handles BEFORE player.release() to prevent
         // AudioFlinger native resource leaks (system-wide ~32 effect handle limit).
