@@ -408,20 +408,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     private fun applyProxy(enabled: Boolean, address: String) {
         try {
-            if (enabled && address.isNotBlank()) {
-                val parts = address.split(":")
-                val host = parts[0].trim()
-                val port = parts.getOrNull(1)?.trim() ?: "8080"
-                System.setProperty("http.proxyHost", host)
-                System.setProperty("http.proxyPort", port)
-                System.setProperty("https.proxyHost", host)
-                System.setProperty("https.proxyPort", port)
-            } else {
-                System.clearProperty("http.proxyHost")
-                System.clearProperty("http.proxyPort")
-                System.clearProperty("https.proxyHost")
-                System.clearProperty("https.proxyPort")
-            }
+            com.gaminghub.musicplayer.util.NetworkProxyManager.updateProxy(enabled, address)
         } catch (_: Exception) {}
     }
 

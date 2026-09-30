@@ -17,6 +17,9 @@ class MusicPlayerApplication : Application() {
         super.onCreate()
         DynamicColors.applyToActivitiesIfAvailable(this)
         try {
+            com.gaminghub.musicplayer.util.NetworkProxyManager.init(this)
+        } catch (_: Exception) {}
+        try {
             com.google.firebase.FirebaseApp.initializeApp(this)
             com.google.firebase.firestore.FirebaseFirestore.setLoggingEnabled(BuildConfig.DEBUG)
         } catch (e: Exception) {
@@ -95,6 +98,7 @@ class MusicPlayerApplication : Application() {
 
             val client = OkHttpClient.Builder()
                 .cookieJar(cookieJar)
+                .proxySelector(com.gaminghub.musicplayer.util.NetworkProxyManager.proxySelector)
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
                 .writeTimeout(30, TimeUnit.SECONDS)

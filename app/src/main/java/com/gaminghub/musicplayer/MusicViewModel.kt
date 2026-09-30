@@ -422,6 +422,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
 
     private val downloadHttpClient by lazy {
         OkHttpClient.Builder()
+            .proxySelector(com.gaminghub.musicplayer.util.NetworkProxyManager.proxySelector)
             .connectionPool(ConnectionPool(8, 5, TimeUnit.MINUTES))
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)

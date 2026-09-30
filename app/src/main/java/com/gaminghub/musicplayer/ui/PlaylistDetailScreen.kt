@@ -500,12 +500,14 @@ fun PlaylistSongRow(
                 )
             }
 
+            val menuContainer = MaterialTheme.colorScheme.surface
+            val menuContent = MaterialTheme.colorScheme.onSurface
+
             DropdownMenu(
                 expanded = showMenu,
                 onDismissRequest = { showMenu = false },
-                containerColor = Color(0xFF22222E),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.background(Color(0xFF22222E), RoundedCornerShape(12.dp))
+                containerColor = menuContainer,
+                shape = RoundedCornerShape(12.dp)
             ) {
                 DropdownMenuItem(
                     text = { Text("Remove from Playlist", color = Color(0xFFFF5252)) },
@@ -517,7 +519,7 @@ fun PlaylistSongRow(
                 )
                 if (isAdmin) {
                     DropdownMenuItem(
-                        text = { Text("Link / Edit Artist", color = Color.White) },
+                        text = { Text("Link / Edit Artist", color = menuContent) },
                         leadingIcon = { Icon(Icons.Default.PersonPin, null, tint = MusifyGreen) },
                         onClick = {
                             showMenu = false
@@ -526,7 +528,7 @@ fun PlaylistSongRow(
                     )
                 }
                 DropdownMenuItem(
-                    text = { Text("Copy Song Link", color = Color.White) },
+                    text = { Text("Copy Song Link", color = menuContent) },
                     leadingIcon = { Icon(Icons.Default.ContentCopy, null, tint = MusifyGreen) },
                     onClick = {
                         showMenu = false
@@ -534,7 +536,7 @@ fun PlaylistSongRow(
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Share Song", color = Color.White) },
+                    text = { Text("Share Song", color = menuContent) },
                     leadingIcon = { Icon(Icons.Default.Share, null, tint = MusifyGreen) },
                     onClick = {
                         showMenu = false
@@ -542,8 +544,8 @@ fun PlaylistSongRow(
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Play Next", color = Color.White) },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = Color.White) },
+                    text = { Text("Play Next", color = menuContent) },
+                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = menuContent) },
                     onClick = { showMenu = false }
                 )
                 DropdownMenuItem(

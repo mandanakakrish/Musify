@@ -327,17 +327,19 @@ fun UserPlaylistRow(
                     modifier = Modifier.size(20.dp)
                 )
             }
+            val menuContainer = MaterialTheme.colorScheme.surface
+            val menuContent = MaterialTheme.colorScheme.onSurface
+
             DropdownMenu(
                 expanded = menuExpanded,
                 onDismissRequest = { menuExpanded = false },
-                containerColor = Color(0xFF22222E),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.background(Color(0xFF22222E), RoundedCornerShape(12.dp))
+                containerColor = menuContainer,
+                shape = RoundedCornerShape(12.dp)
             ) {
                 PlaylistMenuItem(
                     icon = Icons.Outlined.DriveFileRenameOutline,
                     label = "Rename",
-                    tint = Color.White
+                    tint = menuContent
                 ) {
                     menuExpanded = false
                     onRename()
@@ -353,7 +355,7 @@ fun UserPlaylistRow(
                 PlaylistMenuItem(
                     icon = Icons.Default.Upload,
                     label = "Export",
-                    tint = Color.White
+                    tint = menuContent
                 ) {
                     menuExpanded = false
                     onExport()
@@ -361,7 +363,7 @@ fun UserPlaylistRow(
                 PlaylistMenuItem(
                     icon = Icons.Default.Share,
                     label = "Share",
-                    tint = Color.White
+                    tint = menuContent
                 ) {
                     menuExpanded = false
                     onShare()

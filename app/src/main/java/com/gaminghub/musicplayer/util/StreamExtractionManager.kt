@@ -20,7 +20,11 @@ object StreamExtractionManager {
     private val activeExtractions = ConcurrentHashMap<String, Job>()
     private val extractionScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var musicDao: MusicDao? = null
-    private val defaultClient by lazy { OkHttpClient.Builder().build() }
+    private val defaultClient by lazy {
+        OkHttpClient.Builder()
+            .proxySelector(NetworkProxyManager.proxySelector)
+            .build()
+    }
     private var playbackClient: OkHttpClient? = null
     private var appContext: android.content.Context? = null
 

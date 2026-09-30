@@ -23,6 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
@@ -413,7 +414,64 @@ fun OthersSettingsScreen(navController: NavController, settingsViewModel: Settin
                     )
                 }
 
-                Spacer(modifier = Modifier.height(26.dp))
+                var testStatus by remember { mutableStateOf<String?>(null) }
+                var isTesting by remember { mutableStateOf(false) }
+                val scope = rememberCoroutineScope()
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Test Connection Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(
+                        onClick = {
+                            val cleanIp = ipAddress.trim()
+                            val port = portNumber.trim().toIntOrNull() ?: 8080
+                            if (cleanIp.isNotBlank()) {
+                                isTesting = true
+                                testStatus = "Testing proxy connection..."
+                                scope.launch {
+                                    val res = com.gaminghub.musicplayer.util.NetworkProxyManager.testProxyConnection(cleanIp, port)
+                                    isTesting = false
+                                    res.onSuccess { ms ->
+                                        testStatus = "✓ Proxy reachable (${ms}ms)"
+                                    }.onFailure { err ->
+                                        testStatus = "✗ Unreachable: ${err.message?.take(30)}"
+                                    }
+                                }
+                            }
+                        },
+                        enabled = !isTesting
+                    ) {
+                        Icon(
+                            Icons.Default.NetworkCheck,
+                            contentDescription = null,
+                            tint = MusifyGreen,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (isTesting) "Testing..." else "Test Connection",
+                            color = MusifyGreen,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
+                    if (testStatus != null) {
+                        Text(
+                            text = testStatus!!,
+                            color = if (testStatus!!.startsWith("✓")) MusifyGreen else Color(0xFFFF5252),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
 
                 // Full-width Ok button
                 Button(
@@ -423,7 +481,8 @@ fun OthersSettingsScreen(navController: NavController, settingsViewModel: Settin
                         if (cleanIp.isNotBlank() && cleanPort.isNotBlank()) {
                             val combined = "$cleanIp:$cleanPort"
                             settingsViewModel.setProxyAddress(combined)
-                            Toast.makeText(context, "Proxy updated: $combined", Toast.LENGTH_SHORT).show()
+                            settingsViewModel.setUseProxy(true)
+                            Toast.makeText(context, "Proxy active and routed: $combined", Toast.LENGTH_SHORT).show()
                         }
                         showProxySheet = false
                     },
