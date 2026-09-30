@@ -930,6 +930,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                     val sPrefs = getApplication<Application>().getSharedPreferences("Musify_settings", Context.MODE_PRIVATE)
                     val minAudioLengthSec = sPrefs.getInt("min_audio_length_sec", 30)
                     val excludedFolders = sPrefs.getStringSet("excluded_folders", emptySet()) ?: emptySet()
+                    val includedFolders = sPrefs.getStringSet("included_folders", emptySet()) ?: emptySet()
 
                     while (c.moveToNext()) {
                         val duration = if (durationCol >= 0) c.getLong(durationCol) else 0L
@@ -938,6 +939,9 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                         }
                         val path = c.getString(dataCol) ?: continue
                         if (excludedFolders.isNotEmpty() && excludedFolders.any { excluded -> path.contains(excluded, ignoreCase = true) }) {
+                            continue
+                        }
+                        if (includedFolders.isNotEmpty() && includedFolders.none { included -> path.contains(included, ignoreCase = true) }) {
                             continue
                         }
                         val id = c.getLong(idCol)

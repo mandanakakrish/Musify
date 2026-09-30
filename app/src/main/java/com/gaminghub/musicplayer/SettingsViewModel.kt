@@ -124,6 +124,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _excludedFolders = MutableStateFlow(prefs.getStringSet("excluded_folders", emptySet()) ?: emptySet())
     val excludedFolders: StateFlow<Set<String>> = _excludedFolders.asStateFlow()
 
+    private val _includedFolders = MutableStateFlow(prefs.getStringSet("included_folders", emptySet()) ?: emptySet())
+    val includedFolders: StateFlow<Set<String>> = _includedFolders.asStateFlow()
+
     private val _liveSearch = MutableStateFlow(prefs.getBoolean("live_search", true))
     val liveSearch: StateFlow<Boolean> = _liveSearch.asStateFlow()
 
@@ -357,6 +360,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setExcludedFolders(folders: Set<String>) {
         _excludedFolders.value = folders
         prefs.edit { putStringSet("excluded_folders", folders) }
+    }
+
+    fun setIncludedFolders(folders: Set<String>) {
+        _includedFolders.value = folders
+        prefs.edit { putStringSet("included_folders", folders) }
     }
 
     fun setLiveSearch(enabled: Boolean) {

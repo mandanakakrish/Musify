@@ -28,6 +28,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -329,12 +330,14 @@ fun UserPlaylistRow(
             DropdownMenu(
                 expanded = menuExpanded,
                 onDismissRequest = { menuExpanded = false },
-                modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
+                containerColor = Color(0xFF22222E),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.background(Color(0xFF22222E), RoundedCornerShape(12.dp))
             ) {
                 PlaylistMenuItem(
                     icon = Icons.Outlined.DriveFileRenameOutline,
                     label = "Rename",
-                    tint = MaterialTheme.colorScheme.onSurface
+                    tint = Color.White
                 ) {
                     menuExpanded = false
                     onRename()
@@ -390,7 +393,10 @@ fun PlaylistMenuItem(
             }
         },
         onClick = onClick,
-        modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+        colors = MenuDefaults.itemColors(
+            textColor = tint,
+            leadingIconColor = tint
+        )
     )
 }
 
