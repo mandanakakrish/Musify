@@ -90,17 +90,6 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun continueAsGuest(onSuccess: () -> Unit = {}) {
-        authManager.continueAsGuest()
-        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            com.gaminghub.musicplayer.data.firebase.FirestoreSyncManager.syncAll(
-                getApplication(),
-                authManager.getSyncUserId()
-            )
-        }
-        onSuccess()
-    }
-
     fun signOut(onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             _isLoading.value = true

@@ -223,30 +223,21 @@ fun AuthScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Continue as Guest / Start Listening
-            TextButton(
-                onClick = {
-                    authViewModel.continueAsGuest {
-                        onLoginSuccess()
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "Continue as Guest",
-                    color = MusifyGreen,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            Text(
+                text = "Sign in with your Google account to sync your playlists, favorites and history across all your devices.",
+                color = Color(0xFF888888),
+                fontSize = 12.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 24.dp)
+            )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Text(
                 text = "By continuing, you agree to Musify's Terms of Service and Privacy Policy.",
-                color = Color(0xFF666666),
+                color = Color(0xFF555555),
                 fontSize = 11.sp,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 24.dp)

@@ -72,20 +72,36 @@ class AuthManager private constructor(private val context: Context) {
             prefs.edit().remove("is_admin_session").apply()
         }
         try {
+            // Remove legacy guest mode flag permanently
+            prefs.edit().remove("is_guest").apply()
+
+            val savedEmail = prefs.getString("google_email", null)
+            if (!savedEmail.isNullOrBlank() && savedEmail != "guest_listener@gmail.com") {
+                _googleEmail.value = savedEmail
+                _googleDisplayName.value = prefs.getString("google_display_name", null)
+                _googlePhotoUrl.value = prefs.getString("google_photo_url", null)
+            } else {
+                prefs.edit()
+                    .remove("google_email")
+                    .remove("google_display_name")
+                    .remove("google_photo_url")
+                    .apply()
+            }
+
+            // If user was signed in anonymously before, sign them out so they must authenticate with Google
+            if (auth?.currentUser?.isAnonymous == true) {
+                try {
+                    auth?.signOut()
+                } catch (_: Exception) {}
+            }
+
             _currentUser.value = auth?.currentUser
             auth?.addAuthStateListener { firebaseAuth ->
                 _currentUser.value = firebaseAuth.currentUser
                 updateLoginState()
                 checkAdminStatus()
             }
-            if (auth?.currentUser == null) {
-                try {
-                    auth?.signInAnonymously()?.addOnSuccessListener { res ->
-                        _currentUser.value = res.user
-                        checkAdminStatus()
-                    }
-                } catch (_: Exception) {}
-            }
+
             // Check Google Last Signed In Account
             val lastAccount = GoogleSignIn.getLastSignedInAccount(context)
             if (lastAccount != null && !lastAccount.email.isNullOrBlank()) {
@@ -99,12 +115,15 @@ class AuthManager private constructor(private val context: Context) {
     }
 
     private fun isUserLoggedIn(): Boolean {
-        val hasFirebaseUser = auth?.currentUser != null && !auth?.currentUser!!.isAnonymous
-        val savedEmail = prefs.getString("google_email", null)
-        val hasSavedGoogle = !savedEmail.isNullOrBlank() && savedEmail != "guest_listener@gmail.com"
-        val lastGoogleAccount = GoogleSignIn.getLastSignedInAccount(context) != null
-        val isGuest = prefs.getBoolean("is_guest", false)
-        return hasFirebaseUser || hasSavedGoogle || lastGoogleAccount || isGuest
+        val savedEmail = (_googleEmail.value ?: prefs.getString("google_email", null))?.trim()
+        val hasSavedGoogle = !savedEmail.isNullOrBlank() && savedEmail.contains("@") && savedEmail != "guest_listener@gmail.com"
+        val lastGoogleAccount = try {
+            val acc = GoogleSignIn.getLastSignedInAccount(context)
+            acc != null && !acc.email.isNullOrBlank()
+        } catch (_: Exception) { false }
+        val currentFbUser = auth?.currentUser
+        val hasFirebaseUser = currentFbUser != null && !currentFbUser.isAnonymous && !currentFbUser.email.isNullOrBlank()
+        return hasSavedGoogle || lastGoogleAccount || hasFirebaseUser
     }
 
     private fun updateLoginState() {
@@ -312,7 +331,7 @@ class AuthManager private constructor(private val context: Context) {
         val photo = account.photoUrl?.toString()
 
         prefs.edit()
-            .putBoolean("is_guest", false)
+            .remove("is_guest")
             .putString("google_email", email)
             .putString("google_display_name", name)
             .putString("google_photo_url", photo)
@@ -321,20 +340,6 @@ class AuthManager private constructor(private val context: Context) {
         _googleEmail.value = email
         _googleDisplayName.value = name
         _googlePhotoUrl.value = photo
-        updateLoginState()
-    }
-
-    fun continueAsGuest() {
-        prefs.edit()
-            .putBoolean("is_guest", true)
-            .remove("google_email")
-            .remove("google_display_name")
-            .remove("google_photo_url")
-            .apply()
-
-        _googleEmail.value = null
-        _googleDisplayName.value = null
-        _googlePhotoUrl.value = null
         updateLoginState()
     }
 
