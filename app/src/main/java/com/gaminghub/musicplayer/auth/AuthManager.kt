@@ -132,15 +132,26 @@ class AuthManager private constructor(private val context: Context) {
 
     private fun isSnapshotActiveAdmin(snapshot: com.google.firebase.firestore.DocumentSnapshot?): Boolean {
         if (snapshot == null || !snapshot.exists()) return false
-        val activeBool = snapshot.getBoolean("active") ?: snapshot.getBoolean("\"active\"")
-        val activeStr = snapshot.getString("active") ?: snapshot.getString("\"active\"")
-        val role = snapshot.getString("role")
-        val isAdminBool = snapshot.getBoolean("isAdmin")
-        return activeBool == true ||
-                activeStr?.equals("true", ignoreCase = true) == true ||
-                role?.equals("admin", ignoreCase = true) == true ||
-                isAdminBool == true ||
-                (activeBool != false && activeStr == null)
+        return try {
+            val activeVal = snapshot.get("active") ?: snapshot.get("\"active\"")
+            val roleVal = snapshot.get("role")
+            val isAdminVal = snapshot.get("isAdmin")
+
+            when (activeVal) {
+                is Boolean -> activeVal
+                is String -> activeVal.equals("true", ignoreCase = true)
+                is Number -> activeVal.toInt() == 1
+                else -> {
+                    when (isAdminVal) {
+                        is Boolean -> isAdminVal
+                        is String -> isAdminVal.equals("true", ignoreCase = true)
+                        else -> roleVal is String && roleVal.equals("admin", ignoreCase = true)
+                    }
+                }
+            }
+        } catch (_: Exception) {
+            false
+        }
     }
 
     fun checkAdminStatus(onResult: ((Boolean) -> Unit)? = null) {
