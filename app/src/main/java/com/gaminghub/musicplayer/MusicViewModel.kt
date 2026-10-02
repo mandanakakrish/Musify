@@ -474,6 +474,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
             val syncUserId = authManager.getSyncUserId()
             Log.d(tag, "Network connection restored: full bidirectional cloud sync for user $syncUserId")
             com.gaminghub.musicplayer.data.firebase.FirestoreSyncManager.syncAll(getApplication(), syncUserId)
+            com.gaminghub.musicplayer.data.firebase.FirestoreSyncManager.syncDevPicksFromCloud(getApplication())
             loadGlobalWeeklyTopCharts()
         }
         if (networkMonitor.isOnline.value) {
@@ -481,6 +482,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                 val syncUserId = authManager.getSyncUserId()
                 Log.d(tag, "App startup online: full bidirectional cloud sync for user $syncUserId")
                 com.gaminghub.musicplayer.data.firebase.FirestoreSyncManager.syncAll(getApplication(), syncUserId)
+                com.gaminghub.musicplayer.data.firebase.FirestoreSyncManager.syncDevPicksFromCloud(getApplication())
                 loadGlobalWeeklyTopCharts()
             }
         }
@@ -490,6 +492,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                     val syncUserId = authManager.getSyncUserId()
                     Log.d(tag, "Active user account detected ($email): syncing cloud to local")
                     com.gaminghub.musicplayer.data.firebase.FirestoreSyncManager.syncAll(getApplication(), syncUserId)
+                    com.gaminghub.musicplayer.data.firebase.FirestoreSyncManager.syncDevPicksFromCloud(getApplication())
                     refreshPersonalizedFeeds()
                 }
             }
@@ -699,12 +702,27 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                 mediaController?.let { controller ->
                     if (controller.isPlaying) {
                         val pos = controller.currentPosition
+                        val dur = controller.duration
                         _currentPosition.value = pos
                         val lines = _syncedLyrics.value
                         if (lines.isNotEmpty()) {
                             val idx = lines.indexOfLast { it.timeMs <= pos }
                             if (idx != _currentLyricIndex.value) {
                                 _currentLyricIndex.value = idx
+                            }
+                        }
+
+                        // Proactive gapless pre-extraction when track is approaching end (> 70% or < 30s remaining)
+                        if (dur > 20_000L && (dur - pos < 30_000L || (dur > 0 && pos.toFloat() / dur > 0.70f))) {
+                            val currentTrackUrl = _currentTrack.value?.audioUrl
+                            val playingIdx = _currentQueue.value.indexOfFirst { it.audioUrl == currentTrackUrl }
+                            if (playingIdx >= 0) {
+                                val nextTrack = _currentQueue.value.getOrNull(playingIdx + 1)
+                                nextTrack?.audioUrl?.let { nextUrl ->
+                                    if (!isTrackDownloaded(nextUrl)) {
+                                        StreamExtractionManager.preExtract(nextUrl)
+                                    }
+                                }
                             }
                         }
                     }
@@ -2385,6 +2403,9 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setSleepTimer(minutes: Int) {
         sleepTimerJob?.cancel()
+        try {
+            mediaController?.volume = 1f
+        } catch (_: Exception) {}
         val millis = minutes * 60 * 1000L
         _sleepTimerMillis.value = millis
         sleepTimerJob = viewModelScope.launch {
@@ -2393,8 +2414,18 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                 delay(1000)
                 remaining -= 1000
                 _sleepTimerMillis.value = remaining
+                // Smooth volume fade-out over final 15 seconds
+                if (remaining in 1..15000) {
+                    val targetVol = (remaining.toFloat() / 15000f).coerceIn(0.05f, 1f)
+                    try {
+                        mediaController?.volume = targetVol
+                    } catch (_: Exception) {}
+                }
             }
-            mediaController?.pause()
+            try {
+                mediaController?.pause()
+                mediaController?.volume = 1f
+            } catch (_: Exception) {}
             _isPlaying.value = false
             _sleepTimerMillis.value = 0L
         }
@@ -2545,6 +2576,9 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
 
     fun cancelSleepTimer() {
         sleepTimerJob?.cancel()
+        try {
+            mediaController?.volume = 1f
+        } catch (_: Exception) {}
         _sleepTimerMillis.value = 0L
     }
 

@@ -37,8 +37,10 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Podcasts
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -117,6 +119,7 @@ fun HomeScreen(
     val showPlaylistsOnHome by settingsViewModel.showPlaylistsOnHome.collectAsState()
     val showLastSession by settingsViewModel.showLastSession.collectAsState()
     val tasteSummary by viewModel.tasteSummary.collectAsState()
+    val devPickTracks by viewModel.devPickTracks.collectAsState()
 
     // ── Playback-reactive state — only used in components that need it ─────────
     // Separated so that isPlaying/currentTrack toggling every frame doesn't
@@ -416,6 +419,37 @@ fun HomeScreen(
                                         if (mix.tracks.isNotEmpty()) {
                                             viewModel.playTrack(mix.tracks.first(), mix.tracks)
                                         }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── 2.2b Developer's Picks (Cloud Synced Curations) ─────────
+            if (devPickTracks.isNotEmpty()) {
+                item {
+                    Column {
+                        SectionHeader(
+                            title = "Developer's Picks",
+                            badge = "Handpicked",
+                            showPlayAll = true,
+                            onPlayAllClick = {
+                                viewModel.playTrack(devPickTracks.first(), devPickTracks)
+                            }
+                        )
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            items(devPickTracks) { track ->
+                                DevPickSquareCard(
+                                    track = track,
+                                    isCurrent = currentTrack?.audioUrl == track.audioUrl,
+                                    isPlaying = isPlaying,
+                                    onClick = {
+                                        viewModel.playTrack(track, devPickTracks)
                                     }
                                 )
                             }
@@ -834,6 +868,90 @@ fun UserPlaylistSquareCard(
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = "${tracks.size} Songs",
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
+            fontSize = 11.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+fun DevPickSquareCard(
+    track: TrackModel,
+    isCurrent: Boolean,
+    isPlaying: Boolean,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .width(140.dp)
+            .clickable(onClick = onClick)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(140.dp)
+                .clip(RoundedCornerShape(12.dp))
+        ) {
+            com.gaminghub.musicplayer.ui.components.SongImage(
+                model = track.albumArtUrl,
+                contentDescription = track.title,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+            // Dev Pick badge overlay
+            Surface(
+                color = Color.Black.copy(alpha = 0.65f),
+                shape = RoundedCornerShape(bottomEnd = 8.dp),
+                modifier = Modifier.align(Alignment.TopStart)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Verified,
+                        contentDescription = "Dev Pick",
+                        tint = MusifyGreen,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text(
+                        text = "DEV PICK",
+                        color = MusifyGreen,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            if (isCurrent) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.4f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        tint = MusifyGreen,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = track.title,
+            color = if (isCurrent) MusifyGreen else MaterialTheme.colorScheme.onBackground,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = track.artist,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
             fontSize = 11.sp,
             maxLines = 1,

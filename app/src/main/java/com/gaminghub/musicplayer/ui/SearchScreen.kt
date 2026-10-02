@@ -55,7 +55,9 @@ fun SearchScreen(
     val isPlaying by viewModel.isPlaying.collectAsState()
 
     val focusManager = LocalFocusManager.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     var showAllSongs by remember { mutableStateOf(false) }
+    var isImportingSpotify by remember { mutableStateOf(false) }
 
     val trendingChips = remember {
         listOf(
@@ -148,6 +150,157 @@ fun SearchScreen(
                     if (searchQuery.isNotEmpty()) {
                         IconButton(onClick = { viewModel.onSearchQueryChanged("") }, modifier = Modifier.size(36.dp)) {
                             Icon(Icons.Default.Clear, contentDescription = "Clear", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── One-Box Link Detection (YouTube / Spotify / Direct Stream) ────
+        val trimmedQuery = searchQuery.trim()
+        val isLink = remember(trimmedQuery) {
+            trimmedQuery.startsWith("http://") ||
+            trimmedQuery.startsWith("https://") ||
+            trimmedQuery.contains("youtu.be/") ||
+            trimmedQuery.contains("youtube.com/") ||
+            trimmedQuery.contains("spotify.com/")
+        }
+
+        if (isLink) {
+            val isSpotify = trimmedQuery.contains("spotify.com")
+            val isYouTube = trimmedQuery.contains("youtu.be") || trimmedQuery.contains("youtube.com")
+
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 6.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                border = BorderStroke(1.dp, MusifyGreen.copy(alpha = 0.5f))
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MusifyGreen.copy(alpha = 0.2f),
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = if (isSpotify) Icons.Default.LibraryMusic else Icons.Default.PlayArrow,
+                                    contentDescription = null,
+                                    tint = MusifyGreen,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = when {
+                                    isSpotify -> "Spotify Link Detected"
+                                    isYouTube -> "YouTube Link Detected"
+                                    else -> "Direct Audio Stream Link"
+                                },
+                                color = MusifyGreen,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                            Text(
+                                text = when {
+                                    isSpotify -> "Tap to import tracks into a playlist"
+                                    isYouTube -> "Stream directly or add to playback queue"
+                                    else -> "Play audio stream directly"
+                                },
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                fontSize = 11.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (isSpotify) {
+                            Button(
+                                onClick = {
+                                    if (!isImportingSpotify) {
+                                        isImportingSpotify = true
+                                        viewModel.importSpotifyPlaylist(trimmedQuery) { name, count ->
+                                            isImportingSpotify = false
+                                            android.widget.Toast.makeText(
+                                                context,
+                                                if (count > 0) "Imported '$name' ($count tracks)" else "Failed to import Spotify playlist",
+                                                android.widget.Toast.LENGTH_LONG
+                                            ).show()
+                                        }
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = MusifyGreen),
+                                shape = RoundedCornerShape(20.dp),
+                                enabled = !isImportingSpotify,
+                                modifier = Modifier.height(36.dp)
+                            ) {
+                                if (isImportingSpotify) {
+                                    CircularProgressIndicator(
+                                        color = Color.Black,
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Importing...", color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                } else {
+                                    Icon(Icons.Default.Download, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Import Playlist", color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        } else {
+                            Button(
+                                onClick = {
+                                    val track = TrackModel(
+                                        title = if (isYouTube) "YouTube Audio Stream" else "Audio Stream",
+                                        artist = "Online Source",
+                                        audioUrl = trimmedQuery,
+                                        albumArtUrl = null
+                                    )
+                                    viewModel.playTrack(track)
+                                    focusManager.clearFocus()
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = MusifyGreen),
+                                shape = RoundedCornerShape(20.dp),
+                                modifier = Modifier.height(36.dp)
+                            ) {
+                                Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Play Now", color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    val track = TrackModel(
+                                        title = if (isYouTube) "YouTube Audio Stream" else "Audio Stream",
+                                        artist = "Online Source",
+                                        audioUrl = trimmedQuery,
+                                        albumArtUrl = null
+                                    )
+                                    viewModel.addToQueue(track)
+                                    android.widget.Toast.makeText(context, "Added to queue", android.widget.Toast.LENGTH_SHORT).show()
+                                    focusManager.clearFocus()
+                                },
+                                shape = RoundedCornerShape(20.dp),
+                                border = BorderStroke(1.dp, MusifyGreen),
+                                modifier = Modifier.height(36.dp)
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.QueueMusic, contentDescription = null, tint = MusifyGreen, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Add to Queue", color = MusifyGreen, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
