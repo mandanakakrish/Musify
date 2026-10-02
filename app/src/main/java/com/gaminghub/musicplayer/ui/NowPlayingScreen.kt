@@ -290,6 +290,31 @@ fun NowPlayingScreen(
                     Icon(Icons.Default.KeyboardArrowDown, "Back", tint = textColor, modifier = Modifier.size(32.dp))
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (sleepTimerMillis > 0) {
+                        val minutes = (sleepTimerMillis / 1000) / 60
+                        val seconds = (sleepTimerMillis / 1000) % 60
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MusifyGreen.copy(alpha = 0.15f),
+                            border = BorderStroke(1.dp, MusifyGreen.copy(alpha = 0.5f)),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { showSleepTimerDialog = true }
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "🌙 %02d:%02d".format(minutes, seconds),
+                                    color = MusifyGreen,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
                     IconButton(onClick = { currentTrack?.let { viewModel.toggleDownload(it) } }) {
                         if (isDownloading) {
                             Box(contentAlignment = Alignment.Center) {
@@ -643,6 +668,38 @@ fun NowPlayingScreen(
                             currentTrack?.artist?.let { openArtistProfileOrChooser(it) }
                         }
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (isDark) Color(0xFF1B261F) else Color(0xFFE8F5E9),
+                        border = BorderStroke(0.5.dp, MusifyGreen.copy(alpha = 0.35f)),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable { showEqualizerDialog = true }
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.GraphicEq,
+                                contentDescription = null,
+                                tint = MusifyGreen,
+                                modifier = Modifier.size(11.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            val isOff = isDownloaded
+                            val qualityText = remember {
+                                settingsPrefs.getString("streaming_quality", "320 kbps") ?: "320 kbps"
+                            }
+                            Text(
+                                text = if (isOff) "OFFLINE • 320 KBPS" else "HQ • $qualityText".uppercase(),
+                                color = MusifyGreen,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
 
                 IconButton(onClick = { currentTrack?.let { viewModel.toggleDownload(it) } }) {

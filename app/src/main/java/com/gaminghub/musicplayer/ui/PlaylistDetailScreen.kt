@@ -27,10 +27,14 @@ import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Album
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DownloadForOffline
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MoreVert
@@ -79,6 +83,14 @@ import com.gaminghub.musicplayer.MusicViewModel
 import com.gaminghub.musicplayer.TrackModel
 import com.gaminghub.musicplayer.ui.theme.MusifyGreen
 
+enum class PlaylistSortOption(val label: String) {
+    DEFAULT("Custom Order"),
+    TITLE_AZ("Title (A-Z)"),
+    TITLE_ZA("Title (Z-A)"),
+    ARTIST_AZ("Artist (A-Z)"),
+    MOST_PLAYED("Most Played")
+}
+
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun PlaylistDetailScreen(
@@ -95,6 +107,30 @@ fun PlaylistDetailScreen(
 
     val currentTrack by viewModel.currentTrack.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
+
+    var isSearchActive by remember { mutableStateOf(false) }
+    var inPlaylistSearchQuery by remember { mutableStateOf("") }
+    var showSortMenu by remember { mutableStateOf(false) }
+    var sortOption by remember { mutableStateOf(PlaylistSortOption.DEFAULT) }
+
+    val processedTracks = remember(playlistTracks, inPlaylistSearchQuery, sortOption) {
+        val filtered = if (inPlaylistSearchQuery.isNotBlank()) {
+            val q = inPlaylistSearchQuery.trim().lowercase()
+            playlistTracks.filter {
+                it.title.lowercase().contains(q) || it.artist.lowercase().contains(q)
+            }
+        } else {
+            playlistTracks
+        }
+
+        when (sortOption) {
+            PlaylistSortOption.DEFAULT -> filtered
+            PlaylistSortOption.TITLE_AZ -> filtered.sortedBy { it.title.lowercase() }
+            PlaylistSortOption.TITLE_ZA -> filtered.sortedByDescending { it.title.lowercase() }
+            PlaylistSortOption.ARTIST_AZ -> filtered.sortedBy { it.artist.lowercase() }
+            PlaylistSortOption.MOST_PLAYED -> filtered.sortedByDescending { it.playcount }
+        }
+    }
 
     // Grouping for tabs
     val albumsMap = remember(playlistTracks) {
@@ -113,42 +149,131 @@ fun PlaylistDetailScreen(
             .background(MaterialTheme.colorScheme.background)
     ) {
         // Top Bar
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.background)
-                .padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
+        if (isSearchActive) {
             Row(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { navController.popBackStack() }) {
+                IconButton(onClick = {
+                    isSearchActive = false
+                    inPlaylistSearchQuery = ""
+                }) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
+                        contentDescription = "Close search",
                         tint = MaterialTheme.colorScheme.onBackground
                     )
                 }
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = playlistName,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                TextField(
+                    value = inPlaylistSearchQuery,
+                    onValueChange = { inPlaylistSearchQuery = it },
+                    placeholder = {
+                        Text(
+                            "Search in $playlistName...",
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                            fontSize = 15.sp
+                        )
+                    },
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+                        cursorColor = MusifyGreen,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    ),
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
                 )
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { navController.navigate("search") }) {
-                    Icon(Icons.Default.Search, contentDescription = "Search", tint = MaterialTheme.colorScheme.onBackground)
+                if (inPlaylistSearchQuery.isNotEmpty()) {
+                    IconButton(onClick = { inPlaylistSearchQuery = "" }) {
+                        Icon(
+                            Icons.Default.Clear,
+                            contentDescription = "Clear",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
                 }
-                IconButton(onClick = { }) {
-                    Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort", tint = MaterialTheme.colorScheme.onBackground)
+            }
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = playlistName,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { isSearchActive = true }) {
+                        Icon(Icons.Default.Search, contentDescription = "Search in playlist", tint = MaterialTheme.colorScheme.onBackground)
+                    }
+                    Box {
+                        IconButton(onClick = { showSortMenu = true }) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.Sort,
+                                contentDescription = "Sort",
+                                tint = if (sortOption != PlaylistSortOption.DEFAULT) MusifyGreen else MaterialTheme.colorScheme.onBackground
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showSortMenu,
+                            onDismissRequest = { showSortMenu = false },
+                            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                        ) {
+                            PlaylistSortOption.entries.forEach { option ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = option.label,
+                                            color = if (sortOption == option) MusifyGreen else MaterialTheme.colorScheme.onSurface,
+                                            fontWeight = if (sortOption == option) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    },
+                                    trailingIcon = {
+                                        if (sortOption == option) {
+                                            Icon(
+                                                Icons.Default.Check,
+                                                contentDescription = null,
+                                                tint = MusifyGreen,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        sortOption = option
+                                        showSortMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -198,7 +323,7 @@ fun PlaylistDetailScreen(
 
                         ) {
                             Text(
-                                "${playlistTracks.size} Songs",
+                                if (inPlaylistSearchQuery.isNotBlank()) "${processedTracks.size} of ${playlistTracks.size} Songs" else "${playlistTracks.size} Songs",
                                 color = MaterialTheme.colorScheme.onBackground,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
@@ -208,8 +333,8 @@ fun PlaylistDetailScreen(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
                                         .clickable {
-                                            if (playlistTracks.isNotEmpty()) {
-                                                val shuffled = playlistTracks.shuffled()
+                                            if (processedTracks.isNotEmpty()) {
+                                                val shuffled = processedTracks.shuffled()
                                                 viewModel.playTrack(shuffled.first(), shuffled)
                                             }
                                         }
@@ -223,8 +348,8 @@ fun PlaylistDetailScreen(
                                 Spacer(modifier = Modifier.width(16.dp))
                                 IconButton(
                                     onClick = {
-                                        if (playlistTracks.isNotEmpty()) {
-                                            viewModel.playTrack(playlistTracks.first(), playlistTracks)
+                                        if (processedTracks.isNotEmpty()) {
+                                            viewModel.playTrack(processedTracks.first(), processedTracks)
                                         }
                                     },
                                     modifier = Modifier.size(36.dp)
@@ -236,19 +361,33 @@ fun PlaylistDetailScreen(
 
                         if (playlistTracks.isEmpty()) {
                             SpotifyEmptyState(actionText = "Go and Add Something")
+                        } else if (processedTracks.isEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(24.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    "No songs found matching \"$inPlaylistSearchQuery\"",
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                                    fontSize = 15.sp,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
                         } else {
                             LazyColumn(
                                 modifier = Modifier.fillMaxSize(),
                                 contentPadding = PaddingValues(bottom = 140.dp)
                             ) {
-                                itemsIndexed(playlistTracks, key = { index, track -> "${track.audioUrl ?: track.title}_$index" }) { index, track ->
+                                itemsIndexed(processedTracks, key = { index, track -> "${track.audioUrl ?: track.title}_$index" }) { index, track ->
                                     PlaylistSongRow(
                                         track = track,
                                         playlistId = playlistId,
                                         isCurrent = currentTrack?.audioUrl == track.audioUrl,
                                         isPlaying = isPlaying && currentTrack?.audioUrl == track.audioUrl,
                                         viewModel = viewModel,
-                                        onPlay = { viewModel.playTrack(track, playlistTracks) }
+                                        onPlay = { viewModel.playTrack(track, processedTracks) }
                                     )
                                 }
                             }

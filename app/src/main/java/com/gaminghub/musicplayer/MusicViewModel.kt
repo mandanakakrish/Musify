@@ -259,6 +259,10 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     private val _globalAllTimeTopCharts = MutableStateFlow<List<TrackModel>>(emptyList())
     val globalAllTimeTopCharts: StateFlow<List<TrackModel>> = _globalAllTimeTopCharts.asStateFlow()
 
+    // ── Device Storage & Cache Statistics ─────────────────────────────
+    private val _storageStats = MutableStateFlow(StorageStats())
+    val storageStats: StateFlow<StorageStats> = _storageStats.asStateFlow()
+
     private val _isGlobalChartsLoading = MutableStateFlow(false)
     val isGlobalChartsLoading: StateFlow<Boolean> = _isGlobalChartsLoading.asStateFlow()
 
@@ -421,9 +425,14 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     private val youtubeRepository = YouTubeRepository()
 
     private val downloadHttpClient by lazy {
+        val dispatcher = okhttp3.Dispatcher().apply {
+            maxRequests = 64
+            maxRequestsPerHost = 16
+        }
         OkHttpClient.Builder()
+            .dispatcher(dispatcher)
             .proxySelector(com.gaminghub.musicplayer.util.NetworkProxyManager.proxySelector)
-            .connectionPool(ConnectionPool(8, 5, TimeUnit.MINUTES))
+            .connectionPool(ConnectionPool(16, 5, TimeUnit.MINUTES))
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
@@ -1609,63 +1618,21 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     tempFile = destFile
 
-                    val request = Request.Builder()
-                        .url(playUrl)
-                        .header("User-Agent", CommonUtils.CURRENT_USER_AGENT)
-                        .header("Accept-Encoding", "identity")
-                        .build()
-
-                    val response = downloadHttpClient.newCall(request).execute()
-                    if (!response.isSuccessful) {
-                        throw Exception("HTTP ${response.code}: ${response.message}")
-                    }
-
-                    val body = response.body ?: throw Exception("Empty response body from stream source")
-                    val contentLength = body.contentLength()
-
-                    val buffer = ByteArray(131072) // 128 KB buffer for turbo download throughput
-                    var bytesRead: Int
-                    var totalDownloaded = 0L
-                    var lastSampleTime = System.currentTimeMillis()
-                    var bytesSinceLastSample = 0L
-                    var currentSpeed = 0L
-
-                    body.byteStream().buffered(131072).use { input ->
-                        java.io.BufferedOutputStream(destFile.outputStream(), 131072).use { output ->
-                            while (input.read(buffer).also { bytesRead = it } != -1) {
-                                if (!isActive) {
-                                    destFile.delete()
-                                    throw CancellationException("Download cancelled")
-                                }
-                                output.write(buffer, 0, bytesRead)
-                                totalDownloaded += bytesRead
-                                bytesSinceLastSample += bytesRead
-
-                                val now = System.currentTimeMillis()
-                                val timeDiff = now - lastSampleTime
-                                if (timeDiff >= 200) {
-                                    currentSpeed = (bytesSinceLastSample * 1000L) / timeDiff.coerceAtLeast(1)
-                                    lastSampleTime = now
-                                    bytesSinceLastSample = 0L
-
-                                    val percent = if (contentLength > 0) {
-                                        ((totalDownloaded * 100) / contentLength).toInt().coerceIn(0, 100)
-                                    } else 0
-
-                                    _activeDownloads.update { current ->
-                                        current + (url to DownloadProgress(
-                                             audioUrl = url,
-                                             track = track,
-                                             bytesDownloaded = totalDownloaded,
-                                             totalBytes = contentLength,
-                                             speedBytesPerSec = currentSpeed,
-                                             progressPercent = percent,
-                                             isIndeterminate = contentLength <= 0
-                                        ))
-                                    }
-                                }
-                            }
-                            output.flush()
+                    com.gaminghub.musicplayer.util.TurboAudioDownloader.download(
+                        playUrl = playUrl,
+                        destFile = destFile,
+                        client = downloadHttpClient
+                    ) { downloaded, total, speed, percent ->
+                        _activeDownloads.update { current ->
+                            current + (url to DownloadProgress(
+                                audioUrl = url,
+                                track = track,
+                                bytesDownloaded = downloaded,
+                                totalBytes = total,
+                                speedBytesPerSec = speed,
+                                progressPercent = percent,
+                                isIndeterminate = total <= 0
+                            ))
                         }
                     }
 
@@ -1758,11 +1725,100 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 dao.updateLocalPath(url, null)
                 loadLocalTracks()
+                refreshStorageStats()
                 withContext(Dispatchers.Main) {
                     android.widget.Toast.makeText(getApplication(), "Deleted offline download: ${track.title}", android.widget.Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 Log.e(tag, "Failed to delete download: ${e.message}", e)
+            }
+        }
+    }
+
+    fun refreshStorageStats() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val context = getApplication<Application>()
+                val tracks = dao.getDownloadedTracksSync()
+                var offlineBytes = 0L
+                for (track in tracks) {
+                    val path = track.localPath
+                    if (path != null) {
+                        val file = java.io.File(path)
+                        if (file.exists()) {
+                            offlineBytes += file.length()
+                        }
+                    }
+                }
+
+                var cacheBytes = 0L
+                try {
+                    cacheBytes += MusicPlaybackService.getCache(context).cacheSpace
+                } catch (_: Exception) {}
+
+                try {
+                    val cacheDir = context.cacheDir
+                    if (cacheDir.exists()) {
+                        val otherCache = cacheDir.walkTopDown().filter { it.isFile }.sumOf { it.length() }
+                        cacheBytes = maxOf(cacheBytes, otherCache)
+                    }
+                } catch (_: Exception) {}
+
+                val freeBytes = context.filesDir.usableSpace
+
+                _storageStats.value = StorageStats(
+                    offlineSizeBytes = offlineBytes,
+                    cacheSizeBytes = cacheBytes,
+                    freeDeviceBytes = freeBytes
+                )
+            } catch (e: Exception) {
+                Log.w(tag, "refreshStorageStats error: ${e.message}")
+            }
+        }
+    }
+
+    @androidx.media3.common.util.UnstableApi
+    fun clearStreamCache() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val context = getApplication<Application>()
+                var freedBytes = 0L
+                try {
+                    val simpleCache = MusicPlaybackService.getCache(context)
+                    val keys = simpleCache.keys.toList()
+                    for (key in keys) {
+                        try {
+                            val spans = simpleCache.getCachedSpans(key)
+                            for (span in spans) {
+                                freedBytes += span.length
+                            }
+                            simpleCache.removeResource(key)
+                        } catch (_: Exception) {}
+                    }
+                } catch (_: Exception) {}
+
+                try {
+                    val cacheDir = context.cacheDir
+                    cacheDir.listFiles()?.forEach { file ->
+                        if (file.name != "exoplayer_cache_v2") {
+                            freedBytes += if (file.isDirectory) {
+                                file.walkTopDown().filter { it.isFile }.sumOf { it.length() }
+                            } else {
+                                file.length()
+                            }
+                            file.deleteRecursively()
+                        }
+                    }
+                } catch (_: Exception) {}
+
+                refreshStorageStats()
+
+                withContext(Dispatchers.Main) {
+                    val freedMb = String.format(java.util.Locale.US, "%.1f MB", freedBytes / (1024.0 * 1024.0))
+                    android.widget.Toast.makeText(context, "Freed $freedMb of cache storage!", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Log.w(tag, "clearStreamCache error: ${e.message}")
             }
         }
     }
@@ -2627,6 +2683,31 @@ data class DownloadProgress(
             String.format(java.util.Locale.US, "%.1f MB", mb)
         } else {
             String.format(java.util.Locale.US, "%.0f KB", kb)
+        }
+    }
+}
+
+data class StorageStats(
+    val offlineSizeBytes: Long = 0L,
+    val cacheSizeBytes: Long = 0L,
+    val freeDeviceBytes: Long = 0L
+) {
+    val offlineSizeFormatted: String
+        get() = formatBytes(offlineSizeBytes)
+
+    val cacheSizeFormatted: String
+        get() = formatBytes(cacheSizeBytes)
+
+    val freeDeviceFormatted: String
+        get() = formatBytes(freeDeviceBytes)
+
+    private fun formatBytes(bytes: Long): String {
+        if (bytes <= 0) return "0 MB"
+        val mb = bytes / (1024.0 * 1024.0)
+        return if (mb >= 1024.0) {
+            String.format(java.util.Locale.US, "%.1f GB", mb / 1024.0)
+        } else {
+            String.format(java.util.Locale.US, "%.1f MB", mb)
         }
     }
 }

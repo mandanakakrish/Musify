@@ -22,11 +22,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.DownloadForOffline
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -37,6 +39,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -54,6 +57,7 @@ import coil.compose.AsyncImage
 import com.gaminghub.musicplayer.DownloadProgress
 import com.gaminghub.musicplayer.MusicViewModel
 import com.gaminghub.musicplayer.R
+import com.gaminghub.musicplayer.StorageStats
 import com.gaminghub.musicplayer.TrackModel
 import com.gaminghub.musicplayer.ui.theme.MusifyDarkBg
 import com.gaminghub.musicplayer.ui.theme.MusifyGlassBorder
@@ -70,6 +74,11 @@ fun DownloadsScreen(
     val activeDownloads by viewModel.activeDownloads.collectAsState()
     val currentTrack by viewModel.currentTrack.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
+    val storageStats by viewModel.storageStats.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.refreshStorageStats()
+    }
 
     Column(
         modifier = Modifier
@@ -108,6 +117,15 @@ fun DownloadsScreen(
                 }
             }
         }
+
+        // Storage & Cache Overview Card
+        StorageDashboardCard(
+            storageStats = storageStats,
+            songCount = downloadedTracks.size,
+            onClearCache = { viewModel.clearStreamCache() }
+        )
+
+        Spacer(modifier = Modifier.height(6.dp))
 
         if (downloadedTracks.isEmpty() && activeDownloads.isEmpty()) {
             Box(
@@ -426,4 +444,170 @@ fun DownloadedTrackItem(
         }
     }
 }
+
+@Composable
+fun StorageDashboardCard(
+    storageStats: StorageStats,
+    songCount: Int,
+    onClearCache: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            // Header Row: Title & Clean Cache button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Storage,
+                        contentDescription = null,
+                        tint = MusifyGreen,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Storage & Cache",
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
+                    modifier = Modifier.clip(RoundedCornerShape(14.dp)).clickable { onClearCache() }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.CleaningServices,
+                            contentDescription = "Clean Cache",
+                            tint = MusifyGreen,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            text = "Clean Cache",
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 3-Metric Distribution Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Metric 1: Offline Songs
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Offline Songs",
+                        color = Color.Gray,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = storageStats.offlineSizeFormatted,
+                        color = MusifyGreen,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "$songCount ${if (songCount == 1) "track" else "tracks"}",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        fontSize = 10.sp
+                    )
+                }
+
+                // Vertical Divider
+                Box(
+                    modifier = Modifier
+                        .height(30.dp)
+                        .width(1.dp)
+                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                )
+
+                // Metric 2: Stream Cache
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 8.dp)
+                ) {
+                    Text(
+                        text = "Stream Cache",
+                        color = Color.Gray,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = storageStats.cacheSizeFormatted,
+                        color = Color(0xFFFFB74D),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Auto-cached",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        fontSize = 10.sp
+                    )
+                }
+
+                // Vertical Divider
+                Box(
+                    modifier = Modifier
+                        .height(30.dp)
+                        .width(1.dp)
+                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                )
+
+                // Metric 3: Device Free
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.End
+                ) {
+                    Text(
+                        text = "Device Free",
+                        color = Color.Gray,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = storageStats.freeDeviceFormatted,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Available",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        fontSize = 10.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
 
