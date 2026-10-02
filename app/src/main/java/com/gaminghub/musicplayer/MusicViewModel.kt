@@ -453,6 +453,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         loadLocalTracks()
         refreshPersonalizedFeeds()
         loadGlobalWeeklyTopCharts()
+        restorePlaybackSession()
 
         viewModelScope.launch {
             searchDebounceFlow
@@ -526,6 +527,39 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                 "com.gaminghub.musify.WIDGET_PLAY_PAUSE" -> togglePlayPause()
                 "com.gaminghub.musify.WIDGET_NEXT" -> playNext(fromUser = true)
                 "com.gaminghub.musify.WIDGET_PREV" -> playPrevious()
+            }
+        }
+    }
+
+    private fun restorePlaybackSession() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                if (_currentTrack.value != null) return@launch
+                val savedState = dao.getPlaybackState() ?: return@launch
+                val savedQueue = dao.getQueueTracks()
+                if (savedQueue.isNotEmpty()) {
+                    val queueModels = savedQueue.map { q ->
+                        TrackModel(
+                            audioUrl = q.audioUrl,
+                            title = q.title,
+                            artist = q.artist,
+                            albumArtUrl = q.albumArtUrl
+                        )
+                    }
+                    val targetIndex = savedState.currentTrackIndex.coerceIn(0, queueModels.size - 1)
+                    val targetTrack = queueModels[targetIndex]
+                    withContext(Dispatchers.Main) {
+                        if (_currentTrack.value == null) {
+                            _currentQueue.value = queueModels
+                            _currentTrack.value = targetTrack
+                            currentTrackAudioUrl = targetTrack.audioUrl
+                            _currentPosition.value = savedState.positionMs
+                            fetchLyrics(targetTrack)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(tag, "Failed to restore playback session: ${e.message}")
             }
         }
     }
@@ -1556,7 +1590,33 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         android.widget.Toast.makeText(getApplication(), "Download cancelled", android.widget.Toast.LENGTH_SHORT).show()
     }
 
-    fun downloadTrack(track: TrackModel) {
+    fun downloadPlaylist(tracks: List<TrackModel>) {
+        if (tracks.isEmpty()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            val downloaded = dao.getDownloadedTracksSync().map { it.audioUrl }.toSet()
+            val toDownload = tracks.filter { it.audioUrl != null && it.audioUrl !in downloaded }
+            if (toDownload.isEmpty()) {
+                withContext(Dispatchers.Main) {
+                    android.widget.Toast.makeText(getApplication(), "All songs in playlist already downloaded!", android.widget.Toast.LENGTH_SHORT).show()
+                }
+                return@launch
+            }
+
+            withContext(Dispatchers.Main) {
+                android.widget.Toast.makeText(getApplication(), "Queued ${toDownload.size} songs for Turbo download...", android.widget.Toast.LENGTH_SHORT).show()
+            }
+
+            for (track in toDownload) {
+                val u = track.audioUrl ?: continue
+                if (!_activeDownloads.value.containsKey(u)) {
+                    downloadTrack(track, showToast = false)
+                    kotlinx.coroutines.delay(250L)
+                }
+            }
+        }
+    }
+
+    fun downloadTrack(track: TrackModel, showToast: Boolean = true) {
         val url = track.audioUrl ?: return
         if (_activeDownloads.value.containsKey(url)) return
 
@@ -1569,7 +1629,9 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                     isIndeterminate = true
                 ))
             }
-            android.widget.Toast.makeText(getApplication(), "Starting download: ${track.title}", android.widget.Toast.LENGTH_SHORT).show()
+            if (showToast) {
+                android.widget.Toast.makeText(getApplication(), "Starting download: ${track.title}", android.widget.Toast.LENGTH_SHORT).show()
+            }
 
             withContext(Dispatchers.IO) {
                 var tempFile: java.io.File? = null
@@ -1675,6 +1737,17 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                     } else {
                         dao.updateLocalPath(url, destFile.absolutePath)
                     }
+
+                    // Proactively cache lyrics into database for 100% offline playback
+                    try {
+                        val currentEntity = dao.getTrackByUrl(url)
+                        if (currentEntity == null || (currentEntity.syncedLyrics.isNullOrBlank() && currentEntity.plainLyrics.isNullOrBlank())) {
+                            val lyricsRes = lyricsRepository.fetchLyricsFromNetwork(track.artist, track.title)
+                            if (lyricsRes != null) {
+                                dao.updateLyrics(url, lyricsRes.plainLyrics, lyricsRes.syncedLyrics)
+                            }
+                        }
+                    } catch (_: Exception) {}
 
                     // Reload device local tracks
                     loadLocalTracks()
@@ -1827,6 +1900,24 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         mediaController?.let {
             if (it.isPlaying) {
                 it.pause()
+                val activeTrack = _currentTrack.value
+                val activeQueue = _currentQueue.value
+                val pos = it.currentPosition
+                if (activeTrack != null && activeQueue.isNotEmpty()) {
+                    viewModelScope.launch(Dispatchers.IO) {
+                        try {
+                            val playingIndex = activeQueue.indexOfFirst { t -> t.audioUrl == activeTrack.audioUrl }.coerceAtLeast(0)
+                            dao.savePlaybackState(
+                                com.gaminghub.musicplayer.data.PlaybackStateEntity(
+                                    id = 1,
+                                    currentTrackIndex = playingIndex,
+                                    positionMs = pos,
+                                    isPlaying = false
+                                )
+                            )
+                        } catch (_: Exception) {}
+                    }
+                }
             } else {
                 it.play()
             }
@@ -1847,6 +1938,33 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                     name = cleanName,
                     tracks = emptyList()
                 )
+            }
+        }
+    }
+
+    fun deduplicatePlaylist(playlistId: Int, onComplete: (removedCount: Int) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val tracks = dao.getTracksForPlaylistSync(playlistId)
+            val seenKeys = mutableSetOf<String>()
+            val toRemove = mutableListOf<String>()
+
+            for (track in tracks) {
+                val normTitle = com.gaminghub.musicplayer.util.SmartRecommendationEngine.normalizeTitle(track.title)
+                val normArtist = com.gaminghub.musicplayer.util.SmartRecommendationEngine.normalizeTitle(track.artist)
+                val key = "$normTitle|||$normArtist"
+                if (key in seenKeys) {
+                    track.audioUrl.let { toRemove.add(it) }
+                } else {
+                    seenKeys.add(key)
+                }
+            }
+
+            for (url in toRemove) {
+                dao.removeTrackFromPlaylist(playlistId, url)
+            }
+
+            withContext(Dispatchers.Main) {
+                onComplete(toRemove.size)
             }
         }
     }
@@ -2258,6 +2376,35 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         _currentPosition.value = 0L
     }
 
+    fun skipToNext() = playNext(fromUser = true)
+    fun skipToPrevious() = playPrevious()
+
+    // ── Silence Trimmer ("Skip Silence") ──────────────────────────────
+    private val _skipSilence = MutableStateFlow(
+        getApplication<Application>().getSharedPreferences("Musify_settings", Context.MODE_PRIVATE)
+            .getBoolean("skip_silence", false)
+    )
+    val skipSilence: StateFlow<Boolean> = _skipSilence.asStateFlow()
+
+    fun toggleSkipSilence() {
+        val next = !_skipSilence.value
+        _skipSilence.value = next
+        val prefs = getApplication<Application>().getSharedPreferences("Musify_settings", Context.MODE_PRIVATE)
+        prefs.edit().putBoolean("skip_silence", next).apply()
+        try {
+            val intent = Intent(getApplication(), MusicPlaybackService::class.java).apply {
+                action = "com.gaminghub.musify.SET_SKIP_SILENCE"
+                putExtra("enabled", next)
+            }
+            getApplication<Application>().startService(intent)
+            android.widget.Toast.makeText(
+                getApplication(),
+                if (next) "Silence Trimmer Enabled (Skipping dead air)" else "Silence Trimmer Disabled",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
+        } catch (_: Exception) {}
+    }
+
     fun setSpeedLock(enabled: Boolean) {
         _isSpeedLocked.value = enabled
         playbackPrefs.edit().putBoolean("is_speed_locked", enabled).apply()
@@ -2359,15 +2506,41 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
+        val url = track.audioUrl ?: ""
         lyricsJob = viewModelScope.launch(Dispatchers.IO) {
+            // First check if already cached in Room DB for instant offline loading
+            if (url.isNotBlank()) {
+                val entity = dao.getTrackByUrl(url)
+                if (entity != null && (!entity.syncedLyrics.isNullOrBlank() || !entity.plainLyrics.isNullOrBlank())) {
+                    val parsed = CommonUtils.parseLrc(entity.syncedLyrics ?: "")
+                    withContext(Dispatchers.Main) {
+                        _syncedLyrics.value = parsed
+                        _plainLyrics.value = if (parsed.isEmpty()) (entity.plainLyrics ?: "No plain lyrics found") else null
+                    }
+                    return@launch
+                }
+            }
+
             val res = lyricsRepository.fetchLyricsFromNetwork(track.artist, track.title)
             if (isActive) {
                 if (res != null) {
                     val parsed = CommonUtils.parseLrc(res.syncedLyrics ?: "")
-                    _syncedLyrics.value = parsed
-                    _plainLyrics.value = if (parsed.isEmpty()) (res.plainLyrics ?: "No plain lyrics found") else null
+                    withContext(Dispatchers.Main) {
+                        _syncedLyrics.value = parsed
+                        _plainLyrics.value = if (parsed.isEmpty()) (res.plainLyrics ?: "No plain lyrics found") else null
+                    }
+                    if (url.isNotBlank()) {
+                        val existing = dao.getTrackByUrl(url)
+                        if (existing != null) {
+                            dao.updateLyrics(url, res.plainLyrics, res.syncedLyrics)
+                        } else {
+                            dao.insertTrack(track.toEntity().copy(plainLyrics = res.plainLyrics, syncedLyrics = res.syncedLyrics))
+                        }
+                    }
                 } else {
-                    _plainLyrics.value = "Lyrics not available for this track"
+                    withContext(Dispatchers.Main) {
+                        _plainLyrics.value = "Lyrics not available for this track"
+                    }
                 }
             }
         }
@@ -2470,9 +2643,9 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                 delay(1000)
                 remaining -= 1000
                 _sleepTimerMillis.value = remaining
-                // Smooth volume fade-out over final 15 seconds
-                if (remaining in 1..15000) {
-                    val targetVol = (remaining.toFloat() / 15000f).coerceIn(0.05f, 1f)
+                // Smooth volume fade-out over final 45 seconds for a gentle drift to sleep
+                if (remaining in 1..45000) {
+                    val targetVol = (remaining.toFloat() / 45000f).coerceIn(0.02f, 1f)
                     try {
                         mediaController?.volume = targetVol
                     } catch (_: Exception) {}

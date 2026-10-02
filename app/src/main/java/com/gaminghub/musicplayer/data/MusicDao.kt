@@ -47,6 +47,9 @@ interface MusicDao {
     @Query("UPDATE tracks SET localPath = :localPath WHERE audioUrl = :url")
     suspend fun updateLocalPath(url: String, localPath: String?)
 
+    @Query("UPDATE tracks SET plainLyrics = :plain, syncedLyrics = :synced WHERE audioUrl = :url")
+    suspend fun updateLyrics(url: String, plain: String?, synced: String?)
+
     @Upsert
     suspend fun insertTrack(track: TrackEntity)
 

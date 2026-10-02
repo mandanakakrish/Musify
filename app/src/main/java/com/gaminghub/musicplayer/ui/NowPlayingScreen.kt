@@ -1,8 +1,15 @@
 package com.gaminghub.musicplayer.ui
 
 import android.content.Intent
+import android.graphics.drawable.BitmapDrawable
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.palette.graphics.Palette
+import coil.imageLoader
+import coil.request.ImageRequest
+import coil.request.SuccessResult
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -128,6 +135,8 @@ import com.gaminghub.musicplayer.ui.theme.MusifyDarkBg
 import com.gaminghub.musicplayer.ui.theme.MusifyGlassBorder
 import com.gaminghub.musicplayer.ui.theme.MusifyGlassSurface
 import com.gaminghub.musicplayer.ui.theme.MusifyGreen
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.flowOf
 import kotlin.math.roundToInt
 
@@ -196,11 +205,47 @@ fun NowPlayingScreen(
     val enableVolumeGestures = remember { settingsPrefs.getBoolean("volume_gestures", false) }
     val audioManager = remember { context.getSystemService(android.content.Context.AUDIO_SERVICE) as? android.media.AudioManager }
 
+    var dominantColor by remember { mutableStateOf<Color?>(null) }
+
+    LaunchedEffect(currentTrack?.albumArtUrl) {
+        val artUrl = currentTrack?.albumArtUrl
+        if (artUrl.isNullOrBlank()) {
+            dominantColor = null
+            return@LaunchedEffect
+        }
+        withContext(Dispatchers.IO) {
+            try {
+                val loader = context.imageLoader
+                val req = ImageRequest.Builder(context)
+                    .data(artUrl)
+                    .allowHardware(false)
+                    .build()
+                val res = (loader.execute(req) as? SuccessResult)?.drawable
+                val bmp = (res as? BitmapDrawable)?.bitmap
+                if (bmp != null) {
+                    val p = Palette.from(bmp).generate()
+                    val s = p.vibrantSwatch ?: p.dominantSwatch ?: p.mutedSwatch
+                    if (s != null) {
+                        withContext(Dispatchers.Main) {
+                            dominantColor = Color(s.rgb)
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    val dynamicAccentColor by animateColorAsState(
+        targetValue = dominantColor ?: MusifyGreen,
+        animationSpec = tween(800),
+        label = "dynamicAccentColor"
+    )
+
     val bgModifier = if (!isDark) {
         Modifier.background(
             androidx.compose.ui.graphics.Brush.verticalGradient(
                 colors = listOf(
-                    Color(0xFFFFFFFF),
+                    dynamicAccentColor.copy(alpha = 0.25f),
                     Color(0xFFF3F7F5),
                     Color(0xFFE2EBE5),
                     Color(0xFFD3E2D8)
@@ -212,10 +257,22 @@ fun NowPlayingScreen(
             "Solid Black" -> Modifier.background(Color.Black)
             "Subtle Gradient" -> Modifier.background(
                 androidx.compose.ui.graphics.Brush.verticalGradient(
-                    colors = listOf(Color(0xFF24152A), Color(0xFF12101D), Color.Black)
+                    colors = listOf(
+                        dynamicAccentColor.copy(alpha = 0.28f),
+                        Color(0xFF12101D),
+                        Color.Black
+                    )
                 )
             )
-            else -> Modifier.background(MusifyDarkBg)
+            else -> Modifier.background(
+                androidx.compose.ui.graphics.Brush.verticalGradient(
+                    colors = listOf(
+                        dynamicAccentColor.copy(alpha = 0.35f),
+                        Color(0xFF101216),
+                        MusifyDarkBg
+                    )
+                )
+            )
         }
     }
 
@@ -1791,25 +1848,34 @@ private fun NowPlayingLyricsPanel(
                 itemsIndexed(syncedLyrics) { index, line ->
                     val isActive = index == currentLyricIndex
                     val alpha by animateFloatAsState(if (isActive) 1f else 0.4f, label = "alpha")
-                    val scale by animateFloatAsState(if (isActive) 1.12f else 1.0f, label = "scale")
+                    val scale by animateFloatAsState(if (isActive) 1.08f else 1.0f, label = "scale")
 
-                    Text(
-                        text = line.text,
-                        color = if (isActive) MusifyGreen else textColor,
-                        fontSize = 18.sp,
-                        fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Medium,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 28.sp,
+                    Surface(
+                        color = if (isActive) MusifyGreen.copy(alpha = 0.12f) else Color.Transparent,
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                            .graphicsLayer {
-                                scaleX = scale
-                                scaleY = scale
-                                this.alpha = alpha
-                            }
+                            .padding(vertical = 4.dp)
+                            .clip(RoundedCornerShape(12.dp))
                             .clickable { viewModel.seekTo(line.timeMs) }
-                    )
+                    ) {
+                        Text(
+                            text = line.text,
+                            color = if (isActive) MusifyGreen else textColor,
+                            fontSize = if (isActive) 19.sp else 17.sp,
+                            fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Medium,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 28.sp,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                                .graphicsLayer {
+                                    scaleX = scale
+                                    scaleY = scale
+                                    this.alpha = alpha
+                                }
+                        )
+                    }
                 }
             }
         } else {

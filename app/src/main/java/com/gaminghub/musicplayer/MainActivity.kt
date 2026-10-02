@@ -21,8 +21,14 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
@@ -986,13 +992,43 @@ fun MiniPlayer(viewModel: MusicViewModel, settingsViewModel: SettingsViewModel, 
     val showMiniPlayerDownload by settingsViewModel.showMiniPlayerDownload.collectAsState()
     val showMiniPlayerFavorite by settingsViewModel.showMiniPlayerFavorite.collectAsState()
 
+    val coroutineScope = rememberCoroutineScope()
+    val offsetX = remember { androidx.compose.animation.core.Animatable(0f) }
+
     currentTrack?.let { track ->
         val progress = if (duration > 0) (currentPosition.toFloat() / duration.toFloat()).coerceIn(0f, 1f) else 0f
 
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = if (useDenseMiniplayer) 2.dp else 4.dp),
+                .padding(horizontal = 12.dp, vertical = if (useDenseMiniplayer) 2.dp else 4.dp)
+                .offset { IntOffset(offsetX.value.roundToInt(), 0) }
+                .pointerInput(track.audioUrl) {
+                    var totalDragX = 0f
+                    detectHorizontalDragGestures(
+                        onDragEnd = {
+                            if (totalDragX < -100f) {
+                                viewModel.skipToNext()
+                            } else if (totalDragX > 100f) {
+                                viewModel.skipToPrevious()
+                            }
+                            coroutineScope.launch {
+                                offsetX.animateTo(0f, androidx.compose.animation.core.spring())
+                            }
+                        },
+                        onDragCancel = {
+                            coroutineScope.launch {
+                                offsetX.animateTo(0f, androidx.compose.animation.core.spring())
+                            }
+                        },
+                        onHorizontalDrag = { _, dragAmount ->
+                            totalDragX += dragAmount
+                            coroutineScope.launch {
+                                offsetX.snapTo((offsetX.value + dragAmount * 0.4f).coerceIn(-160f, 160f))
+                            }
+                        }
+                    )
+                },
             onClick = onClick,
             color = Color.Transparent,
             shape = RoundedCornerShape(16.dp),

@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Album
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
@@ -107,6 +108,8 @@ fun PlaylistDetailScreen(
 
     val currentTrack by viewModel.currentTrack.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
+    val downloadedUrls by viewModel.downloadedUrls.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     var isSearchActive by remember { mutableStateOf(false) }
     var inPlaylistSearchQuery by remember { mutableStateOf("") }
@@ -272,6 +275,37 @@ fun PlaylistDetailScreen(
                                     }
                                 )
                             }
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = "Remove Duplicates",
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.CleaningServices,
+                                        contentDescription = null,
+                                        tint = MusifyGreen,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                },
+                                onClick = {
+                                    showSortMenu = false
+                                    viewModel.deduplicatePlaylist(playlistId.toInt()) { removed ->
+                                        if (removed > 0) {
+                                            android.widget.Toast.makeText(context, "Removed $removed duplicate songs!", android.widget.Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            android.widget.Toast.makeText(context, "No duplicates found in playlist.", android.widget.Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                }
+                            )
                         }
                     }
                 }
@@ -329,6 +363,24 @@ fun PlaylistDetailScreen(
                                 fontWeight = FontWeight.Bold
                             )
                             Row(verticalAlignment = Alignment.CenterVertically) {
+                                val isAllDownloaded = processedTracks.isNotEmpty() && processedTracks.all { it.audioUrl in downloadedUrls }
+                                IconButton(
+                                    onClick = {
+                                        if (processedTracks.isNotEmpty()) {
+                                            viewModel.downloadPlaylist(processedTracks)
+                                        }
+                                    },
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.DownloadForOffline,
+                                        contentDescription = "Download All",
+                                        tint = if (isAllDownloaded) MusifyGreen else MaterialTheme.colorScheme.onBackground,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(6.dp))
+
                                 Row(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))

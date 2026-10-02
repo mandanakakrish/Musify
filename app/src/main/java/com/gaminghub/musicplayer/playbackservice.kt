@@ -86,6 +86,10 @@ class MusicPlaybackService : MediaSessionService() {
                 }
             }
         }
+        if (intent?.action == "com.gaminghub.musify.SET_SKIP_SILENCE") {
+            val enabled = intent.getBooleanExtra("enabled", false)
+            (mediaSession?.player as? ExoPlayer)?.skipSilenceEnabled = enabled
+        }
         return START_STICKY
     }
 
@@ -155,6 +159,9 @@ class MusicPlaybackService : MediaSessionService() {
             // them correctly even on player errors — no manual lock management needed.
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
+
+        val skipSilenceInit = settingsPrefs.getBoolean("skip_silence", false)
+        player.skipSilenceEnabled = skipSilenceInit
 
         currentAudioSessionId = player.audioSessionId
         try {
