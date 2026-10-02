@@ -1229,10 +1229,13 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
             dao.updateDevPick(url, newDevPickState)
 
             // Cloud Firestore sync for DevPicks with videoId / songId
-            com.gaminghub.musicplayer.data.firebase.FirestoreSyncManager.updateDevPick(
+            val cloudRes = com.gaminghub.musicplayer.data.firebase.FirestoreSyncManager.updateDevPick(
                 track = track.copy(isDevpick = newDevPickState),
                 isDevpick = newDevPickState
             )
+            if (cloudRes.isFailure) {
+                Log.e("MusicViewModel", "Failed to sync devpick to cloud: ${cloudRes.exceptionOrNull()?.message}")
+            }
 
             withContext(Dispatchers.Main) {
                 val updater: (TrackModel) -> TrackModel = { t ->

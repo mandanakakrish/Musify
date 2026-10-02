@@ -132,8 +132,8 @@ class AuthManager private constructor(private val context: Context) {
 
     private fun isSnapshotActiveAdmin(snapshot: com.google.firebase.firestore.DocumentSnapshot?): Boolean {
         if (snapshot == null || !snapshot.exists()) return false
-        val activeBool = snapshot.getBoolean("active")
-        val activeStr = snapshot.getString("active")
+        val activeBool = snapshot.getBoolean("active") ?: snapshot.getBoolean("\"active\"")
+        val activeStr = snapshot.getString("active") ?: snapshot.getString("\"active\"")
         val role = snapshot.getString("role")
         val isAdminBool = snapshot.getBoolean("isAdmin")
         return activeBool == true ||
@@ -154,9 +154,14 @@ class AuthManager private constructor(private val context: Context) {
 
         _lastAdminError.value = null
 
+        // Default developer account has permanent admin privileges
+        if (email == "mandankakrish28@gmail.com") {
+            _isAdmin.value = true
+        }
+
         if (email.isBlank() && uid.isBlank()) {
-            _isAdmin.value = false
-            onResult?.invoke(false)
+            _isAdmin.value = (email == "mandankakrish28@gmail.com")
+            onResult?.invoke(_isAdmin.value)
             return
         }
 

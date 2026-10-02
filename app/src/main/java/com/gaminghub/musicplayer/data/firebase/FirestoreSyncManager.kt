@@ -278,7 +278,36 @@ object FirestoreSyncManager {
                 }
             }
 
-            // 5. Update Complete User Sync Metadata
+            // 5. Sync Local DevPicks to Global devpicks Collection
+            var uploadedDevPicks = 0
+            try {
+                val devPicks = dao.getDevPickTracksSync()
+                for (dp in devPicks) {
+                    val rawUrl = dp.audioUrl
+                    val videoId = extractVideoId(rawUrl)
+                    val docId = if (videoId.isNotBlank()) videoId else sanitizeDocumentId(rawUrl.ifBlank { dp.title })
+                    if (docId.isBlank()) continue
+                    val devPickData = hashMapOf(
+                        "videoId" to (if (videoId.isNotBlank()) videoId else docId),
+                        "songId" to (if (videoId.isNotBlank()) videoId else docId),
+                        "audioUrl" to rawUrl,
+                        "title" to dp.title,
+                        "artist" to dp.artist,
+                        "albumArtUrl" to (dp.albumArtUrl ?: ""),
+                        "album" to (dp.album ?: ""),
+                        "genre" to (dp.genre ?: ""),
+                        "isDevpick" to true,
+                        "updatedAt" to System.currentTimeMillis()
+                    )
+                    db.collection("devpicks").document(docId).set(devPickData, SetOptions.merge()).await()
+                    uploadedDevPicks++
+                }
+                Log.d(TAG, "Uploaded $uploadedDevPicks devpicks to Firestore")
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to upload local devpicks to Firestore: ${e.message}")
+            }
+
+            // 6. Update Complete User Sync Metadata
             try {
                 val authManager = com.gaminghub.musicplayer.auth.AuthManager.getInstance(context)
                 userDoc.set(
@@ -635,13 +664,13 @@ object FirestoreSyncManager {
      * Real-time Cloud Firestore updates for Developer's Picks (DevPicks).
      * Saves using the track's YouTube videoId / songId as the Firestore document ID.
      */
-    suspend fun updateDevPick(track: TrackModel, isDevpick: Boolean) = withContext(Dispatchers.IO) {
-        val db = firestore ?: return@withContext
+    suspend fun updateDevPick(track: TrackModel, isDevpick: Boolean): Result<Unit> = withContext(Dispatchers.IO) {
+        val db = firestore ?: return@withContext Result.failure(Exception("Firestore not initialized"))
         try {
             val rawUrl = track.audioUrl ?: ""
             val videoId = extractVideoId(rawUrl)
             val docId = if (videoId.isNotBlank()) videoId else sanitizeDocumentId(rawUrl.ifBlank { track.title })
-            if (docId.isBlank()) return@withContext
+            if (docId.isBlank()) return@withContext Result.failure(Exception("Invalid document ID"))
 
             val devPickDoc = db.collection("devpicks").document(docId)
             if (isDevpick) {
@@ -672,9 +701,11 @@ object FirestoreSyncManager {
                 }
                 Log.d(TAG, "Removed devpick from Firestore: ${track.title} ($docId)")
             }
+            Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to update devpick in Firestore: ${e.message}")
+            Log.e(TAG, "Failed to update devpick in Firestore: ${e.message}", e)
             CrashReporter.recordException(e)
+            Result.failure(e)
         }
     }
 
