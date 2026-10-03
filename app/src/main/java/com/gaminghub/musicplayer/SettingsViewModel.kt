@@ -86,6 +86,15 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _cacheSongs = MutableStateFlow(prefs.getBoolean("cache_songs", true))
     val cacheSongs: StateFlow<Boolean> = _cacheSongs.asStateFlow()
 
+    private val _loudnessEnhancer = MutableStateFlow(prefs.getBoolean("eq_loudness_enhancer_enabled", false))
+    val loudnessEnhancer: StateFlow<Boolean> = _loudnessEnhancer.asStateFlow()
+
+    private val _crossfadeDuration = MutableStateFlow(prefs.getInt("crossfade_duration_sec", 0))
+    val crossfadeDuration: StateFlow<Int> = _crossfadeDuration.asStateFlow()
+
+    private val _bluetoothAutoResume = MutableStateFlow(prefs.getBoolean("bluetooth_auto_resume", false))
+    val bluetoothAutoResume: StateFlow<Boolean> = _bluetoothAutoResume.asStateFlow()
+
     // ── App UI Settings ──────────────────────────────────────
     private val _playerBackground = MutableStateFlow(prefs.getString("player_background", "Default (Blurred Artwork)") ?: "Default (Blurred Artwork)")
     val playerBackground: StateFlow<String> = _playerBackground.asStateFlow()
@@ -288,6 +297,25 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             getApplication<Application>().startService(intent)
         } catch (_: Exception) {}
         MusicViewModel.instance?.get()?.setSkipSilence(enabled)
+    }
+
+    fun setLoudnessEnhancer(enabled: Boolean) {
+        _loudnessEnhancer.value = enabled
+        prefs.edit { putBoolean("eq_loudness_enhancer_enabled", enabled) }
+        try {
+            com.gaminghub.musicplayer.util.EqualizerManager.getInstance(getApplication()).setLoudnessEnhancerEnabled(enabled)
+        } catch (_: Exception) {}
+    }
+
+    fun setCrossfadeDuration(seconds: Int) {
+        _crossfadeDuration.value = seconds
+        prefs.edit { putInt("crossfade_duration_sec", seconds) }
+        MusicViewModel.instance?.get()?.setCrossfadeSeconds(seconds)
+    }
+
+    fun setBluetoothAutoResume(enabled: Boolean) {
+        _bluetoothAutoResume.value = enabled
+        prefs.edit { putBoolean("bluetooth_auto_resume", enabled) }
     }
 
     fun setPlayerBackground(background: String) {

@@ -26,6 +26,9 @@ interface MusicDao {
     @Query("SELECT * FROM tracks WHERE lastPlayedTimestamp IS NOT NULL ORDER BY lastPlayedTimestamp DESC LIMIT 100")
     fun getRecentHistory(): Flow<List<TrackEntity>>
 
+    @Query("SELECT * FROM tracks WHERE lastPlayedTimestamp IS NOT NULL ORDER BY lastPlayedTimestamp DESC LIMIT 100")
+    fun getRecentHistorySync(): List<TrackEntity>
+
     @Query("UPDATE tracks SET lastPlayedTimestamp = NULL")
     suspend fun clearRecentHistory()
 
@@ -132,6 +135,9 @@ interface MusicDao {
 
     @Query("SELECT * FROM tracks WHERE playCount > 0 ORDER BY playCount DESC LIMIT 1")
     fun getTopMostPlayedTrack(): Flow<TrackEntity?>
+
+    @Query("SELECT artist, SUM(playCount) as totalPlays FROM tracks WHERE playCount > 0 GROUP BY artist ORDER BY totalPlays DESC LIMIT 10")
+    fun getTopArtistsStats(): Flow<List<ArtistStat>>
 
     @Query("SELECT isFavorite FROM tracks WHERE audioUrl = :url")
     fun isFavorite(url: String): Flow<Boolean>

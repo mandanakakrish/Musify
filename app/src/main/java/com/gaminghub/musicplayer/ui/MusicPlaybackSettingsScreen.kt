@@ -32,12 +32,16 @@ fun MusicPlaybackSettingsScreen(navController: NavController, settingsViewModel:
     val autoplay by settingsViewModel.autoplay.collectAsState()
     val skipSilence by settingsViewModel.skipSilence.collectAsState()
     val cacheSongs by settingsViewModel.cacheSongs.collectAsState()
+    val loudnessEnhancer by settingsViewModel.loudnessEnhancer.collectAsState()
+    val crossfadeDuration by settingsViewModel.crossfadeDuration.collectAsState()
+    val bluetoothAutoResume by settingsViewModel.bluetoothAutoResume.collectAsState()
 
     var showMusicLangDropdown by remember { mutableStateOf(false) }
     var showCountryDropdown by remember { mutableStateOf(false) }
     var showQualityDropdown by remember { mutableStateOf(false) }
     var showWifiQualityDropdown by remember { mutableStateOf(false) }
     var showYoutubeQualityDropdown by remember { mutableStateOf(false) }
+    var showCrossfadeDropdown by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -347,6 +351,76 @@ fun MusicPlaybackSettingsScreen(navController: NavController, settingsViewModel:
             subtitle = "Songs will be cached for instant future playback (Uses device storage)",
             checked = cacheSongs,
             onCheckedChange = { settingsViewModel.setCacheSongs(it) }
+        )
+
+        // ── 12. Audio Crossfade ─────────────────────────────────
+        Box {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showCrossfadeDropdown = true }
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Audio Crossfade", color = MaterialTheme.colorScheme.onBackground, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text("Smoothly fade out and ramp up between songs", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 13.sp)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    val label = if (crossfadeDuration == 0) "Off" else "${crossfadeDuration}s"
+                    Text(label, color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("▼", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f), fontSize = 10.sp)
+                }
+            }
+
+            DropdownMenu(
+                expanded = showCrossfadeDropdown,
+                onDismissRequest = { showCrossfadeDropdown = false },
+                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+            ) {
+                listOf(
+                    0 to "Off (Gapless)",
+                    2 to "2 seconds",
+                    4 to "4 seconds",
+                    6 to "6 seconds",
+                    8 to "8 seconds",
+                    12 to "12 seconds"
+                ).forEach { (seconds, label) ->
+                    val isSelected = crossfadeDuration == seconds
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                label,
+                                color = if (isSelected) MusifyGreen else MaterialTheme.colorScheme.onSurface,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                            )
+                        },
+                        onClick = {
+                            settingsViewModel.setCrossfadeDuration(seconds)
+                            showCrossfadeDropdown = false
+                        }
+                    )
+                }
+            }
+        }
+
+        // ── 13. Volume Normalization (Loudness Equalizer) ────────
+        ThemeSwitchRow(
+            title = "Volume Normalization (Loudness Equalizer)",
+            subtitle = "Balances volume across older quiet tracks and loud modern mixes",
+            checked = loudnessEnhancer,
+            onCheckedChange = { settingsViewModel.setLoudnessEnhancer(it) }
+        )
+
+        // ── 14. Auto-Resume on Headset / Bluetooth ───────────────
+        ThemeSwitchRow(
+            title = "Auto-Resume on Headset / Bluetooth",
+            subtitle = "Automatically resume music when headphones or car audio connects",
+            checked = bluetoothAutoResume,
+            onCheckedChange = { settingsViewModel.setBluetoothAutoResume(it) }
         )
 
         Spacer(modifier = Modifier.height(100.dp))

@@ -43,8 +43,14 @@ fun StatsScreen(navController: NavController, viewModel: MusicViewModel) {
     val mostPlayedTracks by viewModel.mostPlayedTracks.collectAsState()
     val topMostPlayedTrack by viewModel.topMostPlayedTrack.collectAsState()
     val globalWeeklyTopCharts by viewModel.globalWeeklyTopCharts.collectAsState()
+    val topArtistsStats by viewModel.topArtistsStats.collectAsState()
     val currentTrack by viewModel.currentTrack.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
+
+    val estimatedMinutes = (totalSongsPlayed * 3.5).toInt()
+    val hours = estimatedMinutes / 60
+    val minutes = estimatedMinutes % 60
+    val listeningTimeText = if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m"
 
     Column(
         modifier = Modifier
@@ -68,7 +74,7 @@ fun StatsScreen(navController: NavController, viewModel: MusicViewModel) {
             }
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "Listening Stats",
+                text = "Listening Stats & Wrapped",
                 color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
@@ -82,12 +88,12 @@ fun StatsScreen(navController: NavController, viewModel: MusicViewModel) {
             contentPadding = PaddingValues(top = 8.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // ── 1. Total Songs Played Metric Card ─────────────────────────
+            // ── 0. Musify Wrapped Hero Banner ──────────────────────────────
             item {
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+                    shape = RoundedCornerShape(20.dp),
+                    border = BorderStroke(1.dp, MusifyGreen.copy(alpha = 0.5f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Box(
@@ -95,55 +101,121 @@ fun StatsScreen(navController: NavController, viewModel: MusicViewModel) {
                             .fillMaxWidth()
                             .background(
                                 Brush.linearGradient(
-                                    colors = listOf(
-                                        MusifyGreen.copy(alpha = 0.15f),
-                                        Color.Transparent
+                                    listOf(
+                                        Color(0xFF8E2DE2).copy(alpha = 0.35f),
+                                        Color(0xFF4A00E0).copy(alpha = 0.25f),
+                                        MusifyGreen.copy(alpha = 0.20f)
                                     )
                                 )
                             )
                             .padding(20.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = "Total Songs Played",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "$totalSongsPlayed",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 42.sp,
-                                    fontWeight = FontWeight.ExtraBold
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "Tracked across all your sessions",
-                                    color = MusifyGreen,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .size(56.dp)
-                                    .clip(CircleShape)
-                                    .background(MusifyGreen.copy(alpha = 0.2f)),
-                                contentAlignment = Alignment.Center
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    Icons.Default.AutoGraph,
-                                    contentDescription = null,
-                                    tint = MusifyGreen,
-                                    modifier = Modifier.size(30.dp)
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("✨", fontSize = 20.sp)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Musify Wrapped & Insights",
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontSize = 17.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                Surface(
+                                    color = MusifyGreen,
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text(
+                                        text = "LIVE",
+                                        color = Color.Black,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                    )
+                                }
                             }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Your personal listening habits, top favorite artists, and music replay statistics.",
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+                                fontSize = 13.sp,
+                                lineHeight = 18.sp
+                            )
+                        }
+                    }
+                }
+            }
+
+            // ── 1. Dual Key Metrics (Total Songs + Listening Time) ────────
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Total Songs Card
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "Total Plays",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "$totalSongsPlayed",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Songs completed",
+                                color = MusifyGreen,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+
+                    // Total Listening Time Card
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "Time Listened",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = listeningTimeText,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Estimated audio time",
+                                color = MusifyGreen,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
                     }
                 }
@@ -220,7 +292,73 @@ fun StatsScreen(navController: NavController, viewModel: MusicViewModel) {
                 }
             }
 
-            // ── 2. Most Played Song Hero Card ─────────────────────────────
+            // ── 3. Top Artists Leaderboard ────────────────────────────────
+            if (topArtistsStats.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "Top Artists",
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                item {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            topArtistsStats.take(5).forEachIndexed { index, stat ->
+                                val rankBadge = when (index) {
+                                    0 -> "🥇"
+                                    1 -> "🥈"
+                                    2 -> "🥉"
+                                    else -> "#${index + 1}"
+                                }
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 8.dp, horizontal = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = rankBadge,
+                                        fontSize = 16.sp,
+                                        modifier = Modifier.width(36.dp)
+                                    )
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = stat.artist,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    Text(
+                                        text = "${stat.totalPlays} plays",
+                                        color = MusifyGreen,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                if (index < topArtistsStats.take(5).size - 1) {
+                                    HorizontalDivider(
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
+                                        modifier = Modifier.padding(vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── 4. Most Played Song Hero Card ─────────────────────────────
             item {
                 Text(
                     text = "Most Played Song",

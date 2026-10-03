@@ -12,7 +12,10 @@ import androidx.media3.datasource.HttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
-import androidx.media3.session.MediaSessionService
+import androidx.media3.session.MediaLibraryService
+import androidx.media3.session.MediaLibraryService.MediaLibrarySession
+import androidx.media3.session.LibraryResult
+import androidx.media3.common.MediaMetadata
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
@@ -21,6 +24,9 @@ import com.gaminghub.musicplayer.util.CommonUtils
 import android.content.Context
 import android.content.BroadcastReceiver
 import android.content.IntentFilter
+import android.media.AudioDeviceCallback
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
 import android.net.Uri
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
@@ -33,9 +39,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @UnstableApi
-class MusicPlaybackService : MediaSessionService() {
-    private var mediaSession: MediaSession? = null
+class MusicPlaybackService : MediaLibraryService() {
+    private var mediaLibrarySession: MediaLibrarySession? = null
     private var exoPlayer: ExoPlayer? = null
+    private var audioManager: AudioManager? = null
+    private var audioDeviceCallback: AudioDeviceCallback? = null
     // WakeLock/WifiLock intentionally removed — ExoPlayer's setWakeMode(WAKE_MODE_NETWORK)
     // manages CPU and WiFi wake locks internally and releases them correctly on error.
 
@@ -77,7 +85,7 @@ class MusicPlaybackService : MediaSessionService() {
             if (vm != null) {
                 vm.togglePlayPause()
             } else {
-                val p = mediaSession?.player
+                val p = exoPlayer ?: mediaLibrarySession?.player
                 if (p != null) {
                     if (p.isPlaying) {
                         p.pause()
@@ -99,6 +107,7 @@ class MusicPlaybackService : MediaSessionService() {
 
     override fun onCreate() {
         super.onCreate()
+        setupAudioDeviceCallback()
 
         // Use the synchronized User-Agent across extractor, verifier and ExoPlayer
         val userAgent = CommonUtils.CURRENT_USER_AGENT
@@ -218,68 +227,45 @@ class MusicPlaybackService : MediaSessionService() {
             override fun seekToPreviousMediaItem() = sendPlaybackBroadcast("com.gaminghub.musify.WIDGET_PREV")
         }
 
-        mediaSession = MediaSession.Builder(this, forwardingPlayer)
-            .setSessionActivity(pendingIntent)
-            .setCallback(object : MediaSession.Callback {
-                override fun onPlayerCommandRequest(
-                    session: MediaSession,
-                    controller: MediaSession.ControllerInfo,
-                    playerCommand: Int
-                ): Int {
-                    if (playerCommand == Player.COMMAND_SEEK_TO_NEXT || playerCommand == Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM) {
-                        sendPlaybackBroadcast("com.gaminghub.musify.WIDGET_NEXT")
-                        return androidx.media3.session.SessionResult.RESULT_SUCCESS
-                    }
-                    if (playerCommand == Player.COMMAND_SEEK_TO_PREVIOUS || playerCommand == Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM) {
-                        sendPlaybackBroadcast("com.gaminghub.musify.WIDGET_PREV")
-                        return androidx.media3.session.SessionResult.RESULT_SUCCESS
-                    }
-                    return super.onPlayerCommandRequest(session, controller, playerCommand)
+        val libraryCallback = object : MediaLibrarySession.Callback {
+            override fun onPlayerCommandRequest(
+                session: MediaSession,
+                controller: MediaSession.ControllerInfo,
+                playerCommand: Int
+            ): Int {
+                if (playerCommand == Player.COMMAND_SEEK_TO_NEXT || playerCommand == Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM) {
+                    sendPlaybackBroadcast("com.gaminghub.musify.WIDGET_NEXT")
+                    return androidx.media3.session.SessionResult.RESULT_SUCCESS
                 }
+                if (playerCommand == Player.COMMAND_SEEK_TO_PREVIOUS || playerCommand == Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM) {
+                    sendPlaybackBroadcast("com.gaminghub.musify.WIDGET_PREV")
+                    return androidx.media3.session.SessionResult.RESULT_SUCCESS
+                }
+                return super.onPlayerCommandRequest(session, controller, playerCommand)
+            }
 
-                override fun onPlaybackResumption(
-                    mediaSession: MediaSession,
-                    controller: MediaSession.ControllerInfo
-                ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
-                    val settable = com.google.common.util.concurrent.SettableFuture.create<MediaSession.MediaItemsWithStartPosition>()
-                    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
-                        try {
-                            val dao = com.gaminghub.musicplayer.data.MusicDatabase.getInstance(this@MusicPlaybackService).dao
-                            val queueTracks = dao.getQueueTracks()
-                            val playbackState = dao.getPlaybackState()
-                            if (queueTracks.isNotEmpty()) {
-                                val mediaItems = queueTracks.map { track ->
-                                    MediaItem.Builder()
-                                        .setMediaId(track.audioUrl)
-                                        .setUri(track.audioUrl)
-                                        .setMediaMetadata(
-                                            androidx.media3.common.MediaMetadata.Builder()
-                                                .setTitle(track.title)
-                                                .setArtist(track.artist)
-                                                .setArtworkUri(track.albumArtUrl?.let { Uri.parse(it) })
-                                                .build()
-                                        )
-                                        .build()
-                                }
-                                val startIndex = playbackState?.currentTrackIndex?.coerceIn(0, mediaItems.size - 1) ?: 0
-                                val startPosition = playbackState?.positionMs ?: 0L
-                                settable.set(
-                                    MediaSession.MediaItemsWithStartPosition(
-                                        mediaItems,
-                                        startIndex,
-                                        startPosition
-                                    )
+            override fun onPlaybackResumption(
+                mediaSession: MediaSession,
+                controller: MediaSession.ControllerInfo
+            ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+                val settable = com.google.common.util.concurrent.SettableFuture.create<MediaSession.MediaItemsWithStartPosition>()
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val dao = com.gaminghub.musicplayer.data.MusicDatabase.getInstance(this@MusicPlaybackService).dao
+                        val queueTracks = dao.getQueueTracks()
+                        val playbackState = dao.getPlaybackState()
+                        if (queueTracks.isNotEmpty()) {
+                            val mediaItems = queueTracks.map { queueTrackToMediaItem(it) }
+                            val startIndex = playbackState?.currentTrackIndex?.coerceIn(0, mediaItems.size - 1) ?: 0
+                            val startPosition = playbackState?.positionMs ?: 0L
+                            settable.set(
+                                MediaSession.MediaItemsWithStartPosition(
+                                    mediaItems,
+                                    startIndex,
+                                    startPosition
                                 )
-                            } else {
-                                settable.set(
-                                    MediaSession.MediaItemsWithStartPosition(
-                                        ImmutableList.of(),
-                                        0,
-                                        C.TIME_UNSET
-                                    )
-                                )
-                            }
-                        } catch (_: Exception) {
+                            )
+                        } else {
                             settable.set(
                                 MediaSession.MediaItemsWithStartPosition(
                                     ImmutableList.of(),
@@ -288,10 +274,94 @@ class MusicPlaybackService : MediaSessionService() {
                                 )
                             )
                         }
+                    } catch (_: Exception) {
+                        settable.set(
+                            MediaSession.MediaItemsWithStartPosition(
+                                ImmutableList.of(),
+                                0,
+                                C.TIME_UNSET
+                            )
+                        )
                     }
-                    return settable
                 }
-            })
+                return settable
+            }
+
+            override fun onGetLibraryRoot(
+                session: MediaLibrarySession,
+                browser: MediaSession.ControllerInfo,
+                params: MediaLibraryService.LibraryParams?
+            ): ListenableFuture<LibraryResult<MediaItem>> {
+                val rootItem = MediaItem.Builder()
+                    .setMediaId("ROOT")
+                    .setMediaMetadata(
+                        MediaMetadata.Builder()
+                            .setTitle("Musify")
+                            .setIsPlayable(false)
+                            .setIsBrowsable(true)
+                            .setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_MIXED)
+                            .build()
+                    )
+                    .build()
+                return Futures.immediateFuture(LibraryResult.ofItem(rootItem, params))
+            }
+
+            override fun onGetChildren(
+                session: MediaLibrarySession,
+                browser: MediaSession.ControllerInfo,
+                parentId: String,
+                page: Int,
+                pageSize: Int,
+                params: MediaLibraryService.LibraryParams?
+            ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
+                val settable = com.google.common.util.concurrent.SettableFuture.create<LibraryResult<ImmutableList<MediaItem>>>()
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val dao = com.gaminghub.musicplayer.data.MusicDatabase.getInstance(this@MusicPlaybackService).dao
+                        val items: List<MediaItem> = when (parentId) {
+                            "ROOT" -> listOf(
+                                buildFolderItem("CATEGORY_FAVORITES", "Favorites", MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS),
+                                buildFolderItem("CATEGORY_RECENT", "Recently Played", MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS),
+                                buildFolderItem("CATEGORY_DOWNLOADS", "Downloaded", MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS)
+                            )
+                            "CATEGORY_FAVORITES" -> dao.getFavoriteTracksSync().map { trackToMediaItem(it) }
+                            "CATEGORY_RECENT" -> dao.getRecentHistorySync().map { trackToMediaItem(it) }
+                            "CATEGORY_DOWNLOADS" -> dao.getDownloadedTracksSync().map { trackToMediaItem(it) }
+                            else -> emptyList()
+                        }
+                        settable.set(LibraryResult.ofItemList(ImmutableList.copyOf(items), params))
+                    } catch (_: Exception) {
+                        settable.set(LibraryResult.ofError(LibraryResult.RESULT_ERROR_BAD_VALUE))
+                    }
+                }
+                return settable
+            }
+
+            override fun onGetItem(
+                session: MediaLibrarySession,
+                browser: MediaSession.ControllerInfo,
+                mediaId: String
+            ): ListenableFuture<LibraryResult<MediaItem>> {
+                val settable = com.google.common.util.concurrent.SettableFuture.create<LibraryResult<MediaItem>>()
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val dao = com.gaminghub.musicplayer.data.MusicDatabase.getInstance(this@MusicPlaybackService).dao
+                        val track = dao.getTrackByUrl(mediaId)
+                        if (track != null) {
+                            settable.set(LibraryResult.ofItem(trackToMediaItem(track), null))
+                        } else {
+                            settable.set(LibraryResult.ofError(LibraryResult.RESULT_ERROR_BAD_VALUE))
+                        }
+                    } catch (_: Exception) {
+                        settable.set(LibraryResult.ofError(LibraryResult.RESULT_ERROR_BAD_VALUE))
+                    }
+                }
+                return settable
+            }
+        }
+
+        mediaLibrarySession = MediaLibrarySession.Builder(this, forwardingPlayer, libraryCallback)
+            .setSessionActivity(pendingIntent)
             .build()
 
         player.addListener(object : Player.Listener {
@@ -379,14 +449,86 @@ class MusicPlaybackService : MediaSessionService() {
         }
     }
 
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
-        return mediaSession
+    private fun buildFolderItem(id: String, title: String, mediaType: Int): MediaItem {
+        return MediaItem.Builder()
+            .setMediaId(id)
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(title)
+                    .setIsPlayable(false)
+                    .setIsBrowsable(true)
+                    .setMediaType(mediaType)
+                    .build()
+            )
+            .build()
+    }
+
+    private fun createMediaItem(audioUrl: String, title: String, artist: String, albumArtUrl: String?): MediaItem {
+        return MediaItem.Builder()
+            .setMediaId(audioUrl)
+            .setUri(audioUrl)
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(title)
+                    .setArtist(artist)
+                    .setArtworkUri(albumArtUrl?.let { Uri.parse(it) })
+                    .setIsPlayable(true)
+                    .setIsBrowsable(false)
+                    .setMediaType(MediaMetadata.MEDIA_TYPE_MUSIC)
+                    .build()
+            )
+            .build()
+    }
+
+    private fun trackToMediaItem(track: com.gaminghub.musicplayer.data.TrackEntity): MediaItem =
+        createMediaItem(track.audioUrl, track.title, track.artist, track.albumArtUrl)
+
+    private fun queueTrackToMediaItem(track: com.gaminghub.musicplayer.data.QueueTrackEntity): MediaItem =
+        createMediaItem(track.audioUrl, track.title, track.artist, track.albumArtUrl)
+
+    private fun setupAudioDeviceCallback() {
+        try {
+            audioManager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+            audioDeviceCallback = object : AudioDeviceCallback() {
+                override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>?) {
+                    super.onAudioDevicesAdded(addedDevices)
+                    val settingsPrefs = getSharedPreferences("Musify_settings", Context.MODE_PRIVATE)
+                    val autoResume = settingsPrefs.getBoolean("bluetooth_auto_resume", false)
+                    if (!autoResume) return
+
+                    val isHeadsetOutput = addedDevices?.any { device ->
+                        device.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
+                        device.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                        device.type == AudioDeviceInfo.TYPE_WIRED_HEADSET ||
+                        device.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES ||
+                        device.type == AudioDeviceInfo.TYPE_USB_HEADSET
+                    } == true
+
+                    if (isHeadsetOutput) {
+                        exoPlayer?.let { player ->
+                            if (!player.isPlaying && player.playbackState != Player.STATE_IDLE && player.currentMediaItem != null) {
+                                player.playWhenReady = true
+                                player.play()
+                                android.util.Log.d("PlaybackService", "Auto-resumed playback upon headset/Bluetooth connection")
+                            }
+                        }
+                    }
+                }
+            }
+            audioManager?.registerAudioDeviceCallback(audioDeviceCallback, null)
+        } catch (e: Exception) {
+            android.util.Log.w("PlaybackService", "Could not register AudioDeviceCallback: ${e.message}")
+        }
+    }
+
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? {
+        return mediaLibrarySession
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         val settingsPrefs = getSharedPreferences("Musify_settings", Context.MODE_PRIVATE)
         val stopOnClose = settingsPrefs.getBoolean("stop_on_close", false)
-        val player = mediaSession?.player
+        val player = mediaLibrarySession?.player
         if (stopOnClose || player?.playWhenReady == false || player?.playbackState == Player.STATE_IDLE) {
             player?.stop()
             stopSelf()
@@ -395,16 +537,21 @@ class MusicPlaybackService : MediaSessionService() {
 
     override fun onDestroy() {
         currentAudioSessionId = -1
+        try {
+            audioDeviceCallback?.let { audioManager?.unregisterAudioDeviceCallback(it) }
+        } catch (_: Exception) {}
+        audioDeviceCallback = null
+        audioManager = null
         // Release native AudioEffect handles BEFORE player.release() to prevent
         // AudioFlinger native resource leaks (system-wide ~32 effect handle limit).
         try {
             com.gaminghub.musicplayer.util.EqualizerManager.getInstance(this).release()
         } catch (_: Exception) {}
         exoPlayer = null
-        mediaSession?.run {
+        mediaLibrarySession?.run {
             player.release()
             release()
-            mediaSession = null
+            mediaLibrarySession = null
         }
         super.onDestroy()
     }

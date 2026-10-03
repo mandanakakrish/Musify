@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.media.audiofx.BassBoost
 import android.media.audiofx.Equalizer
+import android.media.audiofx.LoudnessEnhancer
 import android.media.audiofx.Virtualizer
 import android.util.Log
 import com.gaminghub.musicplayer.MusicPlaybackService
@@ -23,9 +24,13 @@ class EqualizerManager private constructor(context: Context) {
     private var equalizer: Equalizer? = null
     private var bassBoost: BassBoost? = null
     private var virtualizer: Virtualizer? = null
+    private var loudnessEnhancer: LoudnessEnhancer? = null
 
     private val _isEnabled = MutableStateFlow(prefs.getBoolean("eq_enabled", true))
     val isEnabled: StateFlow<Boolean> = _isEnabled.asStateFlow()
+
+    private val _loudnessEnhancerEnabled = MutableStateFlow(prefs.getBoolean("eq_loudness_enhancer_enabled", false))
+    val loudnessEnhancerEnabled: StateFlow<Boolean> = _loudnessEnhancerEnabled.asStateFlow()
 
     private val _selectedPreset = MutableStateFlow(prefs.getString("eq_preset", "Flat") ?: "Flat")
     val selectedPreset: StateFlow<String> = _selectedPreset.asStateFlow()
@@ -83,12 +88,28 @@ class EqualizerManager private constructor(context: Context) {
                     }
                 } catch (_: Exception) {}
             }
+            try {
+                loudnessEnhancer = LoudnessEnhancer(audioSessionId).apply {
+                    setTargetGain(300) // 3 dB boost / normalization
+                    enabled = _loudnessEnhancerEnabled.value
+                }
+            } catch (e: Exception) {
+                Log.w(tag, "Could not initialize LoudnessEnhancer: ${e.message}")
+            }
 
             applyCurrentSettings()
             Log.d(tag, "Equalizer initialized cleanly with anti-clipping headroom for session: $audioSessionId")
         } catch (e: Exception) {
             Log.w(tag, "Could not initialize hardware equalizer: ${e.message}")
         }
+    }
+
+    fun setLoudnessEnhancerEnabled(enabled: Boolean) {
+        _loudnessEnhancerEnabled.value = enabled
+        prefs.edit().putBoolean("eq_loudness_enhancer_enabled", enabled).apply()
+        try {
+            loudnessEnhancer?.enabled = enabled
+        } catch (_: Exception) {}
     }
 
     fun setEnabled(enabled: Boolean) {
@@ -206,10 +227,12 @@ class EqualizerManager private constructor(context: Context) {
             equalizer?.release()
             bassBoost?.release()
             virtualizer?.release()
+            loudnessEnhancer?.release()
         } catch (_: Exception) {}
         equalizer = null
         bassBoost = null
         virtualizer = null
+        loudnessEnhancer = null
     }
 
     companion object {

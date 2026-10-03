@@ -69,3 +69,8 @@ data class TrackPlayCount(
 
 fun TrackPlayCount.toModel() = track.toModel().copy(playcount = periodPlayCount)
 
+data class ArtistStat(
+    val artist: String,
+    val totalPlays: Int
+)
+

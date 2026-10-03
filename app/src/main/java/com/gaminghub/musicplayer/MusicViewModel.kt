@@ -241,6 +241,9 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         .map { list -> list.map { it.toModel() } }
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+    val topArtistsStats: StateFlow<List<com.gaminghub.musicplayer.data.ArtistStat>> = dao.getTopArtistsStats()
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
     val allTimeTopCharts: StateFlow<List<TrackModel>> = dao.getTop50Tracks()
         .map { list -> list.map { it.toModel() } }
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
@@ -766,6 +769,19 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                                         StreamExtractionManager.preExtract(nextUrl)
                                     }
                                 }
+                            }
+                        }
+
+                        // Seamless audio crossfade volume ramp down
+                        val crossSec = _crossfadeSeconds.value
+                        if (crossSec > 0 && dur > 15_000L) {
+                            val fadeWindowMs = crossSec * 1000L
+                            val remainingMs = dur - pos
+                            if (remainingMs in 1L..fadeWindowMs) {
+                                val targetVol = (remainingMs.toFloat() / fadeWindowMs).coerceIn(0.05f, 1.0f)
+                                controller.volume = targetVol
+                            } else if (volumeFadeJob?.isActive != true && controller.volume < 1.0f) {
+                                controller.volume = 1.0f
                             }
                         }
                     }
@@ -1525,6 +1541,26 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                         _isLoading.value = false
                         Log.d(tag, "Playback started successfully for '${track.title}'")
 
+                        // Crossfade volume ramp-up on track start
+                        val crossSec = _crossfadeSeconds.value
+                        if (crossSec > 0) {
+                            volumeFadeJob?.cancel()
+                            volumeFadeJob = viewModelScope.launch {
+                                controller.volume = 0.05f
+                                val steps = 15
+                                val fadeDurMs = (crossSec * 1000L).coerceAtMost(3000L)
+                                val interval = (fadeDurMs / steps).coerceAtLeast(20L)
+                                for (i in 1..steps) {
+                                    delay(interval)
+                                    if (!isActive) break
+                                    controller.volume = (i.toFloat() / steps).coerceIn(0f, 1f)
+                                }
+                                controller.volume = 1.0f
+                            }
+                        } else {
+                            controller.volume = 1.0f
+                        }
+
                         // Pre-extract next track now that current playback has started
                         val playingIdx = _currentQueue.value.indexOfFirst { it.audioUrl == track.audioUrl }
                         if (playingIdx >= 0) {
@@ -2167,6 +2203,8 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun seekTo(position: Long) {
+        volumeFadeJob?.cancel()
+        mediaController?.volume = 1.0f
         mediaController?.seekTo(position)
     }
 
@@ -2406,6 +2444,18 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                 android.widget.Toast.LENGTH_SHORT
             ).show()
         } catch (_: Exception) {}
+    }
+
+    // ── Seamless Audio Crossfade ──────────────────────────────────────
+    private val _crossfadeSeconds = MutableStateFlow(
+        getApplication<Application>().getSharedPreferences("Musify_settings", Context.MODE_PRIVATE)
+            .getInt("crossfade_duration_sec", 0)
+    )
+    val crossfadeSeconds: StateFlow<Int> = _crossfadeSeconds.asStateFlow()
+    private var volumeFadeJob: Job? = null
+
+    fun setCrossfadeSeconds(sec: Int) {
+        _crossfadeSeconds.value = sec
     }
 
     fun setSpeedLock(enabled: Boolean) {
@@ -2751,12 +2801,28 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun startSongRadio(seedTrack: TrackModel) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val radioTracks = youtubeRepository.fetchMusic("${seedTrack.artist} similar official songs", officialOnly = true)
-            withContext(Dispatchers.Main) {
-                if (radioTracks.isNotEmpty()) {
-                    val combinedQueue = listOf(seedTrack) + radioTracks.filter { it.audioUrl != seedTrack.audioUrl }
-                    playTrack(seedTrack, combinedQueue)
+        viewModelScope.launch {
+            android.widget.Toast.makeText(getApplication(), "Starting Song Radio: ${seedTrack.title}...", android.widget.Toast.LENGTH_SHORT).show()
+            playTrack(seedTrack, listOf(seedTrack))
+            withContext(Dispatchers.IO) {
+                try {
+                    val seedUrl = seedTrack.audioUrl ?: ""
+                    val recommendations = SmartRecommendationEngine.computeNextRecommendations(
+                        currentTrack = seedTrack,
+                        trendingTracks = _trendingTracks.value,
+                        topCharts = _topCharts.value,
+                        dao = dao,
+                        youtubeRepository = youtubeRepository,
+                        existingQueueUrls = setOf(seedUrl),
+                        count = 25
+                    )
+                    val fullQueue = (listOf(seedTrack) + recommendations).distinctBy { it.audioUrl }
+                    withContext(Dispatchers.Main) {
+                        _currentQueue.value = fullQueue
+                        Log.d(tag, "Song Radio queue updated with ${fullQueue.size} tracks")
+                    }
+                } catch (e: Exception) {
+                    Log.w(tag, "Failed to compute radio recommendations: ${e.message}")
                 }
             }
         }
