@@ -80,6 +80,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _autoplay = MutableStateFlow(prefs.getBoolean("autoplay", true))
     val autoplay: StateFlow<Boolean> = _autoplay.asStateFlow()
 
+    private val _skipSilence = MutableStateFlow(prefs.getBoolean("skip_silence", true))
+    val skipSilence: StateFlow<Boolean> = _skipSilence.asStateFlow()
+
     private val _cacheSongs = MutableStateFlow(prefs.getBoolean("cache_songs", true))
     val cacheSongs: StateFlow<Boolean> = _cacheSongs.asStateFlow()
 
@@ -272,6 +275,19 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setCacheSongs(enabled: Boolean) {
         _cacheSongs.value = enabled
         prefs.edit { putBoolean("cache_songs", enabled) }
+    }
+
+    fun setSkipSilence(enabled: Boolean) {
+        _skipSilence.value = enabled
+        prefs.edit { putBoolean("skip_silence", enabled) }
+        try {
+            val intent = android.content.Intent(getApplication(), MusicPlaybackService::class.java).apply {
+                action = "com.gaminghub.musify.SET_SKIP_SILENCE"
+                putExtra("enabled", enabled)
+            }
+            getApplication<Application>().startService(intent)
+        } catch (_: Exception) {}
+        MusicViewModel.instance?.get()?.setSkipSilence(enabled)
     }
 
     fun setPlayerBackground(background: String) {

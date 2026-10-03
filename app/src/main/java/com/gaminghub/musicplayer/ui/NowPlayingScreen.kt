@@ -160,6 +160,7 @@ fun NowPlayingScreen(
 
     val favoriteUrls by viewModel.favoriteUrls.collectAsState()
     val isFavorite = currentTrack?.audioUrl != null && favoriteUrls.contains(currentTrack?.audioUrl)
+    val skipSilence by viewModel.skipSilence.collectAsState()
 
     // UI state
     var showMenu by remember { mutableStateOf(false) }
@@ -523,6 +524,24 @@ fun NowPlayingScreen(
                                 text = { Text("Playback Speed", color = textColor) },
                                 onClick = { showMenu = false; showSpeedDialog = true },
                                 leadingIcon = { Icon(Icons.Default.Speed, null, tint = MusifyGreen) }
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text("Skip Silence", color = textColor, modifier = Modifier.weight(1f))
+                                        Text(
+                                            if (skipSilence) "ON" else "OFF",
+                                            color = if (skipSilence) MusifyGreen else textColor.copy(alpha = 0.5f),
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                },
+                                onClick = { viewModel.toggleSkipSilence() },
+                                leadingIcon = { Icon(Icons.Default.GraphicEq, null, tint = if (skipSilence) MusifyGreen else textColor.copy(alpha = 0.6f)) }
                             )
                             DropdownMenuItem(
                                 text = { Text("Watch on YouTube", color = textColor) },

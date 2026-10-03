@@ -30,6 +30,7 @@ fun MusicPlaybackSettingsScreen(navController: NavController, settingsViewModel:
     val replayOnSkipPrevious by settingsViewModel.replayOnSkipPrevious.collectAsState()
     val enforceRepeating by settingsViewModel.enforceRepeating.collectAsState()
     val autoplay by settingsViewModel.autoplay.collectAsState()
+    val skipSilence by settingsViewModel.skipSilence.collectAsState()
     val cacheSongs by settingsViewModel.cacheSongs.collectAsState()
 
     var showMusicLangDropdown by remember { mutableStateOf(false) }
@@ -332,7 +333,15 @@ fun MusicPlaybackSettingsScreen(navController: NavController, settingsViewModel:
             onCheckedChange = { settingsViewModel.setAutoplay(it) }
         )
 
-        // ── 10. Cache Songs ─────────────────────────────────────
+        // ── 10. Silence Trimmer (Skip Silence) ───────────────────
+        ThemeSwitchRow(
+            title = "Silence Trimmer (\"Skip Silence\")",
+            subtitle = "Automatically skip dead air, silent intros, and outro pauses for continuous non-stop music",
+            checked = skipSilence,
+            onCheckedChange = { settingsViewModel.setSkipSilence(it) }
+        )
+
+        // ── 11. Cache Songs ─────────────────────────────────────
         ThemeSwitchRow(
             title = "Cache Songs",
             subtitle = "Songs will be cached for instant future playback (Uses device storage)",

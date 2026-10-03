@@ -2382,24 +2382,27 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     // ── Silence Trimmer ("Skip Silence") ──────────────────────────────
     private val _skipSilence = MutableStateFlow(
         getApplication<Application>().getSharedPreferences("Musify_settings", Context.MODE_PRIVATE)
-            .getBoolean("skip_silence", false)
+            .getBoolean("skip_silence", true)
     )
     val skipSilence: StateFlow<Boolean> = _skipSilence.asStateFlow()
 
     fun toggleSkipSilence() {
-        val next = !_skipSilence.value
-        _skipSilence.value = next
+        setSkipSilence(!_skipSilence.value)
+    }
+
+    fun setSkipSilence(enabled: Boolean) {
+        _skipSilence.value = enabled
         val prefs = getApplication<Application>().getSharedPreferences("Musify_settings", Context.MODE_PRIVATE)
-        prefs.edit().putBoolean("skip_silence", next).apply()
+        prefs.edit().putBoolean("skip_silence", enabled).apply()
         try {
             val intent = Intent(getApplication(), MusicPlaybackService::class.java).apply {
                 action = "com.gaminghub.musify.SET_SKIP_SILENCE"
-                putExtra("enabled", next)
+                putExtra("enabled", enabled)
             }
             getApplication<Application>().startService(intent)
             android.widget.Toast.makeText(
                 getApplication(),
-                if (next) "Silence Trimmer Enabled (Skipping dead air)" else "Silence Trimmer Disabled",
+                if (enabled) "Silence Trimmer Enabled (Skipping dead air)" else "Silence Trimmer Disabled",
                 android.widget.Toast.LENGTH_SHORT
             ).show()
         } catch (_: Exception) {}
