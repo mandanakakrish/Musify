@@ -458,7 +458,7 @@ private fun CuratedTrackItem(
                     leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = {
                         showMenu = false
-                        Toast.makeText(context, "Added to play next", Toast.LENGTH_SHORT).show()
+                        viewModel.playNextTrackInQueue(track)
                     }
                 )
                 DropdownMenuItem(
@@ -466,15 +466,23 @@ private fun CuratedTrackItem(
                     leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = {
                         showMenu = false
-                        Toast.makeText(context, "Added to queue", Toast.LENGTH_SHORT).show()
+                        viewModel.addToQueue(track)
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Add to Playlist", color = MaterialTheme.colorScheme.onSurface) },
-                    leadingIcon = { Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.onSurface) },
+                    text = { Text("View Artist (${track.artist.take(15)})", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.Default.Person, null, tint = MaterialTheme.colorScheme.onSurface) },
                     onClick = {
                         showMenu = false
-                        Toast.makeText(context, "Add to playlist", Toast.LENGTH_SHORT).show()
+                        viewModel.searchMusic(track.artist)
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Play Radio", color = MaterialTheme.colorScheme.onSurface) },
+                    leadingIcon = { Icon(Icons.Default.Podcasts, null, tint = MaterialTheme.colorScheme.onSurface) },
+                    onClick = {
+                        showMenu = false
+                        viewModel.startSongRadio(track)
                     }
                 )
             }

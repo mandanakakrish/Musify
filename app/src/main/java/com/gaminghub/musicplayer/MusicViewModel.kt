@@ -2604,6 +2604,9 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         if (!queue.any { it.audioUrl == track.audioUrl }) {
             queue.add(track)
             _currentQueue.value = queue
+            android.widget.Toast.makeText(getApplication(), "Added to queue: ${track.title}", android.widget.Toast.LENGTH_SHORT).show()
+        } else {
+            android.widget.Toast.makeText(getApplication(), "Already in queue", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -2612,8 +2615,11 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         val queue = _currentQueue.value.toMutableList()
         val curIdx = queue.indexOfFirst { it.audioUrl == current?.audioUrl }
         val insertAt = if (curIdx >= 0) curIdx + 1 else 0
-        queue.add(insertAt, track)
+        queue.removeIf { it.audioUrl == track.audioUrl }
+        val adjustedInsertAt = insertAt.coerceAtMost(queue.size)
+        queue.add(adjustedInsertAt, track)
         _currentQueue.value = queue
+        android.widget.Toast.makeText(getApplication(), "Playing next: ${track.title}", android.widget.Toast.LENGTH_SHORT).show()
     }
 
     /**
@@ -2656,8 +2662,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
      * Plays a single track and generates a full song radio based on its artist, genre, and vibe.
      */
     fun playRadioForTrack(track: TrackModel) {
-        playTrack(track, listOf(track))
-        populateSmartNextQueue(track)
+        startSongRadio(track)
     }
 
     /** Removes a track from the Up Next queue by its index within upNextQueue. */

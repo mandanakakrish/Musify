@@ -592,27 +592,34 @@ fun TopChartTrackRow(
                 DropdownMenuItem(
                     text = { Text("Play Next", color = MaterialTheme.colorScheme.onSurface) },
                     leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                    onClick = { showMenu = false }
+                    onClick = {
+                        showMenu = false
+                        viewModel.playNextTrackInQueue(track)
+                    }
                 )
                 DropdownMenuItem(
                     text = { Text("Add to Queue", color = MaterialTheme.colorScheme.onSurface) },
                     leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                    onClick = { showMenu = false }
-                )
-                DropdownMenuItem(
-                    text = { Text("Add to Playlist", color = MaterialTheme.colorScheme.onSurface) },
-                    leadingIcon = { Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                    onClick = { showMenu = false }
+                    onClick = {
+                        showMenu = false
+                        viewModel.addToQueue(track)
+                    }
                 )
                 DropdownMenuItem(
                     text = { Text("View Artist (${track.artist.take(15)})", color = MaterialTheme.colorScheme.onSurface) },
                     leadingIcon = { Icon(Icons.Default.Person, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                    onClick = { showMenu = false }
+                    onClick = {
+                        showMenu = false
+                        viewModel.searchMusic(track.artist)
+                    }
                 )
                 DropdownMenuItem(
                     text = { Text("Play Radio", color = MaterialTheme.colorScheme.onSurface) },
                     leadingIcon = { Icon(Icons.Default.Podcasts, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                    onClick = { showMenu = false }
+                    onClick = {
+                        showMenu = false
+                        viewModel.startSongRadio(track)
+                    }
                 )
             }
         }
