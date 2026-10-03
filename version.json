@@ -1,9 +1,9 @@
 {
-  "versionCode": 7,
-  "versionName": "1.7.5",
-  "minVersionCode": 6,
+  "versionCode": 8,
+  "versionName": "1.7.5.1",
+  "minVersionCode": 7,
   "forceUpdate": false,
-  "title": "Musify v1.7.5 Update",
-  "changelog": "- Silence Trimmer: Auto-skip dead air and silent intros/outros\n- Dynamic Artwork Palette Theming: Ambient background morphing to song art\n- Fixed URLDecoder crash on Android 10/11/12 with Java desugaring\n- Turbo Multi-chunk Downloader & 1-tap batch playlist downloads\n- 100% offline lyrics bundling with interactive tap-to-seek karaoke\n- Smart Playlist Deduplicator in 1 tap\n- Mini-player horizontal swipe gestures (Next / Prev)\n- Soft 45-second sleep timer volume fade-out\n- Playback session restoration on startup\n- Redesigned aesthetic update dialog matching app UI",
-  "downloadUrl": "https://github.com/mandanakakrish/Musify/releases/download/v1.7.5-release/Musify.apk"
+  "title": "Musify v1.7.5.1 Update",
+  "changelog": "- Seamless Silence Trimmer: Pure audio-level dead air skipping without premature track jumping\n- Fixed URLDecoder crash on Android 10/11/12 with Java desugaring & backward-compatible string decoder\n- Dynamic Artwork Palette Theming: Ambient background morphing to song art\n- Turbo Multi-chunk Downloader & 1-tap batch playlist downloads\n- 100% offline lyrics bundling with interactive tap-to-seek karaoke\n- Smart Playlist Deduplicator in 1 tap\n- Mini-player horizontal swipe gestures (Next / Prev)\n- Soft 45-second sleep timer volume fade-out\n- Playback session restoration on startup",
+  "downloadUrl": "https://github.com/mandanakakrish/Musify/releases/download/v1.7.5.1/Musify.apk"
 }
