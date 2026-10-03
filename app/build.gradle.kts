@@ -33,8 +33,8 @@ android {
         applicationId = "com.gaminghub.musify"
         minSdk = 26
         targetSdk = 36
-        versionCode = 7
-        versionName = "1.7.5"
+        versionCode = 8
+        versionName = "1.7.5.1"
 
         ndk {
             abiFilters.addAll(listOf("arm64-v8a", "armeabi-v7a"))
