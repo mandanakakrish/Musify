@@ -144,8 +144,8 @@ object StreamExtractionManager {
                         }
                     }
                     retries--
-                } catch (e: Exception) {
-                    Log.e(TAG, "NewPipe Extraction attempt failed for $url: ${e.message}")
+                } catch (t: Throwable) {
+                    Log.e(TAG, "NewPipe Extraction attempt failed for $url: ${t.message}")
                     retries--
                 }
             }
@@ -178,10 +178,30 @@ object StreamExtractionManager {
             // Only return a cached URL if it hasn't expired yet. Passing 0 would return any
             // cached URL including expired ones, causing HTTP 403 → retry loops.
             return musicDao?.getValidCachedUrl(url, System.currentTimeMillis())
+        } catch (t: Throwable) {
+            Log.e(TAG, "Extraction error for $url: ${t.message}")
+            val videoId = extractVideoId(url)
+            if (videoId != null) {
+                try {
+                    val embedUrl = extractViaYouTubeEmbed(videoId)
+                    if (embedUrl != null) return embedUrl
+                    val ytPlayerUrl = extractViaYouTubePlayerApi(videoId)
+                    if (ytPlayerUrl != null) return ytPlayerUrl
+                } catch (_: Throwable) {}
+            }
+            return musicDao?.getValidCachedUrl(url, System.currentTimeMillis())
         } finally {
             if (currentJob != null && activeExtractions[url] === currentJob) {
                 activeExtractions.remove(url)
             }
+        }
+    }
+
+    fun safeUrlDecode(encoded: String): String {
+        return try {
+            java.net.URLDecoder.decode(encoded, "UTF-8")
+        } catch (_: Throwable) {
+            encoded
         }
     }
 
@@ -290,7 +310,7 @@ object StreamExtractionManager {
                             if (cipher != null) {
                                 val params = cipher.split("&").associate {
                                     val pair = it.split("=")
-                                    if (pair.size == 2) pair[0] to java.net.URLDecoder.decode(pair[1], "UTF-8") else "" to ""
+                                    if (pair.size == 2) pair[0] to safeUrlDecode(pair[1]) else "" to ""
                                 }
                                 if (params.containsKey("url") && !params.containsKey("s")) {
                                     directUrl = params["url"] ?: ""
@@ -377,8 +397,8 @@ object StreamExtractionManager {
         val job = extractionScope.launch {
             try {
                 extractPlayableUrl(url, fastStart = false)
-            } catch (e: Exception) {
-                Log.w(TAG, "preExtract failed for $url: ${e.message}")
+            } catch (t: Throwable) {
+                Log.w(TAG, "preExtract failed for $url: ${t.message}")
             } finally {
                 activeExtractions.remove(url)
             }
