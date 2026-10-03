@@ -1,9 +1,9 @@
 {
-  "versionCode": 6,
-  "versionName": "1.7.4",
+  "versionCode": 7,
+  "versionName": "1.7.5",
   "minVersionCode": 6,
-  "forceUpdate": true,
-  "title": "Musify v1.7.4 Update",
-  "changelog": "- Song auto-advance fixed: next song plays automatically when one ends\n- Widget controls working: Play/Pause, Next, Prev on home screen widget\n- No more double-skip: debounce prevents skipping two songs at once\n- Background playback: auto-advance works with screen off or app in background\n- Session restore fixed: no more crash-risk on app startup\n- Stream extraction: fixed potential hang in URL extraction",
-  "downloadUrl": "https://github.com/mandanakakrish/Musify/releases/download/v1.7.4/Musify.apk"
+  "forceUpdate": false,
+  "title": "Musify v1.7.5 Update",
+  "changelog": "- Silence Trimmer: Auto-skip dead air and silent intros/outros\n- Dynamic Artwork Palette Theming: Ambient background morphing to song art\n- Fixed URLDecoder crash on Android 10/11/12 with Java desugaring\n- Turbo Multi-chunk Downloader & 1-tap batch playlist downloads\n- 100% offline lyrics bundling with interactive tap-to-seek karaoke\n- Smart Playlist Deduplicator in 1 tap\n- Mini-player horizontal swipe gestures (Next / Prev)\n- Soft 45-second sleep timer volume fade-out\n- Playback session restoration on startup\n- Redesigned aesthetic update dialog matching app UI",
+  "downloadUrl": "https://github.com/mandanakakrish/Musify/releases/download/v1.7.5/Musify.apk"
 }
