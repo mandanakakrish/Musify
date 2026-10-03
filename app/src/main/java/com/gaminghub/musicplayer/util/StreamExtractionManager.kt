@@ -198,10 +198,20 @@ object StreamExtractionManager {
     }
 
     fun safeUrlDecode(encoded: String): String {
-        return try {
-            java.net.URLDecoder.decode(encoded, "UTF-8")
-        } catch (_: Throwable) {
-            encoded
+        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            // Android 13+ (API 33+): Modern API with Charset
+            try {
+                java.net.URLDecoder.decode(encoded, java.nio.charset.StandardCharsets.UTF_8)
+            } catch (_: Throwable) {
+                encoded
+            }
+        } else {
+            // Android 8 to 12 (API 26-32): Backward-compatible String charset overload
+            try {
+                java.net.URLDecoder.decode(encoded, "UTF-8")
+            } catch (_: Throwable) {
+                encoded
+            }
         }
     }
 
