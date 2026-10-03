@@ -36,11 +36,6 @@ import kotlinx.coroutines.launch
 class MusicPlaybackService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
     private var exoPlayer: ExoPlayer? = null
-    private var customSilenceProcessor: androidx.media3.exoplayer.audio.SilenceSkippingAudioProcessor? = null
-    private var outroSilenceJob: kotlinx.coroutines.Job? = null
-    private val serviceScope = CoroutineScope(Dispatchers.Main)
-    private var lastSkippedFrames: Long = 0L
-    private var consecutiveSilenceWindows: Int = 0
     // WakeLock/WifiLock intentionally removed — ExoPlayer's setWakeMode(WAKE_MODE_NETWORK)
     // manages CPU and WiFi wake locks internally and releases them correctly on error.
 
@@ -95,10 +90,9 @@ class MusicPlaybackService : MediaSessionService() {
         if (intent?.action == "com.gaminghub.musify.SET_SKIP_SILENCE") {
             val enabled = intent.getBooleanExtra("enabled", true)
             exoPlayer?.skipSilenceEnabled = enabled
-            customSilenceProcessor?.setEnabled(enabled)
             getSharedPreferences("Musify_settings", Context.MODE_PRIVATE)
                 .edit().putBoolean("skip_silence", enabled).apply()
-            android.util.Log.d("PlaybackService", "SilenceTrimmer SET_SKIP_SILENCE received: $enabled (applied to player and processor)")
+            android.util.Log.d("PlaybackService", "SilenceTrimmer SET_SKIP_SILENCE received: $enabled (applied to player)")
         }
         return START_STICKY
     }
@@ -151,33 +145,8 @@ class MusicPlaybackService : MediaSessionService() {
             .setPrioritizeTimeOverSizeThresholds(true)
             .build()
 
-        val silenceProc = androidx.media3.exoplayer.audio.SilenceSkippingAudioProcessor(
-            /* minimumSilenceDurationUs = */ 20_000L,
-            /* silenceRetentionRatio = */ 0.0f,
-            /* maxSilenceToKeepDurationUs = */ 0L,
-            /* minVolumeToKeepPercentageWhenMuting = */ 0,
-            /* silenceThresholdLevel = */ 2000.toShort()
-        )
-        this.customSilenceProcessor = silenceProc
-
-        val renderersFactory = object : androidx.media3.exoplayer.DefaultRenderersFactory(this) {
-            override fun buildAudioSink(
-                context: Context,
-                enableFloatOutput: Boolean,
-                enableAudioTrackPlaybackParams: Boolean
-            ): androidx.media3.exoplayer.audio.AudioSink? {
-                val chain = androidx.media3.exoplayer.audio.DefaultAudioSink.DefaultAudioProcessorChain(
-                    emptyArray(),
-                    silenceProc,
-                    androidx.media3.exoplayer.audio.SonicAudioProcessor()
-                )
-                return androidx.media3.exoplayer.audio.DefaultAudioSink.Builder(context)
-                    .setEnableFloatOutput(enableFloatOutput)
-                    .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
-                    .setAudioProcessorChain(chain)
-                    .build()
-            }
-        }.setEnableAudioTrackPlaybackParams(true)
+        val renderersFactory = androidx.media3.exoplayer.DefaultRenderersFactory(this)
+            .setEnableAudioTrackPlaybackParams(true)
 
         val player = ExoPlayer.Builder(this, renderersFactory)
             .setMediaSourceFactory(DefaultMediaSourceFactory(finalDataSourceFactory))
@@ -198,7 +167,6 @@ class MusicPlaybackService : MediaSessionService() {
         this.exoPlayer = player
         val skipSilenceInit = settingsPrefs.getBoolean("skip_silence", true)
         player.skipSilenceEnabled = skipSilenceInit
-        silenceProc.setEnabled(skipSilenceInit)
 
         currentAudioSessionId = player.audioSessionId
         try {
@@ -337,11 +305,6 @@ class MusicPlaybackService : MediaSessionService() {
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 super.onMediaItemTransition(mediaItem, reason)
-                lastSkippedFrames = 0L
-                consecutiveSilenceWindows = 0
-                if (player.isPlaying) {
-                    startOutroSilenceDetector()
-                }
                 try {
                     MusicWidgetUpdater.update(
                         this@MusicPlaybackService,
@@ -356,11 +319,6 @@ class MusicPlaybackService : MediaSessionService() {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 super.onIsPlayingChanged(isPlaying)
                 // WakeLock management delegated to ExoPlayer's WAKE_MODE_NETWORK — no manual action needed here
-                if (isPlaying) {
-                    startOutroSilenceDetector()
-                } else {
-                    outroSilenceJob?.cancel()
-                }
                 try {
                     val currentMedia = player.currentMediaItem
                     MusicWidgetUpdater.update(
@@ -376,7 +334,12 @@ class MusicPlaybackService : MediaSessionService() {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 super.onPlaybackStateChanged(playbackState)
                 if (playbackState == Player.STATE_ENDED) {
-                    sendPlaybackBroadcast("com.gaminghub.musify.WIDGET_NEXT", fromUser = false)
+                    // Only dispatch from service if MusicViewModel is null (e.g. background service running without UI)
+                    // When UI is alive, MusicViewModel's own MediaController listener handles natural progression
+                    val vm = MusicViewModel.instance?.get()
+                    if (vm == null) {
+                        sendPlaybackBroadcast("com.gaminghub.musify.WIDGET_NEXT", fromUser = false)
+                    }
                 }
             }
 
@@ -385,46 +348,6 @@ class MusicPlaybackService : MediaSessionService() {
                 android.util.Log.e("PlaybackService", "ExoPlayer Error: ${error.message} (Code: ${error.errorCode})")
             }
         })
-    }
-
-    private fun startOutroSilenceDetector() {
-        outroSilenceJob?.cancel()
-        outroSilenceJob = serviceScope.launch {
-            while (true) {
-                kotlinx.coroutines.delay(800)
-                val player = exoPlayer ?: break
-                if (!player.isPlaying) break
-                if (!player.skipSilenceEnabled) continue
-
-                val duration = player.duration
-                val position = player.currentPosition
-
-                // Only evaluate during the final 20 seconds of a song longer than 30 seconds
-                if (duration > 30_000 && position >= duration - 20_000) {
-                    val currentSkipped = customSilenceProcessor?.skippedFrames ?: 0L
-                    val skippedDelta = currentSkipped - lastSkippedFrames
-                    lastSkippedFrames = currentSkipped
-
-                    // If audio frames are actively dropped as silence, or near the absolute end
-                    if (skippedDelta > 1000 || position >= duration - 2000) {
-                        consecutiveSilenceWindows++
-                    } else {
-                        consecutiveSilenceWindows = 0
-                    }
-
-                    // If consecutive silence windows detected (dead air) or within 1.5s of end -> advance!
-                    if (consecutiveSilenceWindows >= 2 || position >= duration - 1500) {
-                        android.util.Log.d("PlaybackService", "SilenceTrimmer: Detected outro dead air ($position / $duration ms). Advancing to next track!")
-                        consecutiveSilenceWindows = 0
-                        sendPlaybackBroadcast("com.gaminghub.musify.WIDGET_NEXT", fromUser = false)
-                        break
-                    }
-                } else {
-                    lastSkippedFrames = customSilenceProcessor?.skippedFrames ?: 0L
-                    consecutiveSilenceWindows = 0
-                }
-            }
-        }
     }
 
     /**
@@ -472,14 +395,12 @@ class MusicPlaybackService : MediaSessionService() {
 
     override fun onDestroy() {
         currentAudioSessionId = -1
-        outroSilenceJob?.cancel()
         // Release native AudioEffect handles BEFORE player.release() to prevent
         // AudioFlinger native resource leaks (system-wide ~32 effect handle limit).
         try {
             com.gaminghub.musicplayer.util.EqualizerManager.getInstance(this).release()
         } catch (_: Exception) {}
         exoPlayer = null
-        customSilenceProcessor = null
         mediaSession?.run {
             player.release()
             release()
