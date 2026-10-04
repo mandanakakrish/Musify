@@ -26,3 +26,4 @@ feature_backups/
 
 # Local secrets - never push tokens/keys
 .secrets/
+screenshots/unused_files/
