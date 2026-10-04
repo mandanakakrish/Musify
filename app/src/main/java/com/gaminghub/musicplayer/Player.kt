@@ -205,7 +205,7 @@ private fun updateWidget(
     if (bitmap != null) {
         views.setImageViewBitmap(R.id.widget_album_art, bitmap)
     } else {
-        views.setImageViewResource(R.id.widget_album_art, R.drawable.ic_launcher_circle)
+        views.setImageViewResource(R.id.widget_album_art, R.mipmap.ic_launcher)
     }
 
     try {

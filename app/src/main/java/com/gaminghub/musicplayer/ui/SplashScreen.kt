@@ -41,10 +41,32 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import com.gaminghub.musicplayer.R
 import com.gaminghub.musicplayer.ui.components.DynamicAudioVisualizer
 import com.gaminghub.musicplayer.ui.theme.MusifyGreen
 import kotlinx.coroutines.delay
+
+@Composable
+fun rememberAppIconPainter(): Painter {
+    val context = LocalContext.current
+    return remember(context) {
+        val drawable = ContextCompat.getDrawable(context, R.mipmap.ic_launcher)
+        if (drawable != null) {
+            val width = if (drawable.intrinsicWidth > 0) drawable.intrinsicWidth else 256
+            val height = if (drawable.intrinsicHeight > 0) drawable.intrinsicHeight else 256
+            val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
+            val canvas = android.graphics.Canvas(bitmap)
+            drawable.setBounds(0, 0, canvas.width, canvas.height)
+            drawable.draw(canvas)
+            bitmap.asImageBitmap()
+        } else null
+    }?.let { BitmapPainter(it) } ?: painterResource(id = R.drawable.song)
+}
 
 @Composable
 fun SplashScreen(
@@ -124,17 +146,17 @@ fun SplashScreen(
             // App Icon Logo
             Surface(
                 shape = RoundedCornerShape(28.dp),
-                color = Color(0xFF161622),
+                color = Color.Transparent,
                 shadowElevation = 16.dp,
                 modifier = Modifier.size(108.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Image(
-                        painter = painterResource(id = R.drawable.musify_logo3),
-                        contentDescription = "Musify Logo",
+                        painter = rememberAppIconPainter(),
+                        contentDescription = "Musify App Icon",
                         modifier = Modifier
-                            .size(76.dp)
-                            .clip(RoundedCornerShape(20.dp))
+                            .size(92.dp)
+                            .clip(RoundedCornerShape(22.dp))
                     )
                 }
             }

@@ -15,7 +15,7 @@
         android:layout_height="56dp"
         android:scaleType="centerCrop"
         android:background="@drawable/app_widget_inner_view_background"
-        android:src="@drawable/ic_launcher_circle"
+        android:src="@mipmap/ic_launcher"
         android:contentDescription="@string/app_widget_description" />
 
     <!-- Song info -->
