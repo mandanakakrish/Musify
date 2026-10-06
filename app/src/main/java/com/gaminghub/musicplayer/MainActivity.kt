@@ -3,7 +3,6 @@ package com.gaminghub.musicplayer
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -59,7 +58,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
@@ -88,6 +86,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.util.UnstableApi
@@ -124,8 +124,8 @@ import com.gaminghub.musicplayer.ui.theme.AppThemeGradients
 import com.gaminghub.musicplayer.ui.theme.ThemeGradientHelper
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.toArgb
-import androidx.core.view.WindowCompat
-import kotlinx.coroutines.launch
+import androidx.activity.compose.setContent as setContent1
+import androidx.compose.material3.ModalDrawerSheet as ModalDrawerSheet1
 
 @UnstableApi
 class MainActivity : ComponentActivity() {
@@ -142,10 +142,8 @@ class MainActivity : ComponentActivity() {
 
     @androidx.annotation.OptIn(UnstableApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
-        try {
-            com.google.firebase.FirebaseApp.initializeApp(this)
-        } catch (_: Exception) {}
 
         val perms = mutableListOf<String>()
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
@@ -162,7 +160,7 @@ class MainActivity : ComponentActivity() {
             requestPermissionLauncher.launch(needed.toTypedArray())
         }
 
-        setContent {
+        setContent1 {
             val settingsViewModel: SettingsViewModel = viewModel()
             val isDarkMode by settingsViewModel.isDarkMode.collectAsState()
             val useSystemTheme by settingsViewModel.useSystemTheme.collectAsState()
@@ -266,38 +264,40 @@ class MainActivity : ComponentActivity() {
                     }
 
                     val authViewModel: com.gaminghub.musicplayer.auth.AuthViewModel = viewModel()
-                    val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
-                var isSplashDone by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-
-                val updateInfo by com.gaminghub.musicplayer.update.AppUpdateManager.updateInfo.collectAsState()
-
-                androidx.compose.runtime.LaunchedEffect(Unit) {
-                    com.gaminghub.musicplayer.update.AppUpdateManager.checkForUpdates(this@MainActivity)
-                }
-
-                if (!isSplashDone) {
-                    com.gaminghub.musicplayer.ui.SplashScreen(
-                        onSplashFinished = { isSplashDone = true }
-                    )
-                } else if (!isLoggedIn) {
-                    com.gaminghub.musicplayer.ui.AuthScreen(
-                        authViewModel = authViewModel,
-                        onLoginSuccess = { }
-                    )
-                } else {
                     val musicViewModel: MusicViewModel = viewModel()
                     currentMusicViewModel = musicViewModel
-                    
+
+                    val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
+                    val isAppReady by musicViewModel.isAppInitialReady.collectAsState()
+                    var isSplashDone by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+
+                    val updateInfo by com.gaminghub.musicplayer.update.AppUpdateManager.updateInfo.collectAsState()
+
                     androidx.compose.runtime.LaunchedEffect(Unit) {
-                        handleIncomingIntent(intent)
+                        com.gaminghub.musicplayer.update.AppUpdateManager.checkForUpdates(this@MainActivity)
                     }
 
-                    MusifyMainScreen(
-                        viewModel = musicViewModel,
-                        settingsViewModel = settingsViewModel,
-                        authViewModel = authViewModel
-                    )
-                }
+                    if (!isSplashDone) {
+                        com.gaminghub.musicplayer.ui.SplashScreen(
+                            isAppReady = if (!isLoggedIn) true else isAppReady,
+                            onSplashFinished = { isSplashDone = true }
+                        )
+                    } else if (!isLoggedIn) {
+                        com.gaminghub.musicplayer.ui.AuthScreen(
+                            authViewModel = authViewModel,
+                            onLoginSuccess = { }
+                        )
+                    } else {
+                        androidx.compose.runtime.LaunchedEffect(Unit) {
+                            handleIncomingIntent(intent)
+                        }
+
+                        MusifyMainScreen(
+                            viewModel = musicViewModel,
+                            settingsViewModel = settingsViewModel,
+                            authViewModel = authViewModel
+                        )
+                    }
 
                 val isOfflineModeActive by com.gaminghub.musicplayer.update.AppUpdateManager.isOfflineModeActive.collectAsState()
 
@@ -532,7 +532,7 @@ fun MusifyMainScreen(
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet(
+            ModalDrawerSheet1(
                 drawerContainerColor = Color(0xFF121212),
                 modifier = Modifier.width(310.dp),
             ){

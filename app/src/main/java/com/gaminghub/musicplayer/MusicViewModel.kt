@@ -37,6 +37,9 @@ import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -124,6 +127,12 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
+
+    private val _isAppInitialReady = MutableStateFlow(false)
+    val isAppInitialReady: StateFlow<Boolean> = _isAppInitialReady
+
+    private val _isLocalTracksLoaded = MutableStateFlow(false)
+    val isLocalTracksLoaded: StateFlow<Boolean> = _isLocalTracksLoaded
 
     private val _isBuffering = MutableStateFlow(false)
     val isBuffering: StateFlow<Boolean> = _isBuffering
@@ -458,6 +467,44 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         loadGlobalWeeklyTopCharts()
         restorePlaybackSession()
 
+        // Eagerly preload curated playlist covers into Coil cache immediately on launch
+        preloadTrackImages(com.gaminghub.musicplayer.ui.CuratedPlaylistConfig.featuredPlaylists.map { it.imageUrl?.toString() })
+
+        viewModelScope.launch {
+            val networkMonitor = com.gaminghub.musicplayer.util.NetworkMonitor.getInstance(getApplication())
+            val startTime = System.currentTimeMillis()
+            while (!_isAppInitialReady.value) {
+                val controllerReady = (mediaControllerFuture?.isDone == true)
+                val isOnline = networkMonitor.isOnline.value
+                val localReady = _isLocalTracksLoaded.value
+                val feedsReady = if (isOnline) {
+                    _trendingTracks.value.isNotEmpty() && _topCharts.value.isNotEmpty()
+                } else {
+                    true
+                }
+                val safetyTimeout = (System.currentTimeMillis() - startTime > 8000L)
+
+                if ((controllerReady && localReady && feedsReady) || safetyTimeout) {
+                    try {
+                        val images = mutableListOf<String>()
+                        _currentTrack.value?.albumArtUrl?.let { if (it.isNotBlank()) images.add(it) }
+                        favoriteTracks.value.take(4).mapNotNull { it.albumArtUrl }.forEach { images.add(it) }
+                        devPickTracks.value.take(6).mapNotNull { it.albumArtUrl }.forEach { images.add(it) }
+                        _trendingTracks.value.take(6).mapNotNull { it.albumArtUrl }.forEach { images.add(it) }
+                        _topCharts.value.take(6).mapNotNull { it.albumArtUrl }.forEach { images.add(it) }
+                        com.gaminghub.musicplayer.ui.CuratedPlaylistConfig.featuredPlaylists.take(4).mapNotNull { it.imageUrl?.toString() }.forEach { images.add(it) }
+
+                        // Await Coil downloading and memory-caching of the pictures
+                        preloadHomeImagesSync(images)
+                    } catch (_: Exception) {}
+
+                    _isAppInitialReady.value = true
+                    break
+                }
+                kotlinx.coroutines.delay(50L)
+            }
+        }
+
         viewModelScope.launch {
             searchDebounceFlow
                 .debounce(350L)
@@ -478,6 +525,39 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         setupNetworkSync()
+    }
+
+    fun preloadTrackImages(urls: List<String?>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val imageLoader = coil.Coil.imageLoader(getApplication())
+                urls.filterNotNull().filter { it.isNotBlank() }.distinct().take(12).forEach { url ->
+                    val request = coil.request.ImageRequest.Builder(getApplication())
+                        .data(url)
+                        .build()
+                    imageLoader.enqueue(request)
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    suspend fun preloadHomeImagesSync(urls: List<String?>) = withContext(Dispatchers.IO) {
+        try {
+            val imageLoader = coil.Coil.imageLoader(getApplication())
+            val validUrls = urls.filterNotNull().filter { it.isNotBlank() }.distinct().take(12)
+            coroutineScope {
+                validUrls.map { url ->
+                    async {
+                        try {
+                            val request = coil.request.ImageRequest.Builder(getApplication())
+                                .data(url)
+                                .build()
+                            imageLoader.execute(request)
+                        } catch (_: Exception) {}
+                    }
+                }.awaitAll()
+            }
+        } catch (_: Exception) {}
     }
 
     private fun setupNetworkSync() {
@@ -1175,6 +1255,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
 
             withContext(Dispatchers.Main) {
                 _localTracks.value = syncedTracks
+                _isLocalTracksLoaded.value = true
                 Log.d(tag, "Loaded and synced ${syncedTracks.size} local tracks from device")
             }
         }
@@ -1359,6 +1440,7 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                         stateFlow.value = mappedTracks
                     }
                 }
+                preloadTrackImages(mappedTracks.take(8).map { it.albumArtUrl })
             } catch (e: Exception) {
                 Log.e(tag, "Error fetching music for $term: ${e.message}", e)
             } finally {

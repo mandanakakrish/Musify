@@ -27,7 +27,7 @@ configurations.all {
 
 android {
     namespace = "com.gaminghub.musicplayer"
-    compileSdk = 36
+    compileSdk = 37
     
     defaultConfig {
         applicationId = "com.gaminghub.musify"
@@ -101,6 +101,7 @@ dependencies {
     implementation(libs.squareup.converter.gson)
     implementation(libs.logging.interceptor)
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
@@ -119,8 +120,6 @@ dependencies {
     // ViewModel and Coroutines
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.androidx.material3)
-    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.foundation.layout)
 
@@ -140,7 +139,6 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.crashlytics)
     implementation(libs.kotlinx.coroutines.play.services)
-
     // Palette, Auth, Ads, Analytics
     implementation(libs.firebase.analytics)
     implementation(libs.androidx.palette)
