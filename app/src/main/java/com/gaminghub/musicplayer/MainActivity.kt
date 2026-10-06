@@ -431,10 +431,6 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
-            // ── Widget media control intents ──────────────────────────────
-            Player.ACTION_PLAY_PAUSE -> currentMusicViewModel?.togglePlayPause()
-            Player.ACTION_NEXT       -> currentMusicViewModel?.playNext(fromUser = true)
-            Player.ACTION_PREV       -> currentMusicViewModel?.playPrevious()
         }
     }
 }
@@ -511,18 +507,6 @@ fun MusifyMainScreen(
     val googleDisplayName by authViewModel.googleDisplayName.collectAsState()
     val googlePhotoUrl by authViewModel.googlePhotoUrl.collectAsState()
 
-    // ── Widget sync ───────────────────────────────────────────────────────
-    val currentTrack by viewModel.currentTrack.collectAsState()
-    val isPlaying    by viewModel.isPlaying.collectAsState()
-    androidx.compose.runtime.LaunchedEffect(currentTrack, isPlaying) {
-        MusicWidgetUpdater.update(
-            context   = context,
-            title     = currentTrack?.title,
-            artist    = currentTrack?.artist,
-            artUrl    = currentTrack?.albumArtUrl,
-            isPlaying = isPlaying
-        )
-    }
 
     val isDarkMode by settingsViewModel.isDarkMode.collectAsState()
     val useSystemTheme by settingsViewModel.useSystemTheme.collectAsState()

@@ -80,21 +80,6 @@ class MusicPlaybackService : MediaLibraryService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
-        if (intent?.action == "com.gaminghub.musify.WIDGET_PLAY_PAUSE") {
-            val vm = MusicViewModel.instance?.get()
-            if (vm != null) {
-                vm.togglePlayPause()
-            } else {
-                val p = exoPlayer ?: mediaLibrarySession?.player
-                if (p != null) {
-                    if (p.isPlaying) {
-                        p.pause()
-                    } else if (p.playbackState != Player.STATE_IDLE) {
-                        p.play()
-                    }
-                }
-            }
-        }
         if (intent?.action == "com.gaminghub.musify.SET_SKIP_SILENCE") {
             val enabled = intent.getBooleanExtra("enabled", true)
             exoPlayer?.skipSilenceEnabled = enabled
@@ -375,30 +360,10 @@ class MusicPlaybackService : MediaLibraryService() {
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 super.onMediaItemTransition(mediaItem, reason)
-                try {
-                    MusicWidgetUpdater.update(
-                        this@MusicPlaybackService,
-                        mediaItem?.mediaMetadata?.title?.toString(),
-                        mediaItem?.mediaMetadata?.artist?.toString(),
-                        mediaItem?.mediaMetadata?.artworkUri?.toString(),
-                        player.isPlaying
-                    )
-                } catch (_: Exception) {}
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 super.onIsPlayingChanged(isPlaying)
-                // WakeLock management delegated to ExoPlayer's WAKE_MODE_NETWORK — no manual action needed here
-                try {
-                    val currentMedia = player.currentMediaItem
-                    MusicWidgetUpdater.update(
-                        this@MusicPlaybackService,
-                        currentMedia?.mediaMetadata?.title?.toString(),
-                        currentMedia?.mediaMetadata?.artist?.toString(),
-                        currentMedia?.mediaMetadata?.artworkUri?.toString(),
-                        isPlaying
-                    )
-                } catch (_: Exception) {}
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
