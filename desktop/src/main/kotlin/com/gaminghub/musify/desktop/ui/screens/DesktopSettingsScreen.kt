@@ -190,15 +190,17 @@ fun DesktopSettingsScreen(viewModel: DesktopMusicViewModel) {
                     Text("DESKTOP KEYBOARD SHORTCUTS", color = MusifyEmerald, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    ShortcutRow("Space", "Play / Pause playback")
-                    ShortcutRow("Right Arrow / Ctrl + Right", "Seek forward 10s / Next track")
-                    ShortcutRow("Left Arrow / Ctrl + Left", "Seek backward 10s / Previous track")
-                    ShortcutRow("Up Arrow / Down Arrow", "Volume Up / Volume Down (5%)")
-                    ShortcutRow("M", "Mute / Unmute audio")
-                    ShortcutRow("L", "Toggle Synced Lyrics overlay")
-                    ShortcutRow("Q", "Toggle Play Queue drawer")
-                    ShortcutRow("E", "Toggle 10-Band Graphic Equalizer")
-                    ShortcutRow("P", "Toggle Picture-in-Picture Mini-Player")
+                    ShortcutRow("Ctrl + Space", "Play / Pause playback")
+                    ShortcutRow("Ctrl + Right Arrow", "Next track")
+                    ShortcutRow("Ctrl + Left Arrow", "Previous track")
+                    ShortcutRow("Ctrl + Shift + Right", "Fast-Forward 10s")
+                    ShortcutRow("Ctrl + Shift + Left", "Rewind 10s")
+                    ShortcutRow("Ctrl + Up / Down Arrow", "Volume Up / Down (5%)")
+                    ShortcutRow("Ctrl + M", "Mute / Unmute audio")
+                    ShortcutRow("Ctrl + L", "Toggle Synced Lyrics overlay")
+                    ShortcutRow("Ctrl + Q", "Toggle Play Queue drawer")
+                    ShortcutRow("Ctrl + E", "Toggle 10-Band Graphic Equalizer")
+                    ShortcutRow("Ctrl + P", "Toggle Picture-in-Picture Mini-Player")
                 }
             }
         }

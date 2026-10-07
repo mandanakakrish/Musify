@@ -51,51 +51,58 @@ fun DesktopApp(viewModel: DesktopMusicViewModel) {
                 .onKeyEvent { event ->
                     if (event.type == KeyEventType.KeyDown) {
                         when {
-                            event.key == Key.Spacebar -> {
+                            // Dedicated hardware media keys (always active, never collide with typing)
+                            event.key == Key.MediaPlayPause || event.key == Key.MediaStop -> {
                                 viewModel.togglePlayPause()
                                 true
                             }
-                            event.key == Key.DirectionRight && event.isCtrlPressed -> {
-                                viewModel.playNext()
+
+                            // Ctrl shortcuts: requires Ctrl so typing words/spaces in Search box works seamlessly
+                            event.isCtrlPressed && event.key == Key.Spacebar -> {
+                                viewModel.togglePlayPause()
                                 true
                             }
-                            event.key == Key.DirectionLeft && event.isCtrlPressed -> {
-                                viewModel.playPrevious()
-                                true
-                            }
-                            event.key == Key.DirectionRight -> {
+                            event.isCtrlPressed && event.isShiftPressed && event.key == Key.DirectionRight -> {
                                 viewModel.seekTo(viewModel.positionMs.value + 10_000L)
                                 true
                             }
-                            event.key == Key.DirectionLeft -> {
+                            event.isCtrlPressed && event.isShiftPressed && event.key == Key.DirectionLeft -> {
                                 viewModel.seekTo((viewModel.positionMs.value - 10_000L).coerceAtLeast(0L))
                                 true
                             }
-                            event.key == Key.DirectionUp -> {
+                            event.isCtrlPressed && event.key == Key.DirectionRight -> {
+                                viewModel.playNext()
+                                true
+                            }
+                            event.isCtrlPressed && event.key == Key.DirectionLeft -> {
+                                viewModel.playPrevious()
+                                true
+                            }
+                            event.isCtrlPressed && event.key == Key.DirectionUp -> {
                                 viewModel.setVolume((viewModel.volume.value + 0.05f).coerceAtMost(1f))
                                 true
                             }
-                            event.key == Key.DirectionDown -> {
+                            event.isCtrlPressed && event.key == Key.DirectionDown -> {
                                 viewModel.setVolume((viewModel.volume.value - 0.05f).coerceAtLeast(0f))
                                 true
                             }
-                            event.key == Key.M -> {
+                            event.isCtrlPressed && event.key == Key.M -> {
                                 viewModel.toggleMute()
                                 true
                             }
-                            event.key == Key.L -> {
+                            event.isCtrlPressed && event.key == Key.L -> {
                                 viewModel.toggleLyrics()
                                 true
                             }
-                            event.key == Key.Q -> {
+                            event.isCtrlPressed && event.key == Key.Q -> {
                                 viewModel.toggleQueue()
                                 true
                             }
-                            event.key == Key.E -> {
+                            event.isCtrlPressed && event.key == Key.E -> {
                                 viewModel.toggleEqualizer()
                                 true
                             }
-                            event.key == Key.P -> {
+                            event.isCtrlPressed && event.key == Key.P -> {
                                 viewModel.toggleMiniPlayer()
                                 true
                             }
