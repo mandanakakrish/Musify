@@ -27,6 +27,7 @@ fun DesktopApp(viewModel: DesktopMusicViewModel) {
     val isEqualizerOpen by viewModel.isEqualizerOpen.collectAsState()
     val isMiniPlayer by viewModel.isMiniPlayer.collectAsState()
     val showGoogleSignInDialog by viewModel.showGoogleSignInDialog.collectAsState()
+    val isSpeedDialogOpen by viewModel.isSpeedDialogOpen.collectAsState()
 
     var toastMessage by remember { mutableStateOf<String?>(null) }
 
@@ -102,6 +103,10 @@ fun DesktopApp(viewModel: DesktopMusicViewModel) {
                                 viewModel.toggleEqualizer()
                                 true
                             }
+                            event.isCtrlPressed && event.key == Key.S -> {
+                                viewModel.toggleSpeedDialog()
+                                true
+                            }
                             event.isCtrlPressed && event.key == Key.P -> {
                                 viewModel.toggleMiniPlayer()
                                 true
@@ -164,6 +169,11 @@ fun DesktopApp(viewModel: DesktopMusicViewModel) {
                 // Google Sign-In Modal Dialog
                 if (showGoogleSignInDialog) {
                     DesktopGoogleSignInDialog(viewModel)
+                }
+
+                // Speed Control Modal Dialog
+                if (isSpeedDialogOpen) {
+                    DesktopSpeedControlDialog(viewModel)
                 }
             }
 

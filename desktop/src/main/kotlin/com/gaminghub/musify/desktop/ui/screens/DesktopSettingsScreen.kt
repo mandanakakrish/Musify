@@ -200,6 +200,7 @@ fun DesktopSettingsScreen(viewModel: DesktopMusicViewModel) {
                     ShortcutRow("Ctrl + L", "Toggle Synced Lyrics overlay")
                     ShortcutRow("Ctrl + Q", "Toggle Play Queue drawer")
                     ShortcutRow("Ctrl + E", "Toggle 10-Band Graphic Equalizer")
+                    ShortcutRow("Ctrl + S", "Toggle Playback Speed dialog")
                     ShortcutRow("Ctrl + P", "Toggle Picture-in-Picture Mini-Player")
                 }
             }

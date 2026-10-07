@@ -36,6 +36,7 @@ fun DesktopPlayerBar(viewModel: DesktopMusicViewModel) {
     val isLyricsOpen by viewModel.isLyricsOpen.collectAsState()
     val isQueueOpen by viewModel.isQueueOpen.collectAsState()
     val isMiniPlayer by viewModel.isMiniPlayer.collectAsState()
+    val playbackSpeed by viewModel.playbackSpeed.collectAsState()
 
     var isDraggingSlider by remember { mutableStateOf(false) }
     var dragPositionMs by remember { mutableStateOf(0f) }
@@ -243,8 +244,37 @@ fun DesktopPlayerBar(viewModel: DesktopMusicViewModel) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.End,
-                modifier = Modifier.width(280.dp)
+                modifier = Modifier.width(330.dp)
             ) {
+                // Playback speed control button
+                val isCustomSpeed = Math.abs(playbackSpeed - 1.0f) > 0.01f
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (isCustomSpeed) MusifyEmerald.copy(alpha = 0.2f) else Color.Transparent)
+                        .clickable { viewModel.openSpeedDialog() }
+                        .padding(horizontal = 7.dp, vertical = 5.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Speed,
+                            contentDescription = "Playback Speed",
+                            tint = if (isCustomSpeed) MusifyEmerald else TextSecondary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = String.format(java.util.Locale.US, "%.2f", playbackSpeed).trimEnd('0').trimEnd('.') + "x",
+                            color = if (isCustomSpeed) MusifyEmerald else TextSecondary,
+                            fontSize = 12.sp,
+                            fontWeight = if (isCustomSpeed) FontWeight.Bold else FontWeight.Medium
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(4.dp))
+
                 // Lyrics button
                 IconButton(onClick = { viewModel.toggleLyrics() }) {
                     Icon(
@@ -275,7 +305,7 @@ fun DesktopPlayerBar(viewModel: DesktopMusicViewModel) {
                     )
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(6.dp))
 
                 // Mute / Unmute
                 IconButton(onClick = { viewModel.toggleMute() }) {

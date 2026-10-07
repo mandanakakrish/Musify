@@ -34,6 +34,13 @@ class DesktopAudioPlayer(private val onTrackEnded: () -> Unit) {
     private val _isMuted = MutableStateFlow(false)
     val isMuted: StateFlow<Boolean> = _isMuted.asStateFlow()
 
+    // Playback Speed (0.5x - 2.0x, default 1.0x)
+    private val _playbackSpeed = MutableStateFlow(1.0f)
+    val playbackSpeed: StateFlow<Float> = _playbackSpeed.asStateFlow()
+
+    private val _isSpeedLocked = MutableStateFlow(false)
+    val isSpeedLocked: StateFlow<Boolean> = _isSpeedLocked.asStateFlow()
+
     // 10-band Equalizer gains in dB (default 0 dB)
     private val _equalizerBands = MutableStateFlow(FloatArray(10) { 0f })
     val equalizerBands: StateFlow<FloatArray> = _equalizerBands.asStateFlow()
@@ -58,10 +65,17 @@ class DesktopAudioPlayer(private val onTrackEnded: () -> Unit) {
     }
 
     fun play(source: String) {
-        val mediaUri = if (source.startsWith("http://") || source.startsWith("https://")) {
+        // Route remote streams (e.g. YouTube/googlevideo) through local stream proxy to bypass 403 and format issues
+        val mediaUri = if (source.startsWith("http://127.0.0.1") || source.startsWith("http://localhost")) {
             source
+        } else if (source.startsWith("http://") || source.startsWith("https://")) {
+            DesktopStreamProxy.getProxyUrl(source)
         } else {
             File(source).toURI().toString()
+        }
+
+        if (!_isSpeedLocked.value) {
+            _playbackSpeed.value = 1.0f
         }
 
         Platform.runLater {
@@ -74,12 +88,14 @@ class DesktopAudioPlayer(private val onTrackEnded: () -> Unit) {
                 mediaPlayer = player
 
                 player.volume = if (_isMuted.value) 0.0 else _volume.value.toDouble()
+                player.rate = _playbackSpeed.value.toDouble()
 
                 // Apply equalizer
                 applyEqualizerToPlayer(player)
 
                 player.setOnReady {
                     _durationMs.value = media.duration.toMillis().toLong()
+                    player.rate = _playbackSpeed.value.toDouble()
                     player.play()
                     _isPlaying.value = true
                     _isBuffering.value = false
@@ -117,17 +133,38 @@ class DesktopAudioPlayer(private val onTrackEnded: () -> Unit) {
                 }
 
                 player.setOnError {
-                    System.err.println("MediaPlayer error: ${player.error?.message}")
+                    val err = player.error
+                    System.err.println("MediaPlayer error: ${err?.message} (code: ${err?.type})")
+                    _isPlaying.value = false
+                    _isBuffering.value = false
+                }
+
+                media.setOnError {
+                    val err = media.error
+                    System.err.println("Media error: ${err?.message} (code: ${err?.type})")
                     _isPlaying.value = false
                     _isBuffering.value = false
                 }
 
             } catch (e: Exception) {
                 System.err.println("Failed to play audio: ${e.message}")
+                e.printStackTrace()
                 _isPlaying.value = false
                 _isBuffering.value = false
             }
         }
+    }
+
+    fun setPlaybackSpeed(speed: Float) {
+        val rounded = (Math.round(speed / 0.05f) * 0.05f).coerceIn(0.50f, 2.00f)
+        _playbackSpeed.value = rounded
+        Platform.runLater {
+            mediaPlayer?.rate = rounded.toDouble()
+        }
+    }
+
+    fun setSpeedLock(locked: Boolean) {
+        _isSpeedLocked.value = locked
     }
 
     fun togglePlayPause() {

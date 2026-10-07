@@ -2,6 +2,7 @@ package com.gaminghub.musify.desktop.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,6 +30,7 @@ fun DesktopMiniPlayer(viewModel: DesktopMusicViewModel) {
     val isPlaying by viewModel.isPlaying.collectAsState()
     val positionMs by viewModel.positionMs.collectAsState()
     val durationMs by viewModel.durationMs.collectAsState()
+    val playbackSpeed by viewModel.playbackSpeed.collectAsState()
 
     Surface(
         color = BackgroundDark,
@@ -39,23 +41,44 @@ fun DesktopMiniPlayer(viewModel: DesktopMusicViewModel) {
             verticalArrangement = Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top Bar: Exit mini mode
+            // Top Bar: Exit mini mode & Speed Chip
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("Musify Mini", color = MusifyEmerald, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                IconButton(
-                    onClick = { viewModel.toggleMiniPlayer() },
-                    modifier = Modifier.size(24.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Fullscreen,
-                        contentDescription = "Expand Full Window",
-                        tint = TextSecondary,
-                        modifier = Modifier.size(18.dp)
-                    )
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    val isCustomSpeed = Math.abs(playbackSpeed - 1.0f) > 0.01f
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (isCustomSpeed) MusifyEmerald.copy(alpha = 0.2f) else SurfaceElevated)
+                            .clickable { viewModel.openSpeedDialog() }
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                    ) {
+                        Text(
+                            text = String.format(java.util.Locale.US, "%.2f", playbackSpeed).trimEnd('0').trimEnd('.') + "x",
+                            color = if (isCustomSpeed) MusifyEmerald else TextSecondary,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    IconButton(
+                        onClick = { viewModel.toggleMiniPlayer() },
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Fullscreen,
+                            contentDescription = "Expand Full Window",
+                            tint = TextSecondary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
 

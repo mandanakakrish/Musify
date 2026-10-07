@@ -42,6 +42,8 @@ class DesktopMusicViewModel {
     val volume = audioPlayer.volume
     val isMuted = audioPlayer.isMuted
     val equalizerBands = audioPlayer.equalizerBands
+    val playbackSpeed = audioPlayer.playbackSpeed
+    val isSpeedLocked = audioPlayer.isSpeedLocked
 
     // Queue state
     private val _queue = MutableStateFlow<List<TrackModel>>(emptyList())
@@ -74,6 +76,9 @@ class DesktopMusicViewModel {
 
     private val _isEqualizerOpen = MutableStateFlow(false)
     val isEqualizerOpen: StateFlow<Boolean> = _isEqualizerOpen.asStateFlow()
+
+    private val _isSpeedDialogOpen = MutableStateFlow(false)
+    val isSpeedDialogOpen: StateFlow<Boolean> = _isSpeedDialogOpen.asStateFlow()
 
     // Search state
     private val _searchQuery = MutableStateFlow("")
@@ -452,6 +457,26 @@ class DesktopMusicViewModel {
 
     fun toggleLyrics() {
         _isLyricsOpen.value = !_isLyricsOpen.value
+    }
+
+    fun openSpeedDialog() {
+        _isSpeedDialogOpen.value = true
+    }
+
+    fun closeSpeedDialog() {
+        _isSpeedDialogOpen.value = false
+    }
+
+    fun toggleSpeedDialog() {
+        _isSpeedDialogOpen.value = !_isSpeedDialogOpen.value
+    }
+
+    fun setPlaybackSpeed(speed: Float) {
+        audioPlayer.setPlaybackSpeed(speed)
+    }
+
+    fun setSpeedLock(locked: Boolean) {
+        audioPlayer.setSpeedLock(locked)
     }
 
     fun openEqualizer() {
