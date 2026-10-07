@@ -6,6 +6,7 @@ import com.gaminghub.musify.desktop.download.DesktopDownloadManager
 import com.gaminghub.musify.desktop.model.*
 import com.gaminghub.musify.desktop.network.DesktopLyricsRepository
 import com.gaminghub.musify.desktop.network.DesktopYouTubeRepository
+import com.gaminghub.musify.desktop.sync.DesktopFirestoreSyncManager
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,6 +22,10 @@ class DesktopMusicViewModel {
     val lyricsRepo = DesktopLyricsRepository()
     val database = DesktopDatabase()
     val downloadManager = DesktopDownloadManager(youtubeRepo)
+    val syncManager = DesktopFirestoreSyncManager
+
+    private val _isSyncing = MutableStateFlow(false)
+    val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
 
     val audioPlayer: DesktopAudioPlayer = DesktopAudioPlayer {
         handleTrackEnded()
@@ -120,7 +125,14 @@ class DesktopMusicViewModel {
             _favorites.value = database.getFavorites()
             _playlists.value = database.getPlaylists()
             _history.value = database.getHistory()
-            _googleUser.value = database.getGoogleUser()
+            val savedUser = database.getGoogleUser()
+            _googleUser.value = savedUser
+
+            // If user is already logged in with a real Google email, sync Android cloud library!
+            val email = savedUser?.email
+            if (!email.isNullOrBlank() && email != "google.user@gmail.com") {
+                syncWithCloud(showToast = false)
+            }
         }
     }
 
@@ -274,6 +286,11 @@ class DesktopMusicViewModel {
             val isFav = database.toggleFavorite(track)
             _favorites.value = database.getFavorites()
             onShowToast?.invoke(if (isFav) "Added to Liked Songs" else "Removed from Liked Songs")
+
+            val email = _googleUser.value?.email
+            if (!email.isNullOrBlank() && email != "google.user@gmail.com") {
+                syncManager.syncFavoriteToCloud(email, track, isFav)
+            }
         }
     }
 
@@ -356,6 +373,11 @@ class DesktopMusicViewModel {
             val p = database.createPlaylist(title, description)
             _playlists.value = database.getPlaylists()
             onShowToast?.invoke("Created playlist '$title'")
+
+            val email = _googleUser.value?.email
+            if (!email.isNullOrBlank() && email != "google.user@gmail.com") {
+                syncManager.syncPlaylistToCloud(email, p)
+            }
         }
     }
 
@@ -364,6 +386,12 @@ class DesktopMusicViewModel {
             database.addTrackToPlaylist(playlist.id, track)
             _playlists.value = database.getPlaylists()
             onShowToast?.invoke("Added '${track.title}' to ${playlist.title}")
+
+            val email = _googleUser.value?.email
+            if (!email.isNullOrBlank() && email != "google.user@gmail.com") {
+                val updated = _playlists.value.find { it.id == playlist.id } ?: playlist
+                syncManager.syncPlaylistToCloud(email, updated)
+            }
         }
     }
 
@@ -372,6 +400,12 @@ class DesktopMusicViewModel {
             database.removeTrackFromPlaylist(playlist.id, track.audioUrl)
             _playlists.value = database.getPlaylists()
             _selectedPlaylist.value = _playlists.value.find { it.id == playlist.id }
+
+            val email = _googleUser.value?.email
+            if (!email.isNullOrBlank() && email != "google.user@gmail.com") {
+                val updated = _playlists.value.find { it.id == playlist.id } ?: playlist
+                syncManager.syncPlaylistToCloud(email, updated)
+            }
         }
     }
 
@@ -383,6 +417,11 @@ class DesktopMusicViewModel {
                 _currentScreen.value = DesktopScreen.LIBRARY
             }
             onShowToast?.invoke("Deleted playlist '${playlist.title}'")
+
+            val email = _googleUser.value?.email
+            if (!email.isNullOrBlank() && email != "google.user@gmail.com") {
+                syncManager.deletePlaylistFromCloud(email, playlist.id)
+            }
         }
     }
 
@@ -447,7 +486,37 @@ class DesktopMusicViewModel {
             database.saveGoogleUser(user)
             _googleUser.value = user
             _showGoogleSignInDialog.value = false
-            onShowToast?.invoke("Signed in as ${user.name}")
+            onShowToast?.invoke("Signed in as ${user.name} (${user.email})")
+
+            // Automatically sync all playlists & favorites from Android account!
+            syncWithCloud(showToast = true)
+        }
+    }
+
+    fun syncWithCloud(showToast: Boolean = true) {
+        val user = _googleUser.value
+        val email = user?.email
+        if (email.isNullOrBlank() || email == "google.user@gmail.com") {
+            if (showToast) onShowToast?.invoke("Please sign in with your Google account first.")
+            return
+        }
+
+        scope.launch {
+            _isSyncing.value = true
+            try {
+                if (showToast) onShowToast?.invoke("Syncing library with Android cloud ($email)...")
+                val result = syncManager.pullFromCloud(email, database)
+                _playlists.value = database.getPlaylists()
+                _favorites.value = database.getFavorites()
+                _history.value = database.getHistory()
+                if (showToast) {
+                    onShowToast?.invoke(result.message)
+                }
+            } catch (e: Exception) {
+                if (showToast) onShowToast?.invoke("Sync error: ${e.message}")
+            } finally {
+                _isSyncing.value = false
+            }
         }
     }
 

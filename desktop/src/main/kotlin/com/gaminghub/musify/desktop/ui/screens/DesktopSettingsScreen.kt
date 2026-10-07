@@ -25,6 +25,7 @@ import com.gaminghub.musify.desktop.viewmodel.DesktopMusicViewModel
 fun DesktopSettingsScreen(viewModel: DesktopMusicViewModel) {
     val quality by viewModel.streamingQuality.collectAsState()
     val googleUser by viewModel.googleUser.collectAsState()
+    val isSyncing by viewModel.isSyncing.collectAsState()
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 20.dp),
@@ -39,17 +40,18 @@ fun DesktopSettingsScreen(viewModel: DesktopMusicViewModel) {
         item {
             Surface(color = SurfaceElevated, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("GOOGLE ACCOUNT", color = MusifyEmerald, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    Text("GOOGLE ACCOUNT & CLOUD SYNC", color = MusifyEmerald, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                     Spacer(modifier = Modifier.height(14.dp))
 
                     if (googleUser != null) {
+                        val isDummy = googleUser!!.email.lowercase().contains("google.user")
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(46.dp)
+                                    .size(48.dp)
                                     .clip(CircleShape)
                                     .background(MusifyEmerald.copy(alpha = 0.2f)),
                                 contentAlignment = Alignment.Center
@@ -64,10 +66,50 @@ fun DesktopSettingsScreen(viewModel: DesktopMusicViewModel) {
                             Spacer(modifier = Modifier.width(16.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(googleUser!!.name, color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                                Text(googleUser!!.email, color = TextSecondary, fontSize = 13.sp)
+                                Text(googleUser!!.email, color = if (isDummy) Color(0xFFFF7777) else TextSecondary, fontSize = 13.sp)
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text("Synced & Authenticated with Google", color = MusifyEmerald, fontSize = 11.sp)
+                                if (isDummy) {
+                                    Text("⚠️ Placeholder account. Switch to your Android email to sync playlists.", color = Color(0xFFFFB74D), fontSize = 11.sp)
+                                } else {
+                                    Text("⚡ Cross-Device Sync: Connected to Android (musify-8df01)", color = MusifyEmerald, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                                }
                             }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Button(
+                                onClick = { viewModel.syncWithCloud(showToast = true) },
+                                colors = ButtonDefaults.buttonColors(containerColor = MusifyEmerald, contentColor = Color.Black),
+                                shape = RoundedCornerShape(8.dp),
+                                enabled = !isSyncing
+                            ) {
+                                if (isSyncing) {
+                                    CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.Black, strokeWidth = 2.dp)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Syncing...", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                } else {
+                                    Icon(Icons.Default.Sync, contentDescription = "Sync", modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Sync with Android", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            OutlinedButton(
+                                onClick = { viewModel.openGoogleSignIn() },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = TextPrimary),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(Icons.Default.SwitchAccount, contentDescription = "Switch Account", modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Switch Account", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
+
                             Button(
                                 onClick = { viewModel.signOutGoogle() },
                                 colors = ButtonDefaults.buttonColors(containerColor = SurfaceDark, contentColor = Color(0xFFFF5252)),

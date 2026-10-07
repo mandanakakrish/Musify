@@ -8,9 +8,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.OpenInBrowser
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,8 +32,22 @@ import java.util.UUID
 
 @Composable
 fun DesktopGoogleSignInDialog(viewModel: DesktopMusicViewModel) {
-    var nameInput by remember { mutableStateOf("") }
-    var emailInput by remember { mutableStateOf("") }
+    val currentGoogleUser by viewModel.googleUser.collectAsState()
+    val isSyncing by viewModel.isSyncing.collectAsState()
+
+    var nameInput by remember {
+        mutableStateOf(
+            if (currentGoogleUser != null && currentGoogleUser!!.email != "google.user@gmail.com") currentGoogleUser!!.name
+            else "Krish"
+        )
+    }
+    var emailInput by remember {
+        mutableStateOf(
+            if (currentGoogleUser != null && currentGoogleUser!!.email != "google.user@gmail.com") currentGoogleUser!!.email
+            else "mandankakrish28@gmail.com"
+        )
+    }
+
     var isLoadingBrowser by remember { mutableStateOf(false) }
     var statusMessage by remember { mutableStateOf<String?>(null) }
     var showCloudConsoleHelp by remember { mutableStateOf(false) }
@@ -43,7 +57,7 @@ fun DesktopGoogleSignInDialog(viewModel: DesktopMusicViewModel) {
         Surface(
             shape = RoundedCornerShape(16.dp),
             color = SurfaceDark,
-            modifier = Modifier.width(480.dp).padding(16.dp)
+            modifier = Modifier.width(500.dp).padding(16.dp)
         ) {
             Column(
                 modifier = Modifier.padding(24.dp),
@@ -56,8 +70,8 @@ fun DesktopGoogleSignInDialog(viewModel: DesktopMusicViewModel) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        GoogleLogoIcon(modifier = Modifier.size(26.dp))
-                        Spacer(modifier = Modifier.width(10.dp))
+                        GoogleLogoIcon(modifier = Modifier.size(28.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
                                 text = "Sign in with Google",
@@ -65,11 +79,14 @@ fun DesktopGoogleSignInDialog(viewModel: DesktopMusicViewModel) {
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold
                             )
-                            Text(
-                                text = "Musify Windows Edition",
-                                color = MusifyEmerald,
-                                fontSize = 11.sp
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "Android & Windows Cloud Cross-Link",
+                                    color = MusifyEmerald,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                         }
                     }
                     IconButton(
@@ -80,31 +97,90 @@ fun DesktopGoogleSignInDialog(viewModel: DesktopMusicViewModel) {
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 Text(
-                    text = "Connect your Google account to sync your liked songs, custom playlists, and music recommendations across all your devices.",
+                    text = "Sign in with your Google email to immediately sync all your playlists, liked songs, and play history between your Android phone and Windows desktop.",
                     color = TextSecondary,
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp
+                    fontSize = 12.sp,
+                    lineHeight = 17.sp
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // Direct Google Account Login (Always works immediately)
+                // Account Credentials Card
                 Surface(
                     color = SurfaceElevated,
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "YOUR GOOGLE ACCOUNT",
+                                color = MusifyEmerald,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
+                            )
+                            Surface(
+                                color = MusifyEmerald.copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CloudSync,
+                                        contentDescription = null,
+                                        tint = MusifyEmerald,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Firestore Sync", color = MusifyEmerald, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Quick Account Chips
                         Text(
-                            text = "GOOGLE ACCOUNT CREDENTIALS",
-                            color = MusifyEmerald,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp
+                            text = "Detected Android Accounts:",
+                            color = TextTertiary,
+                            fontSize = 10.sp
                         )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            SuggestionChip(
+                                onClick = {
+                                    emailInput = "mandankakrish28@gmail.com"
+                                    nameInput = "Krish"
+                                },
+                                label = { Text("mandankakrish28@gmail.com", fontSize = 11.sp, color = TextPrimary) },
+                                colors = SuggestionChipDefaults.suggestionChipColors(
+                                    containerColor = if (emailInput == "mandankakrish28@gmail.com") MusifyEmerald.copy(alpha = 0.2f) else SurfaceDark
+                                )
+                            )
+                            SuggestionChip(
+                                onClick = {
+                                    emailInput = "mandankakrish11@gmail.com"
+                                    nameInput = "Krish"
+                                },
+                                label = { Text("mandankakrish11@gmail.com", fontSize = 11.sp, color = TextPrimary) },
+                                colors = SuggestionChipDefaults.suggestionChipColors(
+                                    containerColor = if (emailInput == "mandankakrish11@gmail.com") MusifyEmerald.copy(alpha = 0.2f) else SurfaceDark
+                                )
+                            )
+                        }
 
                         Spacer(modifier = Modifier.height(12.dp))
 
@@ -113,7 +189,7 @@ fun DesktopGoogleSignInDialog(viewModel: DesktopMusicViewModel) {
                             value = emailInput,
                             onValueChange = { emailInput = it },
                             label = { Text("Google Account Email", fontSize = 12.sp) },
-                            placeholder = { Text("e.g. user@gmail.com", color = TextTertiary, fontSize = 12.sp) },
+                            placeholder = { Text("mandankakrish28@gmail.com", color = TextTertiary, fontSize = 12.sp) },
                             singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = MusifyEmerald,
@@ -130,8 +206,8 @@ fun DesktopGoogleSignInDialog(viewModel: DesktopMusicViewModel) {
                         OutlinedTextField(
                             value = nameInput,
                             onValueChange = { nameInput = it },
-                            label = { Text("Account Name", fontSize = 12.sp) },
-                            placeholder = { Text("e.g. Alex", color = TextTertiary, fontSize = 12.sp) },
+                            label = { Text("Display Name", fontSize = 12.sp) },
+                            placeholder = { Text("Krish", color = TextTertiary, fontSize = 12.sp) },
                             singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = MusifyEmerald,
@@ -144,15 +220,16 @@ fun DesktopGoogleSignInDialog(viewModel: DesktopMusicViewModel) {
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Primary Sign In Button
+                        // Primary Sign In & Sync Button
                         Button(
                             onClick = {
                                 val trimmedEmail = emailInput.trim()
-                                val finalEmail = if (trimmedEmail.isNotEmpty()) {
-                                    if (trimmedEmail.contains("@")) trimmedEmail else "$trimmedEmail@gmail.com"
-                                } else "google.user@gmail.com"
-
-                                val finalName = if (nameInput.isNotBlank()) nameInput.trim() else finalEmail.substringBefore("@").replace(".", " ").replaceFirstChar { it.uppercase() }
+                                if (trimmedEmail.isBlank()) {
+                                    statusMessage = "Please enter your Google account email."
+                                    return@Button
+                                }
+                                val finalEmail = if (trimmedEmail.contains("@")) trimmedEmail else "$trimmedEmail@gmail.com"
+                                val finalName = if (nameInput.isNotBlank()) nameInput.trim() else "Krish"
 
                                 viewModel.signInWithGoogle(
                                     GoogleUser(
@@ -162,7 +239,7 @@ fun DesktopGoogleSignInDialog(viewModel: DesktopMusicViewModel) {
                                     )
                                 )
                             },
-                            modifier = Modifier.fillMaxWidth().height(42.dp),
+                            modifier = Modifier.fillMaxWidth().height(44.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.White,
                                 contentColor = Color(0xFF1F1F1F)
@@ -170,16 +247,22 @@ fun DesktopGoogleSignInDialog(viewModel: DesktopMusicViewModel) {
                             shape = RoundedCornerShape(22.dp),
                             elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
                         ) {
-                            GoogleLogoIcon(modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text("Sign in with Google", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            if (isSyncing) {
+                                CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.Black, strokeWidth = 2.dp)
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text("Syncing Android Playlists...", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            } else {
+                                GoogleLogoIcon(modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text("Sign In & Sync Android Library", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            }
                         }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Browser OAuth option with clear guidance
+                // Browser OAuth option
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -194,7 +277,7 @@ fun DesktopGoogleSignInDialog(viewModel: DesktopMusicViewModel) {
                     HorizontalDivider(modifier = Modifier.weight(1f), color = SurfaceElevated)
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 OutlinedButton(
                     onClick = {
@@ -213,12 +296,12 @@ fun DesktopGoogleSignInDialog(viewModel: DesktopMusicViewModel) {
                             )
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().height(38.dp),
+                    modifier = Modifier.fillMaxWidth().height(36.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = TextPrimary),
-                    shape = RoundedCornerShape(20.dp)
+                    shape = RoundedCornerShape(18.dp)
                 ) {
                     if (isLoadingBrowser) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = MusifyEmerald, strokeWidth = 2.dp)
+                        CircularProgressIndicator(modifier = Modifier.size(14.dp), color = MusifyEmerald, strokeWidth = 2.dp)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Waiting for browser...", fontSize = 12.sp)
                     } else {
@@ -229,7 +312,7 @@ fun DesktopGoogleSignInDialog(viewModel: DesktopMusicViewModel) {
                 }
 
                 // Help link for redirect_uri_mismatch
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.clickable { showCloudConsoleHelp = !showCloudConsoleHelp }
@@ -252,7 +335,7 @@ fun DesktopGoogleSignInDialog(viewModel: DesktopMusicViewModel) {
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text(
-                                text = "How to enable browser OAuth:",
+                                text = "How to enable browser OAuth in 30 seconds:",
                                 color = MusifyEmerald,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
@@ -260,11 +343,11 @@ fun DesktopGoogleSignInDialog(viewModel: DesktopMusicViewModel) {
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = "1. Open console.cloud.google.com -> APIs & Services -> Credentials\n" +
-                                       "2. Click your Web Client ID (466360010676-...)\n" +
-                                       "3. Under 'Authorized redirect URIs', click '+ ADD URI' and enter:\n" +
+                                       "2. Click Web Client ID (466360010676-...)\n" +
+                                       "3. Under 'Authorized redirect URIs', click '+ ADD URI' and add:\n" +
                                        "   http://127.0.0.1:8945/callback\n" +
                                        "4. Click Save. Browser login will then work without Error 400!\n\n" +
-                                       "Tip: Direct sign-in above works right now without changing Google Cloud Console.",
+                                       "Tip: Direct sign-in above connects immediately to your Android cloud data without touching Google Cloud Console.",
                                 color = TextSecondary,
                                 fontSize = 11.sp,
                                 lineHeight = 15.sp
@@ -299,7 +382,7 @@ fun DesktopGoogleSignInDialog(viewModel: DesktopMusicViewModel) {
                 TextButton(
                     onClick = { viewModel.closeGoogleSignIn() }
                 ) {
-                    Text("Cancel", color = TextSecondary, fontSize = 12.sp)
+                    Text("Close", color = TextSecondary, fontSize = 12.sp)
                 }
             }
         }

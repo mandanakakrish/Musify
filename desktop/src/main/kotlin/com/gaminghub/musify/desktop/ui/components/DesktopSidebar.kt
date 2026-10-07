@@ -32,6 +32,7 @@ fun DesktopSidebar(viewModel: DesktopMusicViewModel) {
     val playlists by viewModel.playlists.collectAsState()
     val googleUser by viewModel.googleUser.collectAsState()
     val isEqualizerOpen by viewModel.isEqualizerOpen.collectAsState()
+    val isSyncing by viewModel.isSyncing.collectAsState()
 
     Column(
         modifier = Modifier
@@ -143,16 +144,34 @@ fun DesktopSidebar(viewModel: DesktopMusicViewModel) {
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp
             )
-            IconButton(
-                onClick = { viewModel.createPlaylist("New Playlist #${playlists.size + 1}") },
-                modifier = Modifier.size(24.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "New Playlist",
-                    tint = TextSecondary,
-                    modifier = Modifier.size(16.dp)
-                )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(
+                    onClick = { viewModel.syncWithCloud(showToast = true) },
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    if (isSyncing) {
+                        CircularProgressIndicator(modifier = Modifier.size(14.dp), color = MusifyEmerald, strokeWidth = 2.dp)
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Sync,
+                            contentDescription = "Sync with Android",
+                            tint = MusifyEmerald,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                IconButton(
+                    onClick = { viewModel.createPlaylist("New Playlist #${playlists.size + 1}") },
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "New Playlist",
+                        tint = TextSecondary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
         }
 
@@ -182,55 +201,83 @@ fun DesktopSidebar(viewModel: DesktopMusicViewModel) {
 
         // Google Account Profile or Sign In Button
         if (googleUser != null) {
+            val isDummy = googleUser!!.email == "google.user@gmail.com"
             Surface(
-                color = SurfaceElevated,
+                color = if (isDummy) Color(0xFF2A1A1A) else SurfaceElevated,
                 shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.fillMaxWidth()
+                border = if (isDummy) androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFF5252).copy(alpha = 0.5f)) else null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { viewModel.openGoogleSignIn() }
             ) {
-                Row(
-                    modifier = Modifier.padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(34.dp)
-                            .clip(CircleShape)
-                            .background(MusifyEmerald.copy(alpha = 0.2f)),
-                        contentAlignment = Alignment.Center
-                    ) {
+                Column(modifier = Modifier.padding(10.dp)) {
+                    if (isDummy) {
                         Text(
-                            text = googleUser!!.name.take(1).uppercase(),
-                            color = MusifyEmerald,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
+                            text = "⚠ Click to link your real Android email",
+                            color = Color(0xFFFF5252),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 6.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = googleUser!!.name,
-                            color = TextPrimary,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1
-                        )
-                        Text(
-                            text = googleUser!!.email,
-                            color = TextSecondary,
-                            fontSize = 10.sp,
-                            maxLines = 1
-                        )
-                    }
-                    IconButton(
-                        onClick = { viewModel.signOutGoogle() },
-                        modifier = Modifier.size(26.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ExitToApp,
-                            contentDescription = "Sign Out",
-                            tint = TextTertiary,
-                            modifier = Modifier.size(16.dp)
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(if (isDummy) Color(0xFF552222) else MusifyEmerald.copy(alpha = 0.2f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = googleUser!!.name.take(1).uppercase(),
+                                color = if (isDummy) Color(0xFFFF8888) else MusifyEmerald,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = googleUser!!.name,
+                                color = TextPrimary,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1
+                            )
+                            Text(
+                                text = googleUser!!.email,
+                                color = if (isDummy) Color(0xFFFF8888) else TextSecondary,
+                                fontSize = 10.sp,
+                                maxLines = 1
+                            )
+                        }
+                        IconButton(
+                            onClick = { viewModel.syncWithCloud(showToast = true) },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            if (isSyncing) {
+                                CircularProgressIndicator(modifier = Modifier.size(12.dp), color = MusifyEmerald, strokeWidth = 2.dp)
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Sync,
+                                    contentDescription = "Sync",
+                                    tint = MusifyEmerald,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
+                        IconButton(
+                            onClick = { viewModel.signOutGoogle() },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ExitToApp,
+                                contentDescription = "Sign Out",
+                                tint = TextTertiary,
+                                modifier = Modifier.size(15.dp)
+                            )
+                        }
                     }
                 }
             }

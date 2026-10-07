@@ -405,4 +405,99 @@ class DesktopDatabase {
             conn.prepareStatement("DELETE FROM google_account").executeUpdate()
         }
     }
+
+    suspend fun upsertCloudPlaylist(
+        playlistId: String,
+        title: String,
+        tracks: List<TrackModel>,
+        createdAt: Long
+    ) = withContext(Dispatchers.IO) {
+        getConnection().use { conn ->
+            // Insert or update playlist
+            val sql = """
+                INSERT INTO playlists (id, title, description, coverUrl, createdAt)
+                VALUES (?, ?, '', ?, ?)
+                ON CONFLICT(id) DO UPDATE SET title = excluded.title, coverUrl = excluded.coverUrl;
+            """.trimIndent()
+            conn.prepareStatement(sql).use { stmt ->
+                stmt.setString(1, playlistId)
+                stmt.setString(2, title)
+                stmt.setString(3, tracks.firstOrNull()?.albumArtUrl)
+                stmt.setLong(4, createdAt)
+                stmt.executeUpdate()
+            }
+
+            // Remove existing tracks for this playlist to avoid duplicates
+            conn.prepareStatement("DELETE FROM playlist_tracks WHERE playlistId = ?").use { stmt ->
+                stmt.setString(1, playlistId)
+                stmt.executeUpdate()
+            }
+
+            // Insert updated tracks
+            val trackSql = """
+                INSERT INTO playlist_tracks (playlistId, audioUrl, title, artist, albumArtUrl, durationSeconds, trackOrder)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """.trimIndent()
+            conn.prepareStatement(trackSql).use { stmt ->
+                tracks.forEachIndexed { index, track ->
+                    stmt.setString(1, playlistId)
+                    stmt.setString(2, track.audioUrl)
+                    stmt.setString(3, track.title)
+                    stmt.setString(4, track.artist)
+                    stmt.setString(5, track.albumArtUrl)
+                    stmt.setLong(6, track.durationSeconds)
+                    stmt.setInt(7, index)
+                    stmt.addBatch()
+                }
+                stmt.executeBatch()
+            }
+        }
+    }
+
+    suspend fun upsertCloudFavorite(track: TrackModel) = withContext(Dispatchers.IO) {
+        getConnection().use { conn ->
+            val sql = """
+                INSERT INTO tracks (audioUrl, title, artist, albumArtUrl, album, durationSeconds, isFavorite, lastPlayedTimestamp)
+                VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+                ON CONFLICT(audioUrl) DO UPDATE SET
+                    title = excluded.title,
+                    artist = excluded.artist,
+                    albumArtUrl = COALESCE(excluded.albumArtUrl, tracks.albumArtUrl),
+                    isFavorite = 1;
+            """.trimIndent()
+            conn.prepareStatement(sql).use { stmt ->
+                stmt.setString(1, track.audioUrl)
+                stmt.setString(2, track.title)
+                stmt.setString(3, track.artist)
+                stmt.setString(4, track.albumArtUrl)
+                stmt.setString(5, track.album)
+                stmt.setLong(6, track.durationSeconds)
+                stmt.setLong(7, System.currentTimeMillis())
+                stmt.executeUpdate()
+            }
+        }
+    }
+
+    suspend fun upsertCloudPlayedTrack(track: TrackModel, playCount: Int, lastPlayedTimestamp: Long) = withContext(Dispatchers.IO) {
+        getConnection().use { conn ->
+            val sql = """
+                INSERT INTO tracks (audioUrl, title, artist, albumArtUrl, album, durationSeconds, playCount, lastPlayedTimestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(audioUrl) DO UPDATE SET
+                    playCount = MAX(tracks.playCount, excluded.playCount),
+                    lastPlayedTimestamp = MAX(COALESCE(tracks.lastPlayedTimestamp, 0), excluded.lastPlayedTimestamp);
+            """.trimIndent()
+            conn.prepareStatement(sql).use { stmt ->
+                stmt.setString(1, track.audioUrl)
+                stmt.setString(2, track.title)
+                stmt.setString(3, track.artist)
+                stmt.setString(4, track.albumArtUrl)
+                stmt.setString(5, track.album)
+                stmt.setLong(6, track.durationSeconds)
+                stmt.setInt(7, playCount)
+                stmt.setLong(8, lastPlayedTimestamp)
+                stmt.executeUpdate()
+            }
+        }
+    }
 }

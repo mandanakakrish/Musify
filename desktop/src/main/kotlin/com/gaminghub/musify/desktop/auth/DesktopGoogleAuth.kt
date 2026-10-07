@@ -81,8 +81,8 @@ object DesktopGoogleAuth {
                         onSuccess(
                             GoogleUser(
                                 id = UUID.randomUUID().toString(),
-                                name = "Google Account",
-                                email = "google.user@gmail.com"
+                                name = "Krish",
+                                email = "mandankakrish28@gmail.com"
                             )
                         )
                     } else if (error != null) {
