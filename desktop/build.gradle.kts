@@ -41,6 +41,20 @@ compose.desktop {
             description = "Musify Music Player for Windows"
             copyright = "© 2026 Musify Team"
             vendor = "GamingHub"
+            modules(
+                "java.base",
+                "java.desktop",
+                "java.sql",
+                "java.naming",
+                "java.management",
+                "java.logging",
+                "java.prefs",
+                "java.xml",
+                "java.datatransfer",
+                "java.net.http",
+                "jdk.crypto.ec",
+                "jdk.unsupported"
+            )
         }
     }
 }
