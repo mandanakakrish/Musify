@@ -3,6 +3,7 @@ package com.gaminghub.musify.desktop.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -11,16 +12,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.gaminghub.musify.desktop.model.StreamingQuality
+import com.gaminghub.musify.desktop.ui.components.GoogleLogoIcon
 import com.gaminghub.musify.desktop.ui.theme.*
 import com.gaminghub.musify.desktop.viewmodel.DesktopMusicViewModel
 
 @Composable
 fun DesktopSettingsScreen(viewModel: DesktopMusicViewModel) {
     val quality by viewModel.streamingQuality.collectAsState()
+    val googleUser by viewModel.googleUser.collectAsState()
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 20.dp),
@@ -31,6 +35,77 @@ fun DesktopSettingsScreen(viewModel: DesktopMusicViewModel) {
             Text("Configure playback, quality and desktop controls", color = TextSecondary, fontSize = 13.sp)
         }
 
+        // Google Account Section
+        item {
+            Surface(color = SurfaceElevated, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("GOOGLE ACCOUNT", color = MusifyEmerald, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    if (googleUser != null) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(46.dp)
+                                    .clip(CircleShape)
+                                    .background(MusifyEmerald.copy(alpha = 0.2f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = googleUser!!.name.take(1).uppercase(),
+                                    color = MusifyEmerald,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(googleUser!!.name, color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                Text(googleUser!!.email, color = TextSecondary, fontSize = 13.sp)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text("Synced & Authenticated with Google", color = MusifyEmerald, fontSize = 11.sp)
+                            }
+                            Button(
+                                onClick = { viewModel.signOutGoogle() },
+                                colors = ButtonDefaults.buttonColors(containerColor = SurfaceDark, contentColor = Color(0xFFFF5252)),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(Icons.Default.ExitToApp, contentDescription = "Sign Out", modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Sign Out", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    } else {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+                                Text("No Google account linked", color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                                Text(
+                                    "Sign in with Google to sync your playlists and liked songs across devices.",
+                                    color = TextSecondary,
+                                    fontSize = 12.sp
+                                )
+                            }
+                            Button(
+                                onClick = { viewModel.openGoogleSignIn() },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color(0xFF1F1F1F)),
+                                shape = RoundedCornerShape(20.dp)
+                            ) {
+                                GoogleLogoIcon(modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Sign in with Google", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
         // Audio Quality Section
         item {
             Surface(color = SurfaceElevated, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {

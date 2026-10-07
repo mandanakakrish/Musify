@@ -30,6 +30,8 @@ import com.gaminghub.musify.desktop.viewmodel.DesktopMusicViewModel
 fun DesktopSidebar(viewModel: DesktopMusicViewModel) {
     val currentScreen by viewModel.currentScreen.collectAsState()
     val playlists by viewModel.playlists.collectAsState()
+    val googleUser by viewModel.googleUser.collectAsState()
+    val isEqualizerOpen by viewModel.isEqualizerOpen.collectAsState()
 
     Column(
         modifier = Modifier
@@ -113,8 +115,8 @@ fun DesktopSidebar(viewModel: DesktopMusicViewModel) {
         SidebarItem(
             icon = Icons.Default.GraphicEq,
             label = "Equalizer",
-            isSelected = currentScreen == DesktopScreen.EQUALIZER,
-            onClick = { viewModel.navigateTo(DesktopScreen.EQUALIZER) }
+            isSelected = currentScreen == DesktopScreen.EQUALIZER || isEqualizerOpen,
+            onClick = { viewModel.toggleEqualizer() }
         )
 
         SidebarItem(
@@ -125,7 +127,7 @@ fun DesktopSidebar(viewModel: DesktopMusicViewModel) {
         )
 
         Spacer(modifier = Modifier.height(16.dp))
-        Divider(color = SurfaceElevated)
+        HorizontalDivider(color = SurfaceElevated)
         Spacer(modifier = Modifier.height(16.dp))
 
         // Playlists Section
@@ -170,6 +172,86 @@ fun DesktopSidebar(viewModel: DesktopMusicViewModel) {
                         .clip(RoundedCornerShape(6.dp))
                         .clickable { viewModel.openPlaylist(playlist) }
                         .padding(horizontal = 8.dp, vertical = 6.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+        HorizontalDivider(color = SurfaceElevated)
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Google Account Profile or Sign In Button
+        if (googleUser != null) {
+            Surface(
+                color = SurfaceElevated,
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(MusifyEmerald.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = googleUser!!.name.take(1).uppercase(),
+                            color = MusifyEmerald,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = googleUser!!.name,
+                            color = TextPrimary,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1
+                        )
+                        Text(
+                            text = googleUser!!.email,
+                            color = TextSecondary,
+                            fontSize = 10.sp,
+                            maxLines = 1
+                        )
+                    }
+                    IconButton(
+                        onClick = { viewModel.signOutGoogle() },
+                        modifier = Modifier.size(26.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ExitToApp,
+                            contentDescription = "Sign Out",
+                            tint = TextTertiary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+        } else {
+            Button(
+                onClick = { viewModel.openGoogleSignIn() },
+                modifier = Modifier.fillMaxWidth().height(40.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.White,
+                    contentColor = Color(0xFF1F1F1F)
+                ),
+                shape = RoundedCornerShape(20.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                GoogleLogoIcon(modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Sign in with Google",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
                 )
             }
         }

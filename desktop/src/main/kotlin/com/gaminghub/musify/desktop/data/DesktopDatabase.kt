@@ -1,5 +1,6 @@
 package com.gaminghub.musify.desktop.data
 
+import com.gaminghub.musify.desktop.model.GoogleUser
 import com.gaminghub.musify.desktop.model.PlaylistModel
 import com.gaminghub.musify.desktop.model.TrackModel
 import kotlinx.coroutines.Dispatchers
@@ -98,6 +99,18 @@ class DesktopDatabase {
                     CREATE TABLE IF NOT EXISTS settings (
                         key TEXT PRIMARY KEY,
                         value TEXT NOT NULL
+                    );
+                    """.trimIndent()
+                )
+
+                // Google Account
+                stmt.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS google_account (
+                        id TEXT PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        email TEXT NOT NULL,
+                        photoUrl TEXT
                     );
                     """.trimIndent()
                 )
@@ -353,6 +366,43 @@ class DesktopDatabase {
                 val rs = stmt.executeQuery()
                 if (rs.next()) rs.getString("value") else default
             }
+        }
+    }
+
+    suspend fun saveGoogleUser(user: GoogleUser) = withContext(Dispatchers.IO) {
+        getConnection().use { conn ->
+            conn.prepareStatement("DELETE FROM google_account").executeUpdate()
+            val sql = "INSERT INTO google_account (id, name, email, photoUrl) VALUES (?, ?, ?, ?)"
+            conn.prepareStatement(sql).use { stmt ->
+                stmt.setString(1, user.id)
+                stmt.setString(2, user.name)
+                stmt.setString(3, user.email)
+                stmt.setString(4, user.photoUrl)
+                stmt.executeUpdate()
+            }
+        }
+    }
+
+    suspend fun getGoogleUser(): GoogleUser? = withContext(Dispatchers.IO) {
+        getConnection().use { conn ->
+            val sql = "SELECT * FROM google_account LIMIT 1"
+            conn.prepareStatement(sql).use { stmt ->
+                val rs = stmt.executeQuery()
+                if (rs.next()) {
+                    GoogleUser(
+                        id = rs.getString("id"),
+                        name = rs.getString("name"),
+                        email = rs.getString("email"),
+                        photoUrl = rs.getString("photoUrl")
+                    )
+                } else null
+            }
+        }
+    }
+
+    suspend fun clearGoogleUser() = withContext(Dispatchers.IO) {
+        getConnection().use { conn ->
+            conn.prepareStatement("DELETE FROM google_account").executeUpdate()
         }
     }
 }

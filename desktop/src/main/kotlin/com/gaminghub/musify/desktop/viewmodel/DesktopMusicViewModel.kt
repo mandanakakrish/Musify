@@ -101,6 +101,13 @@ class DesktopMusicViewModel {
     private val _streamingQuality = MutableStateFlow(StreamingQuality.HIGH)
     val streamingQuality: StateFlow<StreamingQuality> = _streamingQuality.asStateFlow()
 
+    // Google Auth State
+    private val _googleUser = MutableStateFlow<GoogleUser?>(null)
+    val googleUser: StateFlow<GoogleUser?> = _googleUser.asStateFlow()
+
+    private val _showGoogleSignInDialog = MutableStateFlow(false)
+    val showGoogleSignInDialog: StateFlow<Boolean> = _showGoogleSignInDialog.asStateFlow()
+
     var onShowToast: ((String) -> Unit)? = null
 
     init {
@@ -113,6 +120,7 @@ class DesktopMusicViewModel {
             _favorites.value = database.getFavorites()
             _playlists.value = database.getPlaylists()
             _history.value = database.getHistory()
+            _googleUser.value = database.getGoogleUser()
         }
     }
 
@@ -407,7 +415,47 @@ class DesktopMusicViewModel {
         _isLyricsOpen.value = !_isLyricsOpen.value
     }
 
+    fun openEqualizer() {
+        _isEqualizerOpen.value = true
+    }
+
+    fun closeEqualizer() {
+        _isEqualizerOpen.value = false
+        if (_currentScreen.value == DesktopScreen.EQUALIZER) {
+            _currentScreen.value = DesktopScreen.HOME
+        }
+    }
+
     fun toggleEqualizer() {
-        _isEqualizerOpen.value = !_isEqualizerOpen.value
+        if (_isEqualizerOpen.value || _currentScreen.value == DesktopScreen.EQUALIZER) {
+            closeEqualizer()
+        } else {
+            openEqualizer()
+        }
+    }
+
+    fun openGoogleSignIn() {
+        _showGoogleSignInDialog.value = true
+    }
+
+    fun closeGoogleSignIn() {
+        _showGoogleSignInDialog.value = false
+    }
+
+    fun signInWithGoogle(user: GoogleUser) {
+        scope.launch {
+            database.saveGoogleUser(user)
+            _googleUser.value = user
+            _showGoogleSignInDialog.value = false
+            onShowToast?.invoke("Signed in as ${user.name}")
+        }
+    }
+
+    fun signOutGoogle() {
+        scope.launch {
+            database.clearGoogleUser()
+            _googleUser.value = null
+            onShowToast?.invoke("Signed out of Google")
+        }
     }
 }

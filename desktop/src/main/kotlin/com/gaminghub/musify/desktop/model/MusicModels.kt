@@ -65,3 +65,10 @@ enum class StreamingQuality(val label: String, val targetBitrate: Int) {
     STANDARD("160 kbps (Standard)", 160_000),
     LOW("96 kbps (Data Saver)", 96_000)
 }
+
+data class GoogleUser(
+    val id: String,
+    val name: String,
+    val email: String,
+    val photoUrl: String? = null
+)

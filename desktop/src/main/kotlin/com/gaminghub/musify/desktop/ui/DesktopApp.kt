@@ -26,6 +26,7 @@ fun DesktopApp(viewModel: DesktopMusicViewModel) {
     val isQueueOpen by viewModel.isQueueOpen.collectAsState()
     val isEqualizerOpen by viewModel.isEqualizerOpen.collectAsState()
     val isMiniPlayer by viewModel.isMiniPlayer.collectAsState()
+    val showGoogleSignInDialog by viewModel.showGoogleSignInDialog.collectAsState()
 
     var toastMessage by remember { mutableStateOf<String?>(null) }
 
@@ -120,7 +121,7 @@ fun DesktopApp(viewModel: DesktopMusicViewModel) {
                                 DesktopScreen.PLAYLIST_DETAIL -> DesktopPlaylistDetailScreen(viewModel)
                                 DesktopScreen.DOWNLOADS -> DesktopDownloadsScreen(viewModel)
                                 DesktopScreen.DEV_PICKS -> DesktopDevPicksScreen(viewModel)
-                                DesktopScreen.EQUALIZER -> DesktopEqualizerDialog(viewModel)
+                                DesktopScreen.EQUALIZER -> DesktopHomeScreen(viewModel)
                                 DesktopScreen.SETTINGS -> DesktopSettingsScreen(viewModel)
                             }
 
@@ -149,8 +150,13 @@ fun DesktopApp(viewModel: DesktopMusicViewModel) {
                 }
 
                 // Equalizer Modal Dialog
-                if (isEqualizerOpen) {
+                if (isEqualizerOpen || currentScreen == DesktopScreen.EQUALIZER) {
                     DesktopEqualizerDialog(viewModel)
+                }
+
+                // Google Sign-In Modal Dialog
+                if (showGoogleSignInDialog) {
+                    DesktopGoogleSignInDialog(viewModel)
                 }
             }
 

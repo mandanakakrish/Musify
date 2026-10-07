@@ -52,6 +52,7 @@ compose.desktop {
                 "java.xml",
                 "java.datatransfer",
                 "java.net.http",
+                "jdk.httpserver",
                 "jdk.crypto.ec",
                 "jdk.unsupported"
             )
