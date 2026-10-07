@@ -83,6 +83,7 @@ class DesktopAudioPlayer(private val onTrackEnded: () -> Unit) {
                 mediaPlayer?.stop()
                 mediaPlayer?.dispose()
 
+                println("DesktopAudioPlayer: loading media $mediaUri")
                 val media = Media(mediaUri)
                 val player = MediaPlayer(media)
                 mediaPlayer = player
@@ -93,12 +94,22 @@ class DesktopAudioPlayer(private val onTrackEnded: () -> Unit) {
                 // Apply equalizer
                 applyEqualizerToPlayer(player)
 
+                media.durationProperty().addListener { _, _, newDur ->
+                    if (newDur != null && !newDur.isUnknown && !newDur.isIndefinite) {
+                        _durationMs.value = newDur.toMillis().toLong()
+                    }
+                }
+
                 player.setOnReady {
-                    _durationMs.value = media.duration.toMillis().toLong()
+                    val dur = media.duration
+                    if (dur != null && !dur.isUnknown && !dur.isIndefinite) {
+                        _durationMs.value = dur.toMillis().toLong()
+                    }
                     player.rate = _playbackSpeed.value.toDouble()
                     player.play()
                     _isPlaying.value = true
                     _isBuffering.value = false
+                    println("DesktopAudioPlayer: playback started, duration=${_durationMs.value}ms")
                 }
 
                 player.currentTimeProperty().addListener { _, _, newTime ->
@@ -134,20 +145,20 @@ class DesktopAudioPlayer(private val onTrackEnded: () -> Unit) {
 
                 player.setOnError {
                     val err = player.error
-                    System.err.println("MediaPlayer error: ${err?.message} (code: ${err?.type})")
+                    System.err.println("DesktopAudioPlayer: MediaPlayer error: ${err?.message} (code: ${err?.type})")
                     _isPlaying.value = false
                     _isBuffering.value = false
                 }
 
                 media.setOnError {
                     val err = media.error
-                    System.err.println("Media error: ${err?.message} (code: ${err?.type})")
+                    System.err.println("DesktopAudioPlayer: Media error: ${err?.message} (code: ${err?.type})")
                     _isPlaying.value = false
                     _isBuffering.value = false
                 }
 
             } catch (e: Exception) {
-                System.err.println("Failed to play audio: ${e.message}")
+                System.err.println("DesktopAudioPlayer: Failed to play audio: ${e.message}")
                 e.printStackTrace()
                 _isPlaying.value = false
                 _isBuffering.value = false
