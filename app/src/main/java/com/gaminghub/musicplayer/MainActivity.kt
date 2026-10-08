@@ -1209,9 +1209,9 @@ fun MusifyBottomNavBar(
                             Toast.makeText(context, "Update required to access Home. Only Downloaded and My Music are available offline.", Toast.LENGTH_LONG).show()
                         } else {
                             navController.navigate("home") {
-                                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                popUpTo(navController.graph.startDestinationId) { saveState = false }
                                 launchSingleTop = true
-                                restoreState = true
+                                restoreState = false
                             }
                         }
                     }
@@ -1230,9 +1230,9 @@ fun MusifyBottomNavBar(
                             Toast.makeText(context, "Update required to access Charts. Only Downloaded and My Music are available offline.", Toast.LENGTH_LONG).show()
                         } else {
                             navController.navigate("top_charts") {
-                                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                popUpTo(navController.graph.startDestinationId) { saveState = false }
                                 launchSingleTop = true
-                                restoreState = true
+                                restoreState = false
                             }
                         }
                     }
@@ -1251,16 +1251,27 @@ fun MusifyBottomNavBar(
                             Toast.makeText(context, "Update required to access Explore. Only Downloaded and My Music are available offline.", Toast.LENGTH_LONG).show()
                         } else {
                             navController.navigate("youtube") {
-                                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                popUpTo(navController.graph.startDestinationId) { saveState = false }
                                 launchSingleTop = true
-                                restoreState = true
+                                restoreState = false
                             }
                         }
                     }
                 )
 
                 // ── 4. Library Tab ────────────────────────────────
-                val isLibrarySelected = currentRoute == "library" || currentRoute?.startsWith("my_music") == true || currentRoute == "playlists" || currentRoute == "downloads"
+                val isLibrarySelected = currentRoute == "library" ||
+                        currentRoute == "favorites" ||
+                        currentRoute == "playlists" ||
+                        currentRoute?.startsWith("playlist_detail") == true ||
+                        currentRoute == "downloads" ||
+                        currentRoute?.startsWith("my_music") == true ||
+                        currentRoute == "stats" ||
+                        currentRoute == "import_playlist" ||
+                        currentRoute == "discover_artists" ||
+                        currentRoute == "subscriptions" ||
+                        currentRoute == "following" ||
+                        currentRoute == "last_session"
                 BottomNavItem(
                     modifier = Modifier.weight(1f),
                     title = "Library",
@@ -1273,9 +1284,9 @@ fun MusifyBottomNavBar(
                             }
                         } else {
                             navController.navigate("library") {
-                                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                popUpTo(navController.graph.startDestinationId) { saveState = false }
                                 launchSingleTop = true
-                                restoreState = true
+                                restoreState = false
                             }
                         }
                     }
