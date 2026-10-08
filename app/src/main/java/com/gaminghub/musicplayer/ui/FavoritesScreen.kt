@@ -89,7 +89,6 @@ import com.gaminghub.musicplayer.MusicViewModel
 import com.gaminghub.musicplayer.TrackModel
 import com.gaminghub.musicplayer.ui.components.SongImage
 import com.gaminghub.musicplayer.ui.theme.LocalAppGradients
-import com.gaminghub.musicplayer.ui.theme.MusifyGreen
 import com.gaminghub.musicplayer.util.LinkHelper
 
 @OptIn(UnstableApi::class)
@@ -110,6 +109,8 @@ fun FavoritesScreen(
 
     var showAddToPlaylistDialog by remember { mutableStateOf(false) }
     var selectedTrackForPlaylist by remember { mutableStateOf<TrackModel?>(null) }
+
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     // Dynamic Filtered tracks
     val displayedTracks = remember(favoriteTracks, selectedFilter, searchQuery, downloadedUrls) {
@@ -144,30 +145,12 @@ fun FavoritesScreen(
         }
     }
 
-    // Outer Canvas with Theme Background Gradient (dynamically adjusts to Dark/Light/AMOLED/Presets)
+    // Outer container with Theme Background Gradient (dynamically adjusts to Dark/Light/AMOLED/Presets)
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(LocalAppGradients.current.backgroundBrush)
     ) {
-        // Soft ambient radial glow radiating behind the hero heart
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(340.dp)
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            MusifyGreen.copy(alpha = 0.18f),
-                            Color(0xFF9C27B0).copy(alpha = 0.08f),
-                            Color.Transparent
-                        ),
-                        radius = 700f,
-                        center = Offset(200f, 320f)
-                    )
-                )
-        )
-
         Column(modifier = Modifier.fillMaxSize()) {
             // ── 1. Top Bar: Back Button on Left, Glowing Heart & Search on Right ──
             Row(
@@ -202,15 +185,15 @@ fun FavoritesScreen(
                     // Frosted Glowing Heart pill
                     Surface(
                         shape = CircleShape,
-                        color = MusifyGreen.copy(alpha = 0.15f),
-                        border = BorderStroke(1.dp, MusifyGreen.copy(alpha = 0.45f)),
+                        color = primaryColor.copy(alpha = 0.14f),
+                        border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.40f)),
                         modifier = Modifier.size(42.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.Default.Favorite,
                                 contentDescription = null,
-                                tint = MusifyGreen,
+                                tint = primaryColor,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -219,10 +202,10 @@ fun FavoritesScreen(
                     // Frosted Search Toggle button
                     Surface(
                         shape = CircleShape,
-                        color = if (isSearchActive) MusifyGreen.copy(alpha = 0.2f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                        color = if (isSearchActive) primaryColor.copy(alpha = 0.2f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
                         border = BorderStroke(
                             1.dp,
-                            if (isSearchActive) MusifyGreen else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f)
+                            if (isSearchActive) primaryColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f)
                         ),
                         modifier = Modifier.size(42.dp)
                     ) {
@@ -233,7 +216,7 @@ fun FavoritesScreen(
                             Icon(
                                 imageVector = if (isSearchActive) Icons.Default.Clear else Icons.Default.Search,
                                 contentDescription = "Search Favorites",
-                                tint = if (isSearchActive) MusifyGreen else MaterialTheme.colorScheme.onBackground,
+                                tint = if (isSearchActive) primaryColor else MaterialTheme.colorScheme.onBackground,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -246,7 +229,7 @@ fun FavoritesScreen(
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant,
-                    border = BorderStroke(1.dp, MusifyGreen.copy(alpha = 0.4f)),
+                    border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.4f)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 6.dp)
@@ -262,7 +245,7 @@ fun FavoritesScreen(
                             )
                         },
                         leadingIcon = {
-                            Icon(Icons.Default.Search, null, tint = MusifyGreen, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.Search, null, tint = primaryColor, modifier = Modifier.size(20.dp))
                         },
                         trailingIcon = {
                             if (searchQuery.isNotEmpty()) {
@@ -312,7 +295,7 @@ fun FavoritesScreen(
                             ) {
                                 Glassmorphic3DHeart(
                                     modifier = Modifier.size(116.dp),
-                                    accentColor = MusifyGreen
+                                    accentColor = primaryColor
                                 )
                             }
 
@@ -339,8 +322,8 @@ fun FavoritesScreen(
                                 // Status Pill Badge: "Offline Available"
                                 Surface(
                                     shape = RoundedCornerShape(14.dp),
-                                    color = MusifyGreen.copy(alpha = 0.15f),
-                                    border = BorderStroke(1.dp, MusifyGreen.copy(alpha = 0.45f))
+                                    color = primaryColor.copy(alpha = 0.14f),
+                                    border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.40f))
                                 ) {
                                     Row(
                                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
@@ -349,13 +332,13 @@ fun FavoritesScreen(
                                         Icon(
                                             imageVector = Icons.Default.CheckCircle,
                                             contentDescription = null,
-                                            tint = MusifyGreen,
+                                            tint = primaryColor,
                                             modifier = Modifier.size(14.dp)
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
                                             text = if (downloadedUrls.isNotEmpty()) "Offline Available" else "Cloud Synced",
-                                            color = MusifyGreen,
+                                            color = primaryColor,
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -380,7 +363,7 @@ fun FavoritesScreen(
                                 },
                                 shape = RoundedCornerShape(26.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = MusifyGreen,
+                                    containerColor = primaryColor,
                                     contentColor = Color.Black
                                 ),
                                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
@@ -425,7 +408,7 @@ fun FavoritesScreen(
                                     Icon(
                                         imageVector = Icons.Default.Shuffle,
                                         contentDescription = "Shuffle",
-                                        tint = MusifyGreen,
+                                        tint = primaryColor,
                                         modifier = Modifier.size(19.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -452,16 +435,16 @@ fun FavoritesScreen(
                                 val isSelected = selectedFilter == chip
                                 Surface(
                                     shape = RoundedCornerShape(20.dp),
-                                    color = if (isSelected) MusifyGreen.copy(alpha = 0.22f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
+                                    color = if (isSelected) primaryColor.copy(alpha = 0.20f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
                                     border = BorderStroke(
                                         1.dp,
-                                        if (isSelected) MusifyGreen else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f)
+                                        if (isSelected) primaryColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f)
                                     ),
                                     modifier = Modifier.clickable { selectedFilter = chip }
                                 ) {
                                     Text(
                                         text = chip,
-                                        color = if (isSelected) MusifyGreen else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f),
+                                        color = if (isSelected) primaryColor else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f),
                                         fontSize = 13.sp,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -486,15 +469,15 @@ fun FavoritesScreen(
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Surface(
                                     shape = CircleShape,
-                                    color = MusifyGreen.copy(alpha = 0.12f),
-                                    border = BorderStroke(1.dp, MusifyGreen.copy(alpha = 0.3f)),
+                                    color = primaryColor.copy(alpha = 0.12f),
+                                    border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.3f)),
                                     modifier = Modifier.size(72.dp)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Icon(
                                             Icons.Default.FavoriteBorder,
                                             contentDescription = null,
-                                            tint = MusifyGreen,
+                                            tint = primaryColor,
                                             modifier = Modifier.size(36.dp)
                                         )
                                     }
@@ -568,7 +551,7 @@ fun FavoritesScreen(
 @Composable
 fun Glassmorphic3DHeart(
     modifier: Modifier = Modifier,
-    accentColor: Color = MusifyGreen
+    accentColor: Color = MaterialTheme.colorScheme.primary
 ) {
     Box(
         modifier = modifier,
@@ -579,16 +562,16 @@ fun Glassmorphic3DHeart(
             val w = size.width
             val h = size.height
 
-            // 1. Outer Ambient Glow Halo
+            // 1. Outer Ambient Glow Halo (cleanly bounds-relative)
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        accentColor.copy(alpha = 0.45f),
-                        Color(0xFFB388FF).copy(alpha = 0.20f),
+                        accentColor.copy(alpha = 0.35f),
+                        accentColor.copy(alpha = 0.10f),
                         Color.Transparent
                     ),
                     center = Offset(w * 0.45f, h * 0.45f),
-                    radius = w * 0.55f
+                    radius = w * 0.52f
                 )
             )
 
@@ -600,14 +583,14 @@ fun Glassmorphic3DHeart(
                 height = h * 0.84f
             )
 
-            // 2. Outer Glass Surface Fill (Translucent emerald/violet tint)
+            // 2. Outer Glass Surface Fill
             drawPath(
                 path = outerHeart,
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        accentColor.copy(alpha = 0.35f),
-                        Color(0xFF7C4DFF).copy(alpha = 0.25f),
-                        Color(0xFF00E5FF).copy(alpha = 0.15f)
+                        accentColor.copy(alpha = 0.30f),
+                        accentColor.copy(alpha = 0.12f),
+                        Color(0xFF00E5FF).copy(alpha = 0.12f)
                     ),
                     start = Offset(0f, 0f),
                     end = Offset(w, h)
@@ -622,14 +605,14 @@ fun Glassmorphic3DHeart(
                     colors = listOf(
                         accentColor.copy(alpha = 0.95f),
                         Color(0xFF00E5FF).copy(alpha = 0.70f),
-                        Color(0xFFD1C4E9).copy(alpha = 0.85f),
-                        Color(0xFF7C4DFF).copy(alpha = 0.50f)
+                        Color.White.copy(alpha = 0.85f),
+                        accentColor.copy(alpha = 0.60f)
                     ),
                     start = Offset(0f, 0f),
                     end = Offset(w, h)
                 ),
                 style = Stroke(
-                    width = 4.dp.toPx(),
+                    width = 3.5.dp.toPx(),
                     cap = StrokeCap.Round,
                     join = StrokeJoin.Round
                 )
@@ -650,7 +633,7 @@ fun Glassmorphic3DHeart(
                     colors = listOf(
                         accentColor.copy(alpha = 0.85f),
                         Color(0xFF00E5FF).copy(alpha = 0.65f),
-                        Color(0xFF7C4DFF).copy(alpha = 0.40f)
+                        accentColor.copy(alpha = 0.45f)
                     ),
                     center = Offset(w * 0.48f, h * 0.46f),
                     radius = w * 0.32f
@@ -721,7 +704,7 @@ private fun createHeartPath(left: Float, top: Float, width: Float, height: Float
 @Composable
 fun PlayingEqualizerBars(
     modifier: Modifier = Modifier,
-    color: Color = MusifyGreen
+    color: Color = MaterialTheme.colorScheme.primary
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "eq_bars")
     val h1 by infiniteTransition.animateFloat(
@@ -787,6 +770,7 @@ fun FavoriteSongCard(
     onOpenAddToPlaylist: () -> Unit
 ) {
     val context = LocalContext.current
+    val primaryColor = MaterialTheme.colorScheme.primary
     var showMenu by remember { mutableStateOf(false) }
     val downloadedUrls by viewModel.downloadedUrls.collectAsState()
     val isDownloaded = track.audioUrl != null && downloadedUrls.contains(track.audioUrl)
@@ -801,8 +785,8 @@ fun FavoriteSongCard(
 
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = if (isCurrent) MusifyGreen.copy(alpha = 0.14f) else Color.Transparent,
-        border = if (isCurrent) BorderStroke(1.dp, MusifyGreen.copy(alpha = 0.35f)) else null,
+        color = if (isCurrent) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f) else Color.Transparent,
+        border = if (isCurrent) BorderStroke(1.dp, primaryColor.copy(alpha = 0.35f)) else null,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 3.dp)
@@ -830,7 +814,7 @@ fun FavoriteSongCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = track.title,
-                    color = if (isCurrent) MusifyGreen else MaterialTheme.colorScheme.onBackground,
+                    color = if (isCurrent) primaryColor else MaterialTheme.colorScheme.onBackground,
                     fontSize = 15.sp,
                     fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.SemiBold,
                     maxLines = 1,
@@ -848,7 +832,10 @@ fun FavoriteSongCard(
 
             // Animated Equalizer Wave Bars if currently playing
             if (isCurrent && isPlaying) {
-                PlayingEqualizerBars(modifier = Modifier.padding(end = 8.dp))
+                PlayingEqualizerBars(
+                    color = primaryColor,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
             }
 
             // Duration text
@@ -862,7 +849,7 @@ fun FavoriteSongCard(
                 )
             }
 
-            // Filled Green Heart to toggle Favorite
+            // Filled Heart to toggle Favorite
             IconButton(
                 onClick = { viewModel.toggleFavorite(track) },
                 modifier = Modifier.size(36.dp)
@@ -870,7 +857,7 @@ fun FavoriteSongCard(
                 Icon(
                     imageVector = Icons.Default.Favorite,
                     contentDescription = "Favorited",
-                    tint = MusifyGreen,
+                    tint = primaryColor,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -897,7 +884,7 @@ fun FavoriteSongCard(
                 ) {
                     DropdownMenuItem(
                         text = { Text("Add to Playlist", color = MaterialTheme.colorScheme.onSurface) },
-                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = MusifyGreen) },
+                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null, tint = primaryColor) },
                         onClick = {
                             showMenu = false
                             onOpenAddToPlaylist()
@@ -920,12 +907,12 @@ fun FavoriteSongCard(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text(if (isDownloaded) "Downloaded" else "Download", color = MusifyGreen) },
+                        text = { Text(if (isDownloaded) "Downloaded" else "Download", color = primaryColor) },
                         leadingIcon = {
                             Icon(
                                 if (isDownloaded) Icons.Default.CheckCircle else Icons.Default.DownloadForOffline,
                                 null,
-                                tint = MusifyGreen
+                                tint = primaryColor
                             )
                         },
                         onClick = {
@@ -935,7 +922,7 @@ fun FavoriteSongCard(
                     )
                     DropdownMenuItem(
                         text = { Text("Share Song", color = MaterialTheme.colorScheme.onSurface) },
-                        leadingIcon = { Icon(Icons.Default.Share, null, tint = MusifyGreen) },
+                        leadingIcon = { Icon(Icons.Default.Share, null, tint = primaryColor) },
                         onClick = {
                             showMenu = false
                             LinkHelper.shareSong(context, track)
@@ -943,7 +930,7 @@ fun FavoriteSongCard(
                     )
                     DropdownMenuItem(
                         text = { Text("Copy Song Link", color = MaterialTheme.colorScheme.onSurface) },
-                        leadingIcon = { Icon(Icons.Default.ContentCopy, null, tint = MusifyGreen) },
+                        leadingIcon = { Icon(Icons.Default.ContentCopy, null, tint = primaryColor) },
                         onClick = {
                             showMenu = false
                             LinkHelper.copySongLink(context, track)
