@@ -86,7 +86,7 @@ fun main() {
 
         // Taskbar System Tray
         Tray(
-            icon = painterResource("icon.png"),
+            icon = painterResource("icon.webp"),
             tooltip = if (currentTrack != null) "Musify: ${currentTrack?.title} - ${currentTrack?.artist}" else "Musify Windows Player",
             menu = {
                 Item(
@@ -131,7 +131,7 @@ fun main() {
                 },
                 state = windowState,
                 title = windowTitle,
-                icon = painterResource("icon.png"),
+                icon = painterResource("icon.webp"),
                 undecorated = true, // Custom black title bar with Musify Emerald green text
                 alwaysOnTop = isMiniPlayer
             ) {

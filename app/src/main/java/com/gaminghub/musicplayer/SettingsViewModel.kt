@@ -108,7 +108,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _showMiniPlayerFavorite = MutableStateFlow(prefs.getBoolean("mini_player_favorite", true))
     val showMiniPlayerFavorite: StateFlow<Boolean> = _showMiniPlayerFavorite.asStateFlow()
 
-    private val _userName = MutableStateFlow(prefs.getString("user_name", "Krish") ?: "Krish")
+    private val _userName = MutableStateFlow(prefs.getString("user_name", "") ?: "")
     val userName: StateFlow<String> = _userName.asStateFlow()
 
     private val _showPlaylistsOnHome = MutableStateFlow(prefs.getBoolean("show_playlists_home", true))
@@ -171,6 +171,16 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val cacheSizeMb: StateFlow<String> = _cacheSizeMb.asStateFlow()
 
     init {
+        val savedName = prefs.getString("user_name", null)
+        if (savedName.isNullOrBlank() || savedName == "Krish") {
+            try {
+                val authPrefs = application.getSharedPreferences("musify_auth_prefs", android.content.Context.MODE_PRIVATE)
+                val googleName = authPrefs.getString("google_display_name", null)
+                if (!googleName.isNullOrBlank()) {
+                    _userName.value = googleName
+                }
+            } catch (_: Exception) {}
+        }
         if (_useProxy.value) {
             applyProxy(true, _proxyAddress.value)
         }

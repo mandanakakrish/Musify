@@ -896,7 +896,7 @@ fun MusifyMainScreen(
             modifier = Modifier.background(LocalAppGradients.current.backgroundBrush)
         ) { paddingValues ->
             NavHost(navController = navController, startDestination = "home", modifier = Modifier.padding(paddingValues)) {
-                composable("home") { HomeScreen(tracks = realTracks, viewModel = viewModel, settingsViewModel = settingsViewModel, navController = navController, onMenuClick = openDrawer) }
+                composable("home") { HomeScreen(tracks = realTracks, viewModel = viewModel, settingsViewModel = settingsViewModel, authViewModel = authViewModel, navController = navController, onMenuClick = openDrawer) }
                 composable("top_charts") { TopChartsScreen(viewModel = viewModel, onMenuClick = openDrawer) }
                 composable("youtube") { YouTubeScreen(viewModel = viewModel, onMenuClick = openDrawer) }
                 composable("library") { LibraryScreen(viewModel = viewModel, navController = navController, onMenuClick = openDrawer) }

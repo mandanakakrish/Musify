@@ -1,6 +1,5 @@
 package com.gaminghub.musicplayer.ui
 
-import android.R.attr.id
 import androidx.annotation.OptIn
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
@@ -22,11 +21,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
@@ -35,15 +34,18 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Podcasts
 import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Podcasts
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -64,10 +66,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -76,16 +74,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gaminghub.musicplayer.MusicViewModel
-import com.gaminghub.musicplayer.R
-import com.gaminghub.musicplayer.R.*
-import com.gaminghub.musicplayer.R.drawable.song
 import com.gaminghub.musicplayer.SettingsViewModel
 import com.gaminghub.musicplayer.TrackModel
-import com.gaminghub.musicplayer.ui.theme.MusifyGreen
+import com.gaminghub.musicplayer.auth.AuthViewModel
 import com.gaminghub.musicplayer.ui.theme.LocalAppGradients
-import kotlinx.coroutines.flow.flowOf
+import com.gaminghub.musicplayer.ui.theme.MusifyGreen
 
 data class CuratedCardData(
     val title: String,
@@ -100,6 +95,7 @@ fun HomeScreen(
     tracks: List<TrackModel>,
     viewModel: MusicViewModel,
     settingsViewModel: SettingsViewModel,
+    authViewModel: AuthViewModel = viewModel(),
     navController: NavController,
     onMenuClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -109,6 +105,9 @@ fun HomeScreen(
     val favoriteTracks by viewModel.favoriteTracks.collectAsState()
     val playlists by viewModel.playlists.collectAsState()
     val userName by settingsViewModel.userName.collectAsState()
+    val currentUser by authViewModel.currentUser.collectAsState()
+    val googleDisplayName by authViewModel.googleDisplayName.collectAsState()
+    val googleEmail by authViewModel.googleEmail.collectAsState()
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val supermix by viewModel.supermix.collectAsState()
@@ -120,6 +119,16 @@ fun HomeScreen(
     val showLastSession by settingsViewModel.showLastSession.collectAsState()
     val tasteSummary by viewModel.tasteSummary.collectAsState()
     val devPickTracks by viewModel.devPickTracks.collectAsState()
+
+    val resolvedUserName = remember(googleDisplayName, currentUser?.displayName, googleEmail, currentUser?.email, userName) {
+        val loginName = googleDisplayName?.takeIf { it.isNotBlank() }
+            ?: currentUser?.displayName?.takeIf { it.isNotBlank() }
+            ?: (googleEmail ?: currentUser?.email)?.substringBefore("@")?.takeIf { it.isNotBlank() }
+
+        loginName
+            ?: userName.takeIf { it.isNotBlank() && it != "Krish" && it != "User Name" }
+            ?: "Music Lover"
+    }
 
     // ── Playback-reactive state — only used in components that need it ─────────
     // Separated so that isPlaying/currentTrack toggling every frame doesn't
@@ -185,16 +194,18 @@ fun HomeScreen(
                                 .clickable { showEditNameDialog = true }
                         ) {
                             Text(
-                                text = "Hi There,",
+                                text = "Hello,",
                                 color = MusifyGreen,
                                 fontSize = 22.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = userName.ifBlank { "Krish" },//TODO:Krish->User Name
+                                text = resolvedUserName,
                                 color = MaterialTheme.colorScheme.onBackground,
                                 fontSize = 28.sp,
-                                fontWeight = FontWeight.ExtraBold
+                                fontWeight = FontWeight.ExtraBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
@@ -744,7 +755,7 @@ fun HomeScreen(
     }
 
     if (showEditNameDialog) {
-        var tempName by remember { mutableStateOf(userName.ifBlank { "Krish" }) }//TODO:Krish->User
+        var tempName by remember { mutableStateOf(resolvedUserName) }
         AlertDialog(
             onDismissRequest = { showEditNameDialog = false },
             containerColor = Color(0xFF383838),
