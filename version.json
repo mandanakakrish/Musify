@@ -1,9 +1,9 @@
 {
-  "versionCode": 8,
-  "versionName": "1.7.5.1",
-  "minVersionCode": 7,
-  "forceUpdate": false,
-  "title": "Musify v1.7.5.1 Update",
-  "changelog": "- Seamless Silence Trimmer: Pure audio-level dead air skipping without premature track jumping\n- Fixed URLDecoder crash on Android 10/11/12 with Java desugaring & backward-compatible string decoder\n- Dynamic Artwork Palette Theming: Ambient background morphing to song art\n- Turbo Multi-chunk Downloader & 1-tap batch playlist downloads\n- 100% offline lyrics bundling with interactive tap-to-seek karaoke\n- Smart Playlist Deduplicator in 1 tap\n- Mini-player horizontal swipe gestures (Next / Prev)\n- Soft 45-second sleep timer volume fade-out\n- Playback session restoration on startup",
-  "downloadUrl": "https://github.com/mandanakakrish/Musify/releases/download/v1.7.5.1/Musify.apk"
+  "versionCode": 9,
+  "versionName": "1.7.5.2",
+  "minVersionCode": 8,
+  "forceUpdate": true,
+  "title": "Musify v1.7.5.2 Update",
+  "changelog": "- Redesigned Favorites Screen: 3D glassmorphic glowing heart, ambient theme actions, dedicated filter chips, and animated equalizer wave highlights\n- Redesigned Active Download Card: Floating theme-adaptive card with album artwork, real-time download speed, and clear queue stats\n- Fixed Library Navigation: Direct root library screen restoration when switching between main tabs\n- Personalized Home Greeting: Displays user's name dynamically from account details\n- Polished UI & Theme consistency with zero hardcoded colors across Favorites & Download dialogs",
+  "downloadUrl": "https://github.com/mandanakakrish/Musify/releases/download/v1.7.5.2/Musify.apk"
 }

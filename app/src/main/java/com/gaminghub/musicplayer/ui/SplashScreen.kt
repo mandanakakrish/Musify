@@ -171,7 +171,7 @@ fun SplashScreen(
 
                 // Luminous Neon Musify Logo
                 Image(
-                    painter = painterResource(id = R.drawable.musify_logo_transparent),
+                    painter = painterResource(id = R.drawable.musify_logo_glow),
                     contentDescription = "Musify Logo",
                     modifier = Modifier.size(170.dp)
                 )

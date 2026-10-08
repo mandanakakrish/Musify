@@ -231,7 +231,7 @@ fun DesktopSettingsScreen(viewModel: DesktopMusicViewModel) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("ABOUT MUSIFY", color = MusifyEmerald, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Musify for Windows v1.7.5.1", color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    Text("Musify for Windows v1.7.5.2", color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                     Text("Built with Compose Multiplatform & Kotlin", color = TextSecondary, fontSize = 13.sp)
                     Spacer(modifier = Modifier.height(4.dp))
                     Text("© 2026 GamingHub Musify. Free & Open Music Engine.", color = TextTertiary, fontSize = 12.sp)
