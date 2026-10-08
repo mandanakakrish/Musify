@@ -3,6 +3,11 @@ package com.gaminghub.musicplayer
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -822,67 +827,143 @@ fun MusifyMainScreen(
             bottomBar = {
                 if (currentRoute != "now_playing") {
                     Column {
-                        if (activeDownloads.isNotEmpty()) {
-                            val firstDownload = activeDownloads.values.first()
-                            Surface(
-                                color = Color(0xFF1E1E28),
-                                shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
-                                border = BorderStroke(1.dp, MusifyGreen.copy(alpha = 0.5f)),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { navController.navigate("downloads") }
-                            ) {
-                                Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)) {
+                        AnimatedVisibility(
+                            visible = activeDownloads.isNotEmpty(),
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            val firstDownload = activeDownloads.values.firstOrNull()
+                            if (firstDownload != null) {
+                                val primaryColor = MaterialTheme.colorScheme.primary
+                                Surface(
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    shape = RoundedCornerShape(16.dp),
+                                    border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.35f)),
+                                    tonalElevation = 2.dp,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 3.dp)
+                                        .clickable { navController.navigate("downloads") }
+                                ) {
                                     Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 12.dp, vertical = 9.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                Icons.Default.DownloadForOffline,
-                                                contentDescription = null,
-                                                tint = MusifyGreen,
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text(
-                                                "Downloading: ${firstDownload.track.title}",
-                                                color = Color.White,
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
+                                        // Album Art or Download Icon
+                                        Box(
+                                            modifier = Modifier
+                                                .size(40.dp)
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(primaryColor.copy(alpha = 0.14f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            if (!firstDownload.track.albumArtUrl.isNullOrBlank()) {
+                                                com.gaminghub.musicplayer.ui.components.SongImage(
+                                                    model = firstDownload.track.albumArtUrl,
+                                                    contentDescription = null,
+                                                    modifier = Modifier
+                                                        .fillMaxSize()
+                                                        .clip(RoundedCornerShape(10.dp)),
+                                                    contentScale = ContentScale.Crop
+                                                )
+                                            } else {
+                                                Icon(
+                                                    imageVector = Icons.Default.DownloadForOffline,
+                                                    contentDescription = null,
+                                                    tint = primaryColor,
+                                                    modifier = Modifier.size(22.dp)
+                                                )
+                                            }
                                         }
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            "${firstDownload.downloadedFormatted}/${firstDownload.totalFormatted} • ${firstDownload.speedFormatted} (${firstDownload.progressPercent}%)",
-                                            color = MusifyGreen,
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    if (firstDownload.isIndeterminate) {
-                                        LinearProgressIndicator(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(3.dp)
-                                                .clip(RoundedCornerShape(1.5.dp)),
-                                            color = MusifyGreen,
-                                            trackColor = Color(0xFF2B2B36)
-                                        )
-                                    } else {
-                                        LinearProgressIndicator(
-                                            progress = { firstDownload.progressPercent / 100f },
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(3.dp)
-                                                .clip(RoundedCornerShape(1.5.dp)),
-                                            color = MusifyGreen,
-                                            trackColor = Color(0xFF2B2B36)
-                                        )
+
+                                        Spacer(modifier = Modifier.width(10.dp))
+
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            // Top Row: Title + Percentage Badge
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = firstDownload.track.title,
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    fontSize = 13.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Surface(
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    color = primaryColor.copy(alpha = 0.15f),
+                                                    border = BorderStroke(0.5.dp, primaryColor.copy(alpha = 0.35f))
+                                                ) {
+                                                    Text(
+                                                        text = "${firstDownload.progressPercent}%",
+                                                        color = primaryColor,
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                    )
+                                                }
+                                            }
+
+                                            Spacer(modifier = Modifier.height(4.dp))
+
+                                            // Middle Row: Rounded Linear Progress Bar
+                                            if (firstDownload.isIndeterminate) {
+                                                LinearProgressIndicator(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .height(4.dp)
+                                                        .clip(RoundedCornerShape(2.dp)),
+                                                    color = primaryColor,
+                                                    trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
+                                                )
+                                            } else {
+                                                LinearProgressIndicator(
+                                                    progress = { (firstDownload.progressPercent / 100f).coerceIn(0f, 1f) },
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .height(4.dp)
+                                                        .clip(RoundedCornerShape(2.dp)),
+                                                    color = primaryColor,
+                                                    trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
+                                                )
+                                            }
+
+                                            Spacer(modifier = Modifier.height(4.dp))
+
+                                            // Bottom Row: Download Size + Speed
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = if (activeDownloads.size > 1) {
+                                                        "${firstDownload.downloadedFormatted} of ${firstDownload.totalFormatted} • +${activeDownloads.size - 1} more"
+                                                    } else {
+                                                        "${firstDownload.downloadedFormatted} of ${firstDownload.totalFormatted}"
+                                                    },
+                                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                Text(
+                                                    text = firstDownload.speedFormatted,
+                                                    color = primaryColor,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.SemiBold
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
