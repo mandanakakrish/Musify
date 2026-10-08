@@ -43,8 +43,8 @@ import java.awt.event.MouseMotionAdapter
  * - 100% dark background (#0D0D12) seamlessly matching Musify's dark theme
  * - "Musify" branding in punchy Musify Emerald Green (#1DB954)
  * - Dynamic currently playing song title and artist
+ * - Window controls (Minimize, Maximize/Restore, Close) pinned at the top-right corner
  * - Full dragging via WindowDraggableArea and double-click to Maximize/Restore
- * - Native-feel Minimize, Maximize/Restore, and Close action buttons
  */
 @Composable
 fun WindowScope.DesktopCustomTitleBar(
@@ -56,145 +56,151 @@ fun WindowScope.DesktopCustomTitleBar(
 ) {
     val isMaximized = windowState.placement == WindowPlacement.Maximized
 
-    WindowDraggableArea(
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .height(38.dp)
             .background(Color(0xFF0D0D12))
-            .pointerInput(isMaximized) {
-                detectTapGestures(
-                    onDoubleTap = {
-                        windowState.placement = if (isMaximized) {
-                            WindowPlacement.Floating
-                        } else {
-                            WindowPlacement.Maximized
-                        }
-                    }
-                )
-            }
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
+        // Draggable area covering full title bar except the control buttons on the right
+        WindowDraggableArea(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 12.dp)
+                .pointerInput(isMaximized) {
+                    detectTapGestures(
+                        onDoubleTap = {
+                            windowState.placement = if (isMaximized) {
+                                WindowPlacement.Floating
+                            } else {
+                                WindowPlacement.Maximized
+                            }
+                        }
+                    )
+                }
         ) {
-            // Brand Logo & Title in Musify Emerald Green
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(end = 12.dp)
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(start = 12.dp, end = 140.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.GraphicEq,
-                    contentDescription = "Musify Logo",
-                    tint = MusifyEmerald,
-                    modifier = Modifier.size(18.dp)
-                )
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Text(
-                    text = "Musify",
-                    color = MusifyEmerald,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 0.5.sp
-                )
-            }
-
-            // Separator dot
-            Text(
-                text = "•",
-                color = TextTertiary,
-                fontSize = 13.sp,
-                modifier = Modifier.padding(horizontal = 4.dp)
-            )
-
-            // Current track or App subtitle
-            if (currentTrack != null) {
+                // Brand Logo & Title in Musify Emerald Green
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f, fill = false).padding(horizontal = 8.dp)
+                    modifier = Modifier.padding(end = 12.dp)
                 ) {
-                    Text(
-                        text = currentTrack.title,
-                        color = TextPrimary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                    Icon(
+                        imageVector = Icons.Default.GraphicEq,
+                        contentDescription = "Musify Logo",
+                        tint = MusifyEmerald,
+                        modifier = Modifier.size(18.dp)
                     )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
                     Text(
-                        text = " — ${currentTrack.artist}",
-                        color = TextSecondary,
-                        fontSize = 12.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        text = "Musify",
+                        color = MusifyEmerald,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 0.5.sp
                     )
                 }
-            } else {
+
+                // Separator dot
                 Text(
-                    text = "Windows Music Player",
-                    color = TextSecondary,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.weight(1f, fill = false).padding(horizontal = 8.dp)
+                    text = "•",
+                    color = TextTertiary,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
+
+                // Current track or App subtitle
+                if (currentTrack != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f, fill = false).padding(horizontal = 8.dp)
+                    ) {
+                        Text(
+                            text = currentTrack.title,
+                            color = TextPrimary,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = " — ${currentTrack.artist}",
+                            color = TextSecondary,
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                } else {
+                    Text(
+                        text = "Windows Music Player",
+                        color = TextSecondary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.weight(1f, fill = false).padding(horizontal = 8.dp)
+                    )
+                }
+            }
+        }
+
+        // Window Action Buttons anchored at the absolute right end
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.End,
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .fillMaxHeight()
+        ) {
+            // Minimize
+            WindowControlButton(
+                onClick = { windowState.isMinimized = true },
+                contentDescription = "Minimize"
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Minimize,
+                    contentDescription = "Minimize",
+                    tint = TextSecondary,
+                    modifier = Modifier.size(14.dp).offset(y = (-4).dp)
                 )
             }
 
-            // Draggable flexible space in the center
-            Spacer(modifier = Modifier.weight(1f))
-
-            // Window Action Buttons (Minimize, Maximize/Restore, Close)
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.End
+            // Maximize / Restore
+            WindowControlButton(
+                onClick = {
+                    windowState.placement = if (isMaximized) {
+                        WindowPlacement.Floating
+                    } else {
+                        WindowPlacement.Maximized
+                    }
+                },
+                contentDescription = if (isMaximized) "Restore" else "Maximize"
             ) {
-                // Minimize
-                WindowControlButton(
-                    onClick = { windowState.isMinimized = true },
-                    contentDescription = "Minimize"
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Minimize,
-                        contentDescription = "Minimize",
-                        tint = TextSecondary,
-                        modifier = Modifier.size(14.dp).offset(y = (-4).dp)
-                    )
-                }
+                Icon(
+                    imageVector = if (isMaximized) Icons.Default.FilterNone else Icons.Default.CropSquare,
+                    contentDescription = if (isMaximized) "Restore" else "Maximize",
+                    tint = TextSecondary,
+                    modifier = Modifier.size(13.dp)
+                )
+            }
 
-                // Maximize / Restore
-                WindowControlButton(
-                    onClick = {
-                        windowState.placement = if (isMaximized) {
-                            WindowPlacement.Floating
-                        } else {
-                            WindowPlacement.Maximized
-                        }
-                    },
-                    contentDescription = if (isMaximized) "Restore" else "Maximize"
-                ) {
-                    Icon(
-                        imageVector = if (isMaximized) Icons.Default.FilterNone else Icons.Default.CropSquare,
-                        contentDescription = if (isMaximized) "Restore" else "Maximize",
-                        tint = TextSecondary,
-                        modifier = Modifier.size(13.dp)
-                    )
-                }
-
-                // Close (red on hover like native Windows)
-                WindowControlButton(
-                    onClick = onClose,
-                    isClose = true,
-                    contentDescription = "Close"
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Close",
-                        tint = TextSecondary,
-                        modifier = Modifier.size(15.dp)
-                    )
-                }
+            // Close (red on hover like native Windows)
+            WindowControlButton(
+                onClick = onClose,
+                isClose = true,
+                contentDescription = "Close"
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Close",
+                    tint = TextSecondary,
+                    modifier = Modifier.size(15.dp)
+                )
             }
         }
     }
@@ -218,9 +224,8 @@ private fun WindowControlButton(
 
     Box(
         modifier = Modifier
-            .width(42.dp)
-            .height(34.dp)
-            .clip(RoundedCornerShape(4.dp))
+            .width(46.dp)
+            .fillMaxHeight()
             .background(backgroundColor)
             .hoverable(interactionSource)
             .clickable(

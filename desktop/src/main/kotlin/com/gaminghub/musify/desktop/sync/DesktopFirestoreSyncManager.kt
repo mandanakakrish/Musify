@@ -29,6 +29,7 @@ object DesktopFirestoreSyncManager {
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
 
     private val client = OkHttpClient.Builder()
+        .dns(com.gaminghub.musify.desktop.network.DesktopDns)
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(20, TimeUnit.SECONDS)
         .writeTimeout(20, TimeUnit.SECONDS)

@@ -189,7 +189,7 @@ class DesktopMusicViewModel {
             if (track.isLocal && track.localFilePath != null) {
                 audioPlayer.play(track.localFilePath)
             } else {
-                val streamUrl = youtubeRepo.extractStreamUrl(track.audioUrl, _streamingQuality.value)
+                val streamUrl = youtubeRepo.resolveAndExtractTrack(track, _streamingQuality.value)
                 if (streamUrl != null) {
                     audioPlayer.play(streamUrl)
                 } else {

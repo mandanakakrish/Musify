@@ -24,6 +24,7 @@ class DesktopYouTubeRepository {
     companion object {
         val httpClient: OkHttpClient by lazy {
             OkHttpClient.Builder()
+                .dns(DesktopDns)
                 .connectTimeout(15, TimeUnit.SECONDS)
                 .readTimeout(20, TimeUnit.SECONDS)
                 .retryOnConnectionFailure(true)
@@ -190,7 +191,17 @@ class DesktopYouTubeRepository {
         return results
     }
 
-    suspend fun extractStreamUrl(audioUrl: String, quality: StreamingQuality = StreamingQuality.HIGH): String? = withContext(Dispatchers.IO) {
+    suspend fun extractStreamUrl(rawAudioUrl: String, quality: StreamingQuality = StreamingQuality.HIGH): String? = withContext(Dispatchers.IO) {
+        val audioUrl = when {
+            rawAudioUrl.length == 11 && !rawAudioUrl.contains("/") && !rawAudioUrl.contains(" ") -> {
+                "https://www.youtube.com/watch?v=$rawAudioUrl"
+            }
+            rawAudioUrl.contains("youtube.com") && !rawAudioUrl.startsWith("http") -> {
+                "https://$rawAudioUrl"
+            }
+            else -> rawAudioUrl
+        }
+
         if (!audioUrl.contains("youtube.com") && !audioUrl.contains("youtu.be")) {
             return@withContext audioUrl
         }
@@ -238,6 +249,32 @@ class DesktopYouTubeRepository {
             if (innerTubeUrl != null) {
                 streamCache[audioUrl] = innerTubeUrl
                 return@withContext innerTubeUrl
+            }
+        }
+
+        null
+    }
+
+    suspend fun resolveAndExtractTrack(track: TrackModel, quality: StreamingQuality = StreamingQuality.HIGH): String? = withContext(Dispatchers.IO) {
+        // First try the track's existing audioUrl
+        val directStream = extractStreamUrl(track.audioUrl, quality)
+        if (directStream != null) return@withContext directStream
+
+        // If direct extraction failed, search YouTube Music by artist + title as fallback
+        if (track.title.isNotBlank()) {
+            val query = "${track.artist} ${track.title}".trim()
+            println("YouTubeRepository: direct stream extraction failed for '${track.title}', searching fallback for '$query'...")
+            try {
+                val searchResults = searchTracks(query)
+                for (candidate in searchResults.take(3)) {
+                    val candidateStream = extractStreamUrl(candidate.audioUrl, quality)
+                    if (candidateStream != null) {
+                        println("YouTubeRepository: fallback stream matched for '${candidate.title}'")
+                        return@withContext candidateStream
+                    }
+                }
+            } catch (e: Exception) {
+                System.err.println("YouTubeRepository: fallback search failed: ${e.message}")
             }
         }
 
