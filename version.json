@@ -1,9 +1,9 @@
 {
-  "versionCode": 9,
-  "versionName": "1.7.5.2",
+  "versionCode": 10,
+  "versionName": "1.7.5.3",
   "minVersionCode": 8,
   "forceUpdate": true,
-  "title": "Musify v1.7.5.2 Update",
-  "changelog": "- Redesigned Favorites Screen: 3D glassmorphic glowing heart, ambient theme actions, dedicated filter chips, and animated equalizer wave highlights\n- Redesigned Active Download Card: Floating theme-adaptive card with album artwork, real-time download speed, and clear queue stats\n- Fixed Library Navigation: Direct root library screen restoration when switching between main tabs\n- Personalized Home Greeting: Displays user's name dynamically from account details\n- Polished UI & Theme consistency with zero hardcoded colors across Favorites & Download dialogs",
-  "downloadUrl": "https://github.com/mandanakakrish/Musify/releases/download/v1.7.5.2/Musify.apk"
+  "title": "Musify v1.7.5.3 Update",
+  "changelog": "- Critical Stability Fix: Resolved background recommendation crash caused by TimSort comparison contract violation across all Android versions\n- Redesigned Favorites Screen: 3D glassmorphic glowing heart, ambient theme actions, dedicated filter chips, and animated equalizer wave highlights\n- Redesigned Active Download Card: Floating theme-adaptive card with album artwork, real-time download speed, and clear queue stats\n- Fixed Library Navigation: Direct root library screen restoration when switching between main tabs\n- Personalized Home Greeting: Displays user's name dynamically from account details\n- Polished UI & Theme consistency with zero hardcoded colors across Favorites & Download dialogs",
+  "downloadUrl": "https://github.com/mandanakakrish/Musify/releases/download/v1.7.5.3/Musify.apk"
 }
