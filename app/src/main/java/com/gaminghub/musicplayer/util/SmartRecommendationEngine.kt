@@ -39,90 +39,107 @@ object SmartRecommendationEngine {
     ): List<TrackModel> = withContext(Dispatchers.IO) {
         if (currentTrack == null) return@withContext emptyList()
 
-        val candidates = mutableListOf<ScoredTrack>()
-        val seenUrls = HashSet(existingQueueUrls)
-        currentTrack.audioUrl?.let { seenUrls.add(it) }
+        try {
+            val candidates = mutableListOf<ScoredTrack>()
+            val seenUrls = HashSet(existingQueueUrls)
+            currentTrack.audioUrl?.let { seenUrls.add(it) }
 
-        val seedCanonicalTitle = normalizeTitle(currentTrack.title)
-        val seenCanonicalTitles = HashSet<String>().apply {
-            add(seedCanonicalTitle)
-        }
+            val seedCanonicalTitle = normalizeTitle(currentTrack.title)
+            val seenCanonicalTitles = HashSet<String>().apply {
+                add(seedCanonicalTitle)
+            }
 
-        // 1. Detect Vibe & Mood of Current Song
-        val vibe = detectVibe(currentTrack)
-        val primaryArtist = extractPrimaryArtist(currentTrack.artist)
+            // 1. Detect Vibe & Mood of Current Song
+            val vibe = detectVibe(currentTrack)
+            val primaryArtist = extractPrimaryArtist(currentTrack.artist)
 
-        // 2. Fetch Artists & Frequent Collaborators (Same Vibe & Artist Circle)
-        if (primaryArtist.isNotBlank() && !primaryArtist.equals("Unknown Artist", ignoreCase = true)) {
-            try {
-                val query = when (vibe) {
-                    VibeType.PARTY_DANCE -> "$primaryArtist dance party songs"
-                    VibeType.ROMANTIC_MELODY -> "$primaryArtist romantic love songs"
-                    VibeType.HIP_HOP_PUNJABI -> "$primaryArtist top hits official"
-                    VibeType.LOFI_ACOUSTIC_CHILL -> "$primaryArtist acoustic lofi chill songs"
-                    VibeType.ROCK_EDM -> "$primaryArtist remix edm songs"
-                    VibeType.DEVOTIONAL_FOLK -> "$primaryArtist folk songs"
-                    VibeType.GENERAL_POP -> "$primaryArtist top songs official"
+            // 2. Fetch Artists & Frequent Collaborators (Same Vibe & Artist Circle)
+            if (primaryArtist.isNotBlank() && !primaryArtist.equals("Unknown Artist", ignoreCase = true)) {
+                try {
+                    val query = when (vibe) {
+                        VibeType.PARTY_DANCE -> "$primaryArtist dance party songs"
+                        VibeType.ROMANTIC_MELODY -> "$primaryArtist romantic love songs"
+                        VibeType.HIP_HOP_PUNJABI -> "$primaryArtist top hits official"
+                        VibeType.LOFI_ACOUSTIC_CHILL -> "$primaryArtist acoustic lofi chill songs"
+                        VibeType.ROCK_EDM -> "$primaryArtist remix edm songs"
+                        VibeType.DEVOTIONAL_FOLK -> "$primaryArtist folk songs"
+                        VibeType.GENERAL_POP -> "$primaryArtist top songs official"
+                    }
+                    val artistTracks = youtubeRepository.fetchMusic(query)
+                    artistTracks.forEach { track ->
+                        addCandidateIfUnique(track, candidates, seenUrls, seenCanonicalTitles, score = 95.0, reason = "Artist & Vibe Match")
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Artist query failed: ${e.message}")
                 }
-                val artistTracks = youtubeRepository.fetchMusic(query)
-                artistTracks.forEach { track ->
-                    addCandidateIfUnique(track, candidates, seenUrls, seenCanonicalTitles, score = 95.0, reason = "Artist & Vibe Match")
+            }
+
+            // 3. Category & Vibe-Aligned Radio Search (Similar Vibe, Not Same Song)
+            try {
+                val vibeSearchQuery = buildVibeQuery(currentTrack, vibe)
+                val vibeTracks = youtubeRepository.fetchMusic(vibeSearchQuery)
+                vibeTracks.forEach { track ->
+                    addCandidateIfUnique(track, candidates, seenUrls, seenCanonicalTitles, score = 88.0, reason = "Vibe Radio ($vibe)")
                 }
             } catch (e: Exception) {
-                Log.w(TAG, "Artist query failed: ${e.message}")
+                Log.w(TAG, "Vibe query failed: ${e.message}")
             }
-        }
 
-        // 3. Category & Vibe-Aligned Radio Search (Similar Vibe, Not Same Song)
-        try {
-            val vibeSearchQuery = buildVibeQuery(currentTrack, vibe)
-            val vibeTracks = youtubeRepository.fetchMusic(vibeSearchQuery)
-            vibeTracks.forEach { track ->
-                addCandidateIfUnique(track, candidates, seenUrls, seenCanonicalTitles, score = 88.0, reason = "Vibe Radio ($vibe)")
+            // 4. User's Liked / Favorites that match the Same Vibe/Genre
+            try {
+                val favorites = dao.getFavoriteTracks().firstOrNull()?.map { it.toModel() } ?: emptyList()
+                favorites.filter { fav ->
+                    val favVibe = detectVibe(fav)
+                    favVibe == vibe || fav.artist.contains(primaryArtist, ignoreCase = true)
+                }.shuffled().take(6).forEach { track ->
+                    addCandidateIfUnique(track, candidates, seenUrls, seenCanonicalTitles, score = 92.0, reason = "Liked Vibe Match")
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Favorites matching failed: ${e.message}")
             }
-        } catch (e: Exception) {
-            Log.w(TAG, "Vibe query failed: ${e.message}")
-        }
 
-        // 4. User's Liked / Favorites that match the Same Vibe/Genre
-        try {
-            val favorites = dao.getFavoriteTracks().firstOrNull()?.map { it.toModel() } ?: emptyList()
-            favorites.filter { fav ->
-                val favVibe = detectVibe(fav)
-                favVibe == vibe || fav.artist.contains(primaryArtist, ignoreCase = true)
-            }.shuffled().take(6).forEach { track ->
-                addCandidateIfUnique(track, candidates, seenUrls, seenCanonicalTitles, score = 92.0, reason = "Liked Vibe Match")
+            // 5. User's Most Played Tracks with Matching Vibe
+            try {
+                val mostPlayed = dao.getTop50Tracks().firstOrNull()?.map { it.toModel() } ?: emptyList()
+                mostPlayed.filter { mp ->
+                    detectVibe(mp) == vibe
+                }.take(5).forEach { track ->
+                    addCandidateIfUnique(track, candidates, seenUrls, seenCanonicalTitles, score = 86.0, reason = "Most Played Vibe")
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Most played matching failed: ${e.message}")
             }
-        } catch (e: Exception) {
-            Log.w(TAG, "Favorites matching failed: ${e.message}")
-        }
 
-        // 5. User's Most Played Tracks with Matching Vibe
-        try {
-            val mostPlayed = dao.getTop50Tracks().firstOrNull()?.map { it.toModel() } ?: emptyList()
-            mostPlayed.filter { mp ->
-                detectVibe(mp) == vibe
-            }.take(5).forEach { track ->
-                addCandidateIfUnique(track, candidates, seenUrls, seenCanonicalTitles, score = 86.0, reason = "Most Played Vibe")
+            // 6. Complementary Trending Tracks matching the same vibe
+            val chartPool = (topCharts + trendingTracks).filter { detectVibe(it) == vibe }
+            chartPool.shuffled().take(6).forEach { track ->
+                addCandidateIfUnique(track, candidates, seenUrls, seenCanonicalTitles, score = 78.0, reason = "Trending in Vibe")
             }
-        } catch (e: Exception) {
-            Log.w(TAG, "Most played matching failed: ${e.message}")
+
+            // Sort by affinity score with light variety jitter calculated ONCE per candidate.
+            // Strictly adheres to TimSort contract (reflexivity, symmetry, transitivity)
+            // with Double NaN-safety and deterministic tie-breaker (audioUrl).
+            val scoredCandidates = candidates.map { candidate ->
+                val jitter = kotlin.random.Random.nextDouble() * 8.0
+                val rawScore = candidate.score + jitter
+                val safeScore = if (rawScore.isNaN()) 0.0 else rawScore
+                CandidateScore(candidate.track, safeScore)
+            }
+
+            val stableComparator = compareByDescending<CandidateScore> { it.score }
+                .thenBy { it.track.audioUrl.orEmpty() }
+
+            val distinctResults = scoredCandidates
+                .sortedWith(stableComparator)
+                .map { it.track }
+                .take(count)
+
+            Log.d(TAG, "Computed ${distinctResults.size} unique up-next tracks for '${currentTrack.title}' (Vibe: $vibe)")
+            distinctResults
+        } catch (e: Throwable) {
+            Log.e(TAG, "Error computing smart next recommendations: ${e.message}", e)
+            emptyList()
         }
-
-        // 6. Complementary Trending Tracks matching the same vibe
-        val chartPool = (topCharts + trendingTracks).filter { detectVibe(it) == vibe }
-        chartPool.shuffled().take(6).forEach { track ->
-            addCandidateIfUnique(track, candidates, seenUrls, seenCanonicalTitles, score = 78.0, reason = "Trending in Vibe")
-        }
-
-        // Sort by affinity score with light variety jitter to keep playback fresh
-        val distinctResults = candidates
-            .sortedByDescending { it.score + (Math.random() * 8.0) }
-            .map { it.track }
-            .take(count)
-
-        Log.d(TAG, "Computed ${distinctResults.size} unique up-next tracks for '${currentTrack.title}' (Vibe: $vibe)")
-        distinctResults
     }
 
     private fun addCandidateIfUnique(
@@ -226,5 +243,10 @@ object SmartRecommendationEngine {
         val track: TrackModel,
         val score: Double,
         val reason: String
+    )
+
+    private data class CandidateScore(
+        val track: TrackModel,
+        val score: Double
     )
 }

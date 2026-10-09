@@ -2295,84 +2295,92 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     fun populateSmartNextQueue(seedTrack: TrackModel? = _currentTrack.value) {
         recommendationJob?.cancel()
         recommendationJob = viewModelScope.launch(Dispatchers.IO) {
-            val current = seedTrack ?: _currentTrack.value ?: return@launch
-            val existingUrls = _currentQueue.value.mapNotNull { it.audioUrl }.toSet()
-            val recommendations = SmartRecommendationEngine.computeNextRecommendations(
-                currentTrack = current,
-                trendingTracks = _trendingTracks.value,
-                topCharts = _topCharts.value,
-                dao = dao,
-                youtubeRepository = youtubeRepository,
-                existingQueueUrls = existingUrls,
-                count = 10
-            )
-            if (recommendations.isNotEmpty()) {
-                // Pre-extract streams for upcoming recommendations so playback transitions seamlessly
-                recommendations.take(2).forEach { rec ->
-                    rec.audioUrl?.let { url ->
-                        if (!isTrackDownloaded(url)) {
-                            StreamExtractionManager.preExtract(url)
+            try {
+                val current = seedTrack ?: _currentTrack.value ?: return@launch
+                val existingUrls = _currentQueue.value.mapNotNull { it.audioUrl }.toSet()
+                val recommendations = SmartRecommendationEngine.computeNextRecommendations(
+                    currentTrack = current,
+                    trendingTracks = _trendingTracks.value,
+                    topCharts = _topCharts.value,
+                    dao = dao,
+                    youtubeRepository = youtubeRepository,
+                    existingQueueUrls = existingUrls,
+                    count = 10
+                )
+                if (recommendations.isNotEmpty()) {
+                    // Pre-extract streams for upcoming recommendations so playback transitions seamlessly
+                    recommendations.take(2).forEach { rec ->
+                        rec.audioUrl?.let { url ->
+                            if (!isTrackDownloaded(url)) {
+                                StreamExtractionManager.preExtract(url)
+                            }
                         }
                     }
-                }
-                withContext(Dispatchers.Main) {
-                    val updatedQueue = _currentQueue.value.toMutableList()
-                    recommendations.forEach { rec ->
-                        if (!updatedQueue.any { it.audioUrl == rec.audioUrl }) {
-                            updatedQueue.add(rec)
+                    withContext(Dispatchers.Main) {
+                        val updatedQueue = _currentQueue.value.toMutableList()
+                        recommendations.forEach { rec ->
+                            if (!updatedQueue.any { it.audioUrl == rec.audioUrl }) {
+                                updatedQueue.add(rec)
+                            }
                         }
+                        _currentQueue.value = updatedQueue
+                        Log.d(tag, "Smart auto-queue populated with ${recommendations.size} recommendations")
                     }
-                    _currentQueue.value = updatedQueue
-                    Log.d(tag, "Smart auto-queue populated with ${recommendations.size} recommendations")
                 }
+            } catch (e: Exception) {
+                Log.e(tag, "Failed to populate smart next queue: ${e.message}", e)
             }
         }
     }
 
     private fun triggerSmartAutoPlay() {
         viewModelScope.launch(Dispatchers.IO) {
-            val current = _currentTrack.value
-            val existingUrls = _currentQueue.value.mapNotNull { it.audioUrl }.toSet()
-            val recommendations = SmartRecommendationEngine.computeNextRecommendations(
-                currentTrack = current,
-                trendingTracks = _trendingTracks.value,
-                topCharts = _topCharts.value,
-                dao = dao,
-                youtubeRepository = youtubeRepository,
-                existingQueueUrls = existingUrls,
-                count = 10
-            )
-            
-            val nextTrack = recommendations.firstOrNull()
-                ?: _trendingTracks.value.firstOrNull { it.audioUrl !in existingUrls }
-                ?: _topCharts.value.firstOrNull { it.audioUrl !in existingUrls }
-                ?: downloadedTracks.value.firstOrNull { it.audioUrl != current?.audioUrl && it.audioUrl !in existingUrls }
-                ?: favoriteTracks.value.firstOrNull { it.audioUrl != current?.audioUrl && it.audioUrl !in existingUrls }
-                ?: _currentQueue.value.firstOrNull()
-                ?: _trendingTracks.value.firstOrNull()
-                ?: downloadedTracks.value.firstOrNull()
-                ?: favoriteTracks.value.firstOrNull()
+            try {
+                val current = _currentTrack.value
+                val existingUrls = _currentQueue.value.mapNotNull { it.audioUrl }.toSet()
+                val recommendations = SmartRecommendationEngine.computeNextRecommendations(
+                    currentTrack = current,
+                    trendingTracks = _trendingTracks.value,
+                    topCharts = _topCharts.value,
+                    dao = dao,
+                    youtubeRepository = youtubeRepository,
+                    existingQueueUrls = existingUrls,
+                    count = 10
+                )
+                
+                val nextTrack = recommendations.firstOrNull()
+                    ?: _trendingTracks.value.firstOrNull { it.audioUrl !in existingUrls }
+                    ?: _topCharts.value.firstOrNull { it.audioUrl !in existingUrls }
+                    ?: downloadedTracks.value.firstOrNull { it.audioUrl != current?.audioUrl && it.audioUrl !in existingUrls }
+                    ?: favoriteTracks.value.firstOrNull { it.audioUrl != current?.audioUrl && it.audioUrl !in existingUrls }
+                    ?: _currentQueue.value.firstOrNull()
+                    ?: _trendingTracks.value.firstOrNull()
+                    ?: downloadedTracks.value.firstOrNull()
+                    ?: favoriteTracks.value.firstOrNull()
 
-            if (nextTrack != null) {
-                nextTrack.audioUrl?.let { url ->
-                    if (!isTrackDownloaded(url)) {
-                        StreamExtractionManager.preExtract(url)
-                    }
-                }
-                withContext(Dispatchers.Main) {
-                    val updatedQueue = if (recommendations.isNotEmpty()) {
-                        (_currentQueue.value + recommendations).distinctBy { it.audioUrl }
-                    } else {
-                        if (!_currentQueue.value.any { it.audioUrl == nextTrack.audioUrl }) {
-                            _currentQueue.value + nextTrack
-                        } else {
-                            _currentQueue.value
+                if (nextTrack != null) {
+                    nextTrack.audioUrl?.let { url ->
+                        if (!isTrackDownloaded(url)) {
+                            StreamExtractionManager.preExtract(url)
                         }
                     }
-                    playTrack(nextTrack, updatedQueue)
+                    withContext(Dispatchers.Main) {
+                        val updatedQueue = if (recommendations.isNotEmpty()) {
+                            (_currentQueue.value + recommendations).distinctBy { it.audioUrl }
+                        } else {
+                            if (!_currentQueue.value.any { it.audioUrl == nextTrack.audioUrl }) {
+                                _currentQueue.value + nextTrack
+                            } else {
+                                _currentQueue.value
+                            }
+                        }
+                        playTrack(nextTrack, updatedQueue)
+                    }
+                } else {
+                    Log.w(tag, "Smart auto-play could not find any track to play!")
                 }
-            } else {
-                Log.w(tag, "Smart auto-play could not find any track to play!")
+            } catch (e: Exception) {
+                Log.e(tag, "Smart auto-play error: ${e.message}", e)
             }
         }
     }
